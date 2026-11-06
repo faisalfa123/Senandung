@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Senandung - Interactive Live Demo</title>
+  <title>Senandung - Mode Dengar Sendiri & Streaming Bareng</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
-    /* Custom Spotify dark theme styling */
     :root {
       --spotify-green: #1db954;
       --spotify-green-hover: #1ed760;
@@ -23,20 +22,53 @@
       direction: rtl;
       height: 90px;
     }
+    /* Floating emoji reaction animation */
+    @keyframes floatUp {
+      0% {
+        opacity: 1;
+        transform: translateY(0) scale(0.8) rotate(0deg);
+      }
+      50% {
+        transform: translateY(-80px) scale(1.3) rotate(15deg);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-160px) scale(1) rotate(-10deg);
+      }
+    }
+    .floating-emoji {
+      position: absolute;
+      pointer-events: none;
+      animation: floatUp 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      font-size: 28px;
+      z-index: 999;
+    }
   </style>
 </head>
-<body class="bg-[#121212] text-white font-sans antialiased select-none h-screen flex flex-col overflow-hidden">
+<body class="bg-[#121212] text-white font-sans antialiased select-none h-screen flex flex-col overflow-hidden relative">
 
-  <!-- Top Info Banner -->
-  <div class="bg-[#181818] border-b border-[#282828] px-4 py-2 flex items-center justify-between text-xs text-[#a0a0a0]">
+  <!-- Container for floating emoji reactions -->
+  <div id="emojiContainer" class="absolute inset-0 pointer-events-none overflow-hidden z-50"></div>
+
+  <!-- Top Info Banner & Mode Status -->
+  <div class="bg-[#181818] border-b border-[#282828] px-4 py-2 flex flex-wrap items-center justify-between text-xs text-[#a0a0a0] gap-2">
     <div class="flex items-center gap-2">
-      <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#1db954] animate-pulse"></span>
-      <span class="font-medium text-white">Senandung Live Demo Mode</span>
-      <span class="bg-[#282828] px-2 py-0.5 rounded text-[11px] text-[#1db954]">STB DietPi (HG680P / Odroid C2) Simulator</span>
+      <span id="livePulse" class="inline-block w-2.5 h-2.5 rounded-full bg-[#1db954] animate-pulse"></span>
+      <span class="font-medium text-white">Senandung v2.0</span>
+      <span id="badgeActiveMode" class="bg-[#1db954]/20 border border-[#1db954]/40 px-2 py-0.5 rounded text-[11px] text-[#1db954] font-semibold">
+        🎧 Mode Dengar Sendiri (Solo)
+      </span>
     </div>
-    <div class="flex items-center gap-3">
-      <span>NTP Sync: <strong class="text-[#1db954]">±0.12ms</strong></span>
-      <span>Simulated RAM: <strong class="text-white">18.4 MB</strong></span>
+    
+    <div class="flex items-center gap-4">
+      <div id="partySyncStats" class="hidden sm:flex items-center gap-3 text-[11px]">
+        <span>Room: <strong class="text-white" id="lblRoomName">Ruang Tamu</strong></span>
+        <span>Listener: <strong class="text-[#1db954]" id="lblListeners">3 HP Aktif</strong></span>
+        <span>Clock Offset: <strong class="text-[#1db954]">±0.12ms</strong></span>
+      </div>
+      <div class="flex items-center gap-1.5 text-[11px]">
+        <span>STB RAM: <strong class="text-white">18.4 MB</strong></span>
+      </div>
     </div>
   </div>
 
@@ -44,7 +76,7 @@
   <div class="flex flex-1 overflow-hidden">
     
     <!-- Sidebar -->
-    <aside class="w-60 bg-black p-5 flex flex-col justify-between border-r border-[#222] hidden md:flex">
+    <aside class="w-60 bg-black p-5 flex flex-col justify-between border-r border-[#222] hidden md:flex shrink-0">
       <div class="space-y-6">
         <div class="flex items-center gap-3 text-[#1db954] text-xl font-bold tracking-tight">
           <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor">
@@ -55,7 +87,7 @@
 
         <nav class="space-y-1">
           <button onclick="switchTab('home')" id="nav-home" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#242424] transition">
-            <span>🏠</span> Beranda
+            <span>🏠</span> Beranda Musik
           </button>
           <button onclick="switchTab('favorites')" id="nav-favorites" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] transition">
             <span>❤️</span> Lagu Favorit
@@ -64,27 +96,30 @@
             <span>📲</span> Offline Mode (HP)
           </button>
           <button onclick="switchTab('sync')" id="nav-sync" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] transition">
-            <span>📻</span> Party Sync Simulator
+            <span>📻</span> Room Streaming Bareng
           </button>
         </nav>
       </div>
 
-      <!-- Priority Badge Status -->
-      <div class="bg-[#1a1a1a] p-3 rounded-xl border border-[#2a2a2a] text-xs space-y-1.5">
-        <div class="text-[#a0a0a0] font-medium flex justify-between">
-          <span>Priority Engine</span>
-          <span class="text-[#1db954]">Cgroups Active</span>
+      <!-- Quick Room Switcher Card -->
+      <div class="bg-[#181818] p-3 rounded-xl border border-[#2a2a2a] text-xs space-y-2">
+        <div class="text-[#a0a0a0] font-medium flex justify-between items-center">
+          <span>Ganti Ruangan</span>
+          <span class="text-[#1db954] text-[10px]">● Online</span>
         </div>
-        <div class="space-y-1 text-[11px] text-[#888]">
-          <div class="flex justify-between"><span>Immich:</span> <span class="text-white font-mono">Nice -5</span></div>
-          <div class="flex justify-between"><span>Senandung:</span> <span class="text-[#1db954] font-mono">Nice 0</span></div>
-          <div class="flex justify-between"><span>Dompet Mungil:</span> <span class="text-white font-mono">Nice 0</span></div>
+        <select id="roomSelector" onchange="changeRoom(this.value)" class="w-full bg-[#242424] text-white border border-[#333] rounded-lg p-1.5 text-xs focus:outline-none focus:border-[#1db954]">
+          <option value="Ruang Tamu">🛋️ Ruang Tamu (Utama)</option>
+          <option value="Kamar Tidur">🛏️ Kamar Tidur</option>
+          <option value="Dapur & Teras">☕ Dapur & Teras</option>
+        </select>
+        <div class="text-[10px] text-[#777]">
+          Semua HP di room yang sama akan mendengarkan lagu serentak.
         </div>
       </div>
     </aside>
 
     <!-- Main Content Area -->
-    <main class="flex-1 overflow-y-auto custom-scroll p-6 bg-gradient-to-b from-[#202020] to-[#121212]">
+    <main class="flex-1 overflow-y-auto custom-scroll p-4 sm:p-6 bg-gradient-to-b from-[#202020] to-[#121212]">
       
       <!-- Top Action Bar -->
       <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6">
@@ -106,10 +141,11 @@
 
       <!-- Tab: Home -->
       <section id="view-home" class="tab-view space-y-4">
-        <h2 class="text-xl font-bold">Koleksi Musik STB & Cloud</h2>
-        <div id="homeSongList" class="space-y-1.5">
-          <!-- Rendered via JS -->
+        <div class="flex justify-between items-center">
+          <h2 class="text-xl font-bold">Koleksi Musik STB & Cloud</h2>
+          <span class="text-xs text-[#888]"><span id="songCountDisplay">3</span> Lagu Tersedia</span>
         </div>
+        <div id="homeSongList" class="space-y-1.5"></div>
       </section>
 
       <!-- Tab: Favorites -->
@@ -122,53 +158,71 @@
       <section id="view-offline" class="tab-view hidden space-y-4">
         <div>
           <h2 class="text-xl font-bold">Tersimpan di Memori HP (Offline Mode)</h2>
-          <p class="text-xs text-[#888] mt-1">Lagu ini disimpan di Cache API ponsel. Dapat diputar lancar meski WiFi rumah mati.</p>
+          <p class="text-xs text-[#888] mt-1">Lagu ini disimpan di Cache API ponsel. Dapat diputar lancar saat bepergian tanpa WiFi rumah.</p>
         </div>
         <div id="offlineSongList" class="space-y-1.5"></div>
       </section>
 
-      <!-- Tab: Multi-Device Sync Simulator -->
+      <!-- Tab: Multi-Device Sync Room -->
       <section id="view-sync" class="tab-view hidden space-y-6">
         <div>
-          <h2 class="text-xl font-bold">📻 Multi-Device Synchronized Audio Simulator</h2>
-          <p class="text-xs text-[#888] mt-1">Simulasi pemutaran sinkron di beberapa speaker dan smartphone dalam satu jaringan LAN.</p>
+          <h2 class="text-xl font-bold">📻 Live Synchronized Party Room</h2>
+          <p class="text-xs text-[#888] mt-1">Status seluruh perangkat yang sedang mendengarkan bersamaan di room ini.</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <!-- Device 1: Host Phone -->
-          <div class="bg-[#1c1c1c] border border-[#2d2d2d] rounded-xl p-4 text-center space-y-3">
-            <div class="text-3xl">📱</div>
-            <div class="font-semibold text-sm">Smartphone Anda (Host)</div>
-            <div class="text-[11px] text-[#1db954] font-mono">Master Clock (0ms offset)</div>
-            <div class="h-2 bg-[#2d2d2d] rounded-full overflow-hidden">
-              <div id="dev1-bar" class="h-full bg-[#1db954] w-0 transition-all"></div>
+        <!-- Room Live Bar -->
+        <div class="bg-[#1e1e1e] border border-[#333] rounded-2xl p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <div class="text-xs text-[#1db954] font-bold uppercase tracking-wider">Sedang Streaming di Room:</div>
+              <div class="text-lg font-bold text-white flex items-center gap-2 mt-0.5">
+                <span id="roomBannerTitle">Ruang Tamu</span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-[#1db954]/20 text-[#1db954] border border-[#1db954]/40">Active Session</span>
+              </div>
+            </div>
+
+            <!-- Reaction Emoticon Buttons -->
+            <div class="flex items-center gap-2 bg-[#282828] p-1.5 rounded-full border border-[#3a3a3a]">
+              <span class="text-xs text-[#888] pl-2 pr-1 hidden sm:inline">Kirim Reaksi:</span>
+              <button onclick="sendReaction('❤️')" class="hover:scale-125 transition text-lg px-1.5">❤️</button>
+              <button onclick="sendReaction('🔥')" class="hover:scale-125 transition text-lg px-1.5">🔥</button>
+              <button onclick="sendReaction('👏')" class="hover:scale-125 transition text-lg px-1.5">👏</button>
+              <button onclick="sendReaction('🎉')" class="hover:scale-125 transition text-lg px-1.5">🎉</button>
+              <button onclick="sendReaction('💃')" class="hover:scale-125 transition text-lg px-1.5">💃</button>
             </div>
           </div>
 
-          <!-- Device 2: Speaker Ruang Tamu -->
-          <div class="bg-[#1c1c1c] border border-[#2d2d2d] rounded-xl p-4 text-center space-y-3">
-            <div class="text-3xl">🔊</div>
-            <div class="font-semibold text-sm">Speaker Ruang Tamu</div>
-            <div class="text-[11px] text-[#1db954] font-mono">Sync Client (+0.08ms offset)</div>
-            <div class="h-2 bg-[#2d2d2d] rounded-full overflow-hidden">
-              <div id="dev2-bar" class="h-full bg-[#1db954] w-0 transition-all"></div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+            <!-- Device 1: Host Phone -->
+            <div class="bg-[#181818] border border-[#2d2d2d] rounded-xl p-4 text-center space-y-2">
+              <div class="text-3xl">📱</div>
+              <div class="font-semibold text-sm">Smartphone Anda (Host)</div>
+              <div class="text-[11px] text-[#1db954] font-mono">Master Web Audio Clock</div>
+              <div class="h-2 bg-[#2d2d2d] rounded-full overflow-hidden">
+                <div id="dev1-bar" class="h-full bg-[#1db954] w-0 transition-all"></div>
+              </div>
+            </div>
+
+            <!-- Device 2: Speaker Ruang Tamu -->
+            <div class="bg-[#181818] border border-[#2d2d2d] rounded-xl p-4 text-center space-y-2">
+              <div class="text-3xl">🔊</div>
+              <div class="font-semibold text-sm">Speaker Ruang Tamu</div>
+              <div class="text-[11px] text-[#1db954] font-mono">Sync Client (+0.08ms)</div>
+              <div class="h-2 bg-[#2d2d2d] rounded-full overflow-hidden">
+                <div id="dev2-bar" class="h-full bg-[#1db954] w-0 transition-all"></div>
+              </div>
+            </div>
+
+            <!-- Device 3: Speaker Kamar Tidur -->
+            <div class="bg-[#181818] border border-[#2d2d2d] rounded-xl p-4 text-center space-y-2">
+              <div class="text-3xl">📻</div>
+              <div class="font-semibold text-sm">Odroid C2 / STB Audio Out</div>
+              <div class="text-[11px] text-[#1db954] font-mono">Direct DAC (-0.02ms)</div>
+              <div class="h-2 bg-[#2d2d2d] rounded-full overflow-hidden">
+                <div id="dev3-bar" class="h-full bg-[#1db954] w-0 transition-all"></div>
+              </div>
             </div>
           </div>
-
-          <!-- Device 3: Speaker Kamar Tidur -->
-          <div class="bg-[#1c1c1c] border border-[#2d2d2d] rounded-xl p-4 text-center space-y-3">
-            <div class="text-3xl">📻</div>
-            <div class="font-semibold text-sm">Odroid C2 / STB Audio Out</div>
-            <div class="text-[11px] text-[#1db954] font-mono">Direct DAC (-0.02ms offset)</div>
-            <div class="h-2 bg-[#2d2d2d] rounded-full overflow-hidden">
-              <div id="dev3-bar" class="h-full bg-[#1db954] w-0 transition-all"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-[#181818] border border-[#282828] rounded-xl p-4 text-xs text-[#aaa] space-y-2">
-          <div class="font-bold text-white">Cara Kerja Sinkronisasi Senandung:</div>
-          <p>Setiap perangkat mengirim paket ping ringan ke Go WebSocket Hub untuk menghitung selisih jam lokal dengan server STB. Saat tombol Play ditekan, server memancarkan target milidetik pemutaran ($T + 200\text{ms}$), sehingga semua hardware menembakkan audio serentak pada saat yang tepat.</p>
         </div>
       </section>
 
@@ -176,23 +230,29 @@
   </div>
 
   <!-- Bottom Player Bar -->
-  <footer class="h-24 bg-[#181818] border-t border-[#282828] px-4 sm:px-6 flex items-center justify-between z-50">
+  <footer class="h-24 bg-[#181818] border-t border-[#282828] px-3 sm:px-6 flex items-center justify-between z-40 shrink-0">
     
-    <!-- Left: Track Meta -->
-    <div class="flex items-center gap-3 w-1/4 min-w-[160px]">
+    <!-- Left: Track Meta & Solo/Party Mode Switch -->
+    <div class="flex items-center gap-3 w-1/3 min-w-[160px]">
       <div id="currentCover" class="w-12 h-12 rounded-lg bg-[#282828] flex items-center justify-center text-xl shrink-0">
         🎵
       </div>
       <div class="overflow-hidden">
         <div id="currentTitle" class="text-sm font-semibold truncate text-white">Belum Memutar</div>
         <div id="currentArtist" class="text-xs text-[#a0a0a0] truncate">Pilih lagu di atas</div>
+        
+        <!-- Toggle Button: Solo vs Party Mode -->
+        <button onclick="togglePlaybackMode()" id="btnModeToggle" class="mt-1 flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#282828] hover:bg-[#333] text-[#bbb] border border-[#3a3a3a] transition">
+          <span id="modeIcon">🎧</span>
+          <span id="modeLabel">Solo (Sendiri)</span>
+        </button>
       </div>
-      <button onclick="toggleFavCurrent()" id="btnCurrentFav" class="text-sm ml-1 hover:scale-110 transition">🤍</button>
+      <button onclick="toggleFavCurrent()" id="btnCurrentFav" class="text-sm ml-1 hover:scale-110 transition hidden sm:inline">🤍</button>
     </div>
 
     <!-- Center: Controls & Slider -->
-    <div class="flex flex-col items-center w-2/4 max-w-xl">
-      <div class="flex items-center gap-4 mb-1">
+    <div class="flex flex-col items-center w-1/3 max-w-xl">
+      <div class="flex items-center gap-3 sm:gap-4 mb-1">
         <button onclick="toggleShuffle()" id="btnShuffle" class="text-xs text-[#888] hover:text-white transition">🔀</button>
         <button onclick="prevSong()" class="text-sm text-[#ddd] hover:text-white transition">⏮️</button>
         <button onclick="togglePlay()" id="btnPlay" class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center font-bold text-sm hover:scale-105 transition shadow-lg">
@@ -211,16 +271,21 @@
       </div>
     </div>
 
-    <!-- Right: Extra Features -->
-    <div class="flex items-center justify-end gap-3 w-1/4">
+    <!-- Right: Extra Features (Speed, Karaoke, EQ, Timer, Offline) -->
+    <div class="flex items-center justify-end gap-2 sm:gap-3 w-1/3">
+      <!-- Speed selector -->
+      <button onclick="cycleSpeed()" id="btnSpeed" class="text-[11px] font-bold bg-[#242424] hover:bg-[#333] border border-[#383838] px-2 py-1 rounded text-[#bbb]" title="Kecepatan Pemutaran">
+        1.0x
+      </button>
+
       <button onclick="openKaraoke()" class="text-sm p-1.5 hover:text-[#1db954] transition" title="Lirik Karaoke">🎤</button>
       <button onclick="openModal('eqModal')" class="text-sm p-1.5 hover:text-[#1db954] transition" title="Equalizer 5-Band">🎚️</button>
       <button onclick="setSleepTimer()" class="text-sm p-1.5 hover:text-[#1db954] transition" title="Sleep Timer">⏱️</button>
       <button onclick="saveCurrentOffline()" class="text-sm p-1.5 hover:text-[#1db954] transition" title="Download ke HP (Offline PWA)">📲</button>
       
-      <div class="hidden lg:flex items-center gap-1.5 ml-2">
+      <div class="hidden lg:flex items-center gap-1.5 ml-1">
         <span class="text-xs">🔊</span>
-        <input type="range" min="0" max="1" step="0.05" value="0.8" oninput="changeVolume(this.value)" class="w-16 accent-[#1db954] cursor-pointer">
+        <input type="range" min="0" max="1" step="0.05" value="0.8" oninput="changeVolume(this.value)" class="w-14 accent-[#1db954] cursor-pointer">
       </div>
     </div>
   </footer>
@@ -297,13 +362,12 @@
       <button onclick="closeKaraoke()" class="text-base text-[#aaa] hover:text-white">✕ Tutup</button>
     </div>
     <div id="karaokeLines" class="flex-1 overflow-y-auto custom-scroll flex flex-col items-center justify-center space-y-6 max-w-xl mx-auto w-full text-center">
-      <!-- Lyrics lines -->
     </div>
   </div>
 
   <!-- JavaScript Logic with Web Audio API Synthesizer -->
   <script>
-    // Sample Song Library with Synchronized LRC Lyrics
+    // Sample Song Library
     const songs = [
       {
         id: "s1",
@@ -360,8 +424,11 @@
     let favorites = new Set(["s1"]);
     let offlineSongs = new Set(["s1"]);
     let timerInterval = null;
+    let playbackSpeed = 1.0;
+    let isPartyMode = false; // False = Mode Sendiri (Solo), True = Mode Streaming Bareng (Party)
+    let currentRoom = "Ruang Tamu";
 
-    // Web Audio Synthesizer Tone Player (0 external audio dependencies)
+    // Web Audio Synthesizer Tone Player
     let audioCtx = null;
     let synthOsc = null;
     let synthGain = null;
@@ -385,20 +452,20 @@
         if (synthOsc) synthOsc.stop();
         synthOsc = ctx.createOscillator();
         synthOsc.type = 'triangle';
-        synthOsc.frequency.setValueAtTime(261.63, ctx.currentTime); // Middle C
+        synthOsc.frequency.setValueAtTime(261.63, ctx.currentTime);
         
-        // Gentle chord progression
         const notes = [261.63, 329.63, 392.00, 523.25, 440.00];
         let noteIdx = 0;
         synthOsc.connect(synthGain);
         synthOsc.start();
 
+        const intervalMs = Math.round(1200 / playbackSpeed);
         window.synthTimer = setInterval(() => {
           if (isPlaying && synthOsc && audioCtx) {
             noteIdx = (noteIdx + 1) % notes.length;
             synthOsc.frequency.setValueAtTime(notes[noteIdx], audioCtx.currentTime);
           }
-        }, 1200);
+        }, intervalMs);
       } catch (e) {
         console.warn(e);
       }
@@ -412,12 +479,80 @@
       if (window.synthTimer) clearInterval(window.synthTimer);
     }
 
+    // Toggle Solo vs Party Mode
+    function togglePlaybackMode() {
+      isPartyMode = !isPartyMode;
+      const btn = document.getElementById('btnModeToggle');
+      const icon = document.getElementById('modeIcon');
+      const label = document.getElementById('modeLabel');
+      const badge = document.getElementById('badgeActiveMode');
+
+      if (isPartyMode) {
+        icon.innerText = "📻";
+        label.innerText = `Party (${currentRoom})`;
+        btn.classList.add('bg-[#1db954]', 'text-black', 'border-[#1ed760]');
+        btn.classList.remove('bg-[#282828]', 'text-[#bbb]', 'border-[#3a3a3a]');
+        badge.innerHTML = `📻 Mode Streaming Bareng: <strong>${currentRoom}</strong>`;
+        badge.className = "bg-[#1db954] text-black px-2 py-0.5 rounded text-[11px] font-bold";
+        alert(`Beralih ke MODE STREAMING BARENG!\nAudio Anda kini tersinkronisasi di room "${currentRoom}". Klien lain dapat mendengar dan kirim reaksi bersama.`);
+      } else {
+        icon.innerText = "🎧";
+        label.innerText = "Solo (Sendiri)";
+        btn.classList.remove('bg-[#1db954]', 'text-black', 'border-[#1ed760]');
+        btn.classList.add('bg-[#282828]', 'text-[#bbb]', 'border-[#3a3a3a]');
+        badge.innerHTML = "🎧 Mode Dengar Sendiri (Solo)";
+        badge.className = "bg-[#1db954]/20 border border-[#1db954]/40 px-2 py-0.5 rounded text-[11px] text-[#1db954] font-semibold";
+        alert("Beralih ke MODE DENGAR SENDIRI (SOLO).\nAudio diputar pribadi di perangkat ini tanpa menyinkronkan speaker lain.");
+      }
+    }
+
+    function changeRoom(newRoom) {
+      currentRoom = newRoom;
+      document.getElementById('lblRoomName').innerText = newRoom;
+      document.getElementById('roomBannerTitle').innerText = newRoom;
+      if (isPartyMode) {
+        document.getElementById('modeLabel').innerText = `Party (${currentRoom})`;
+        document.getElementById('badgeActiveMode').innerHTML = `📻 Mode Streaming Bareng: <strong>${currentRoom}</strong>`;
+      }
+    }
+
+    // Floating Emoji Reaction System
+    function sendReaction(emoji) {
+      const container = document.getElementById('emojiContainer');
+      const el = document.createElement('div');
+      el.className = 'floating-emoji';
+      el.innerText = emoji;
+      
+      // Random horizontal position near center/bottom
+      const randomLeft = 30 + Math.random() * 40;
+      el.style.left = randomLeft + '%';
+      el.style.bottom = '100px';
+
+      container.appendChild(el);
+      setTimeout(() => {
+        el.remove();
+      }, 2000);
+    }
+
+    // Playback Speed Cycle (0.75x -> 1.0x -> 1.25x -> 1.5x)
+    function cycleSpeed() {
+      const speeds = [0.75, 1.0, 1.25, 1.5];
+      const idx = speeds.indexOf(playbackSpeed);
+      playbackSpeed = speeds[(idx + 1) % speeds.length];
+      document.getElementById('btnSpeed').innerText = playbackSpeed.toFixed(2).replace('.00', '.0') + 'x';
+      if (isPlaying) {
+        stopSynthMelody();
+        startSynthMelody();
+      }
+    }
+
     // Initialize UI
     function init() {
       renderSongList(songs, document.getElementById('homeSongList'));
       renderFavList();
       renderOfflineList();
       updatePlayerUI();
+      document.getElementById('songCountDisplay').innerText = songs.length;
     }
 
     function renderSongList(list, container) {
@@ -472,6 +607,10 @@
       startProgress();
       updatePlayerUI();
       renderSongList(songs, document.getElementById('homeSongList'));
+
+      if (isPartyMode) {
+        sendReaction('🎵');
+      }
     }
 
     function togglePlay() {
@@ -661,6 +800,7 @@
         closeModal('downloadModal');
         document.getElementById('dlQuery').value = '';
         renderSongList(songs, document.getElementById('homeSongList'));
+        document.getElementById('songCountDisplay').innerText = songs.length;
         alert(`Sukses! "${query}" berhasil diunduh ke STB tanpa mengganggu Immich.`);
       }, 2500);
     }
@@ -719,7 +859,6 @@
       return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
     }
 
-    // Run init
     init();
   </script>
 </body>
