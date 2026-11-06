@@ -79,7 +79,7 @@ func main() {
 	}
 	mux.Handle("/", http.FileServer(http.FS(subFS)))
 
-	serverAddr := fmt.Sprintf(":%d", *port)
+	serverAddr := fmt.Sprintf("0.0.0.0:%d", *port)
 	server := &http.Server{
 		Addr:    serverAddr,
 		Handler: mux,

@@ -364,6 +364,15 @@ systemctl daemon-reload
 systemctl enable senandung >/dev/null 2>&1
 systemctl restart senandung >/dev/null 2>&1
 
+# Buka Firewall untuk Port Senandung (agar akses LAN tidak timeout)
+echo -e "${CYAN}    * Membuka akses firewall untuk port ${CONF_PORT}/tcp...${NC}"
+if command -v ufw >/dev/null 2>&1; then
+  ufw allow ${CONF_PORT}/tcp >/dev/null 2>&1 || true
+fi
+if command -v iptables >/dev/null 2>&1; then
+  iptables -I INPUT -p tcp --dport ${CONF_PORT} -j ACCEPT >/dev/null 2>&1 || true
+fi
+
 # 6. Terapkan Skema Prioritas OS DietPi jika disetujui
 if [ "$CONF_PRIORITY" == "yes" ] && [ -f "./scripts/apply-priority.sh" ]; then
   echo -e "${CYAN}[6/6] Menerapkan hierarki prioritas DietPi (Immich > Senandung > Kompic > Bumiayu)...${NC}"
