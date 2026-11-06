@@ -294,18 +294,34 @@ EOF
 
 # 4. Pasang binary
 echo -e "${CYAN}[4/6] Menyiapkan executable Senandung...${NC}"
-if [ -f "./senandung" ]; then
+ARCH=$(uname -m)
+BIN_FOUND=0
+
+if [ -f "./bin/senandung-linux-${ARCH}" ]; then
+  cp "./bin/senandung-linux-${ARCH}" "${INSTALL_DIR}/senandung"
+  chmod +x "${INSTALL_DIR}/senandung"
+  BIN_FOUND=1
+elif [ -f "./senandung" ]; then
   cp "./senandung" "${INSTALL_DIR}/senandung"
   chmod +x "${INSTALL_DIR}/senandung"
-elif [ -f "./main.go" ]; then
+  BIN_FOUND=1
+fi
+
+if [ "$BIN_FOUND" -eq 0 ]; then
   if command -v go >/dev/null 2>&1; then
+    echo "    Mengompilasi binary langsung di target OS..."
     go build -ldflags="-s -w" -o "${INSTALL_DIR}/senandung" .
+    chmod +x "${INSTALL_DIR}/senandung"
   else
-    # Unduh release binary pre-compiled dari GitHub jika go belum ada
-    echo "    Mengunduh binary pre-compiled ARM64 dari repositori..."
-    curl -sSL -o "${INSTALL_DIR}/senandung" "https://raw.githubusercontent.com/faisalfa123/Senandung/main/senandung" || true
+    echo "    Mengunduh binary pre-compiled untuk ${ARCH}..."
+    curl -sSL -o "${INSTALL_DIR}/senandung" "https://raw.githubusercontent.com/faisalfa123/Senandung/main/bin/senandung-linux-${ARCH}" || true
     chmod +x "${INSTALL_DIR}/senandung"
   fi
+fi
+
+if [ ! -s "${INSTALL_DIR}/senandung" ]; then
+  echo -e "${RED}[ERROR] Gagal memasang binary ${INSTALL_DIR}/senandung!${NC}"
+  exit 1
 fi
 
 # 5. Konfigurasi Systemd Unit
