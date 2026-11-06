@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Senandung - Musik Bersama & Offline</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1db954">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231db954'><path d='M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z'/></svg>">
+</head>
+<body>
+
+  <!-- App Layout -->
+  <div class="app-container">
+    
+    <!-- Sidebar Desktop -->
+    <aside class="sidebar">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+        </svg>
+        <span>Senandung</span>
+      </div>
+
+      <ul class="nav-links">
+        <li class="nav-item active" data-tab="tab-home">
+          <span>🏠 Beranda</span>
+        </li>
+        <li class="nav-item" data-tab="tab-favorites">
+          <span>❤️ Lagu Favorit</span>
+        </li>
+        <li class="nav-item" data-tab="tab-offline">
+          <span>📲 Offline Mode</span>
+        </li>
+        <li class="nav-item" data-tab="tab-playlists">
+          <span>📂 Playlist</span>
+        </li>
+        <li class="nav-item" data-tab="tab-sync">
+          <span>📻 Party Sync Room</span>
+        </li>
+      </ul>
+
+      <div class="room-badge">
+        <div class="badge-title">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--primary);"></span>
+          <span id="roomStatusText">Room: Main Hall</span>
+        </div>
+        <div class="badge-desc" id="listenerCountText">1 Perangkat Terhubung</div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      
+      <!-- Top Bar: Search & Actions -->
+      <header class="top-bar">
+        <div class="search-bar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="searchInput" placeholder="Cari lagu lokal atau ketik judul untuk unduh...">
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn btn-primary" id="btnOpenDownloadModal">
+            <span>⬇️ Unduh YT</span>
+          </button>
+          <button class="btn" id="btnScanLocal">
+            <span>🔄 Pindai STB</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- View Sections -->
+      <section id="tab-home" class="view-section active">
+        <h2 class="section-title">Semua Lagu</h2>
+        <div class="song-list" id="homeSongList">
+          <div style="color:var(--text-muted); font-size:14px;">Memuat koleksi lagu...</div>
+        </div>
+      </section>
+
+      <section id="tab-favorites" class="view-section">
+        <h2 class="section-title">Lagu Favorit Kamu</h2>
+        <div class="song-list" id="favoritesSongList"></div>
+      </section>
+
+      <section id="tab-offline" class="view-section">
+        <h2 class="section-title">Tersimpan di Perangkat (Offline PWA)</h2>
+        <div style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">
+          Lagu di bawah ini telah diunduh ke memori browser HP/laptop kamu, dapat diputar tanpa WiFi STB.
+        </div>
+        <div class="song-list" id="offlineSongList"></div>
+      </section>
+
+      <section id="tab-playlists" class="view-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h2 class="section-title" style="margin:0;">Daftar Playlist</h2>
+          <button class="btn" id="btnCreatePlaylist">+ Playlist Baru</button>
+        </div>
+        <div id="playlistContainer" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:16px;"></div>
+      </section>
+
+      <section id="tab-sync" class="view-section">
+        <h2 class="section-title">📻 Multi-Device Synchronized Party Room</h2>
+        <div style="background:#1e1e1e; padding:20px; border-radius:10px; max-width:600px; border:1px solid #333;">
+          <p style="font-size:14px; line-height:1.6; color:#ccc; margin-bottom:16px;">
+            Fitur ini menyinkronkan pemutaran audio dengan presisi milidetik (Web Audio API Clock) di semua HP atau speaker yang terhubung ke Room yang sama di jaringan LAN / WiFi rumah.
+          </p>
+          <div style="display:flex; gap:10px; margin-bottom:16px;">
+            <input type="text" id="roomNameInput" value="main_hall" style="background:#2a2a2a; border:1px solid #444; color:#fff; padding:10px; border-radius:8px; flex:1;">
+            <button class="btn btn-primary" id="btnJoinRoom">Ganti Room</button>
+          </div>
+          <div id="syncClockInfo" style="font-size:12px; color:var(--primary); font-family:monospace;">
+            NTP Clock Sync: Terhubung (Offset: 0 ms)
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Bottom Player Bar -->
+  <footer class="player-bar">
+    <!-- Left: Track info -->
+    <div class="player-left">
+      <div id="playerCoverWrapper" class="player-cover" style="display:flex; align-items:center; justify-content:center; background:#282828;">🎵</div>
+      <div class="player-track-info">
+        <div class="player-title" id="playerTitle">Belum Memutar Lagu</div>
+        <div class="player-artist" id="playerArtist">Pilih lagu dari daftar</div>
+      </div>
+      <button class="icon-btn" id="playerFavBtn" title="Favorit">🤍</button>
+    </div>
+
+    <!-- Center: Playback Controls & Progress -->
+    <div class="player-center">
+      <div class="player-controls">
+        <button class="icon-btn" id="btnShuffle" title="Acak Lagu">🔀</button>
+        <button class="icon-btn" id="btnPrev">⏮️</button>
+        <button class="play-pause-btn" id="btnPlayPause">▶️</button>
+        <button class="icon-btn" id="btnNext">⏭️</button>
+        <button class="icon-btn" id="btnRepeat" title="Ulangi Lagu">🔁</button>
+      </div>
+      
+      <div class="progress-container">
+        <span class="time-text" id="currentTimeText">0:00</span>
+        <div class="progress-bar-wrapper" id="progressWrapper">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <span class="time-text" id="totalDurationText">0:00</span>
+      </div>
+    </div>
+
+    <!-- Right: Extra Features (Lyrics, EQ, Timer, Audio Visualizer, Volume) -->
+    <div class="player-right">
+      <button class="icon-btn" id="btnLyrics" title="Lirik Lagu (Karaoke)">🎤</button>
+      <button class="icon-btn" id="btnEqualizer" title="Equalizer 5-Band">🎚️</button>
+      <button class="icon-btn" id="btnSleepTimer" title="Sleep Timer">⏱️</button>
+      <button class="icon-btn" id="btnDownloadOffline" title="Simpan ke HP (Offline PWA)">📲</button>
+      
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span style="font-size:12px;">🔊</span>
+        <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1" style="width:70px;">
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modal: Download dari YouTube -->
+  <div class="modal-overlay" id="downloadModal">
+    <div class="modal-box">
+      <h3 class="modal-title">⬇️ Unduh Lagu via YouTube (yt-dlp)</h3>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">
+        Masukkan tautan YouTube atau ketik judul lagu/artis. Proses berjalan di latar belakang STB secara hemat CPU (nice 19).
+      </p>
+      <input type="text" id="ytQueryInput" placeholder="Contoh: Tulus - Hati-Hati di Jalan atau link youtube" style="width:100%; padding:10px; border-radius:6px; background:#181818; border:1px solid #444; color:#fff; margin-bottom:14px;">
+      
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn" id="btnCloseDownloadModal">Tutup</button>
+        <button class="btn btn-primary" id="btnStartDownload">Mulai Unduh</button>
+      </div>
+
+      <div id="downloadQueueList" style="margin-top:16px; max-height:150px; overflow-y:auto; font-size:12px;"></div>
+    </div>
+  </div>
+
+  <!-- Modal: Equalizer 5-Band -->
+  <div class="modal-overlay" id="equalizerModal">
+    <div class="modal-box">
+      <h3 class="modal-title">🎚️ Equalizer 5-Band & Bass Booster</h3>
+      <div class="eq-container">
+        <div class="eq-band">
+          <input type="range" id="eq60" min="-12" max="12" step="1" value="0">
+          <span>60Hz (Sub)</span>
+        </div>
+        <div class="eq-band">
+          <input type="range" id="eq250" min="-12" max="12" step="1" value="0">
+          <span>250Hz (Bass)</span>
+        </div>
+        <div class="eq-band">
+          <input type="range" id="eq1k" min="-12" max="12" step="1" value="0">
+          <span>1kHz (Mid)</span>
+        </div>
+        <div class="eq-band">
+          <input type="range" id="eq4k" min="-12" max="12" step="1" value="0">
+          <span>4kHz (Presence)</span>
+        </div>
+        <div class="eq-band">
+          <input type="range" id="eq16k" min="-12" max="12" step="1" value="0">
+          <span>16kHz (Treble)</span>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <button class="btn" id="btnResetEQ">Reset Flat</button>
+        <button class="btn btn-primary" id="btnCloseEQ">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Karaoke Lyrics Drawer -->
+  <div class="lyrics-overlay" id="lyricsOverlay">
+    <div style="width:100%; max-width:600px; display:flex; justify-content:space-between; margin-bottom:20px;">
+      <h2 style="font-size:18px;">🎤 Lirik Sinkron Karaoke</h2>
+      <button class="icon-btn" id="btnCloseLyrics" style="font-size:20px;">✖️</button>
+    </div>
+    <div id="lyricsContent" style="display:flex; flex-direction:column; align-items:center; width:100%;">
+      <div style="color:var(--text-muted); font-size:16px;">Lirik tidak tersedia untuk lagu ini.</div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/audio.js"></script>
+  <script src="/js/sync.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(console.error);
+    }
+  </script>
+</body>
+</html>

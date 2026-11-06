@@ -1,0 +1,26 @@
+[Unit]
+Description=Senandung - Ultra-Lightweight Spotify-like PWA with Audio Sync
+After=network.target immich.service dompetmungil.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/senandung
+ExecStart=/opt/senandung/senandung -port 8989 -data-dir /mnt/dietpi_userdata/senandung -music-dir /mnt/dietpi_userdata/music
+Restart=always
+RestartSec=5
+
+# Manajemen Prioritas OS DietPi
+# Prioritas: Immich (Nice -5) > Senandung + Dompet Mungil (Nice 0) > Kompic (Nice 10) > Bumiayu (Nice 15)
+Nice=0
+CPUSchedulingPolicy=other
+CPUQuota=50%
+MemoryHigh=150M
+MemoryMax=250M
+
+# Keamanan & Isolasi Resource
+ProtectSystem=full
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

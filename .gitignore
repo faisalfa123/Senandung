@@ -1,0 +1,16 @@
+# Binary
+senandung
+senandung-*
+dist/
+
+# Data runtime & database
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
