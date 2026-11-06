@@ -323,16 +323,35 @@ echo -e "${GREEN}=====================================================${NC}"
 echo -e "${GREEN}  Memulai Instalasi Senandung Berdasarkan Konfigurasi ${NC}"
 echo -e "${GREEN}=====================================================${NC}\n"
 
-# 1. Pasang dependensi
-echo -e "${CYAN}[1/6] Memeriksa & memasang dependensi paket OS (ffmpeg, curl, ca-certificates)...${NC}"
-apt-get update -qq
-apt-get install -y -qq ffmpeg curl ca-certificates >/dev/null
+# 1. Pasang dependensi (Cek dahulu, lewati jika sudah ada di sistem)
+echo -e "${CYAN}[1/6] Memeriksa dependensi sistem (ffmpeg, curl, ca-certificates)...${NC}"
+MISSING_PKGS=""
+for pkg in ffmpeg curl ca-certificates; do
+  if ! dpkg -s "$pkg" >/dev/null 2>&1; then
+    MISSING_PKGS+="$pkg "
+  else
+    echo -e "    * Paket ${GREEN}$pkg${NC} sudah terpasang di sistem. (Dilewati)"
+  fi
+done
 
-# 2. Pasang yt-dlp binary standalone terbaru
-echo -e "${CYAN}[2/6] Memasang yt-dlp standalone binary terbaru...${NC}"
-if ! command -v yt-dlp >/dev/null 2>&1; then
-  curl -sSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+if [ -n "$MISSING_PKGS" ]; then
+  echo -e "    * Memasang paket yang belum ada: ${YELLOW}$MISSING_PKGS${NC}..."
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $MISSING_PKGS
+else
+  echo -e "    ${GREEN}✔ Seluruh paket dependensi sudah lengkap.${NC}"
+fi
+
+# 2. Pasang yt-dlp binary standalone (Cek dahulu, lewati download jika sudah ada)
+echo -e "${CYAN}[2/6] Memeriksa yt-dlp standalone binary...${NC}"
+if command -v yt-dlp >/dev/null 2>&1; then
+  CURRENT_YTDLP_VER=$(yt-dlp --version 2>/dev/null || echo "terpasang")
+  echo -e "    ${GREEN}✔ yt-dlp sudah terpasang di sistem (${CURRENT_YTDLP_VER}). (Tidak perlu download ulang)${NC}"
+else
+  echo -e "    * Mengunduh yt-dlp standalone terbaru..."
+  curl -L --progress-bar https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
   chmod a+rx /usr/local/bin/yt-dlp
+  echo -e "    ${GREEN}✔ yt-dlp berhasil dipasang.${NC}"
 fi
 
 # 3. Siapkan folder
