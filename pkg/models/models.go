@@ -27,12 +27,16 @@ type Playlist struct {
 
 // DownloadJob status antrean unduhan dari YouTube
 type DownloadJob struct {
-	ID          string `json:"id"`
-	Query       string `json:"query"` // URL atau kata kunci
-	Title       string `json:"title"`
-	Status      string `json:"status"` // "pending", "downloading", "completed", "failed"
-	Progress    string `json:"progress"`
-	Error       string `json:"error,omitempty"`
+	ID               string `json:"id"`
+	Query            string `json:"query"` // URL atau kata kunci
+	Title            string `json:"title"`
+	Format           string `json:"format"` // "flac" atau "mp3"
+	Status           string `json:"status"` // "pending", "downloading", "completed", "failed"
+	Progress         string `json:"progress"`
+	Percent          int    `json:"percent"` // 0-100 persen
+	Speed            string `json:"speed,omitempty"`
+	ETA              string `json:"eta,omitempty"`
+	Error            string `json:"error,omitempty"`
 	DownloadedSongID string `json:"downloaded_song_id,omitempty"`
 }
 

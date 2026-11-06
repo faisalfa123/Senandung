@@ -36,21 +36,27 @@ Senandung menyertakan script integrasi prioritas CPU & I/O agar layanan penting 
 
 ---
 
-## 🚀 Instalasi Cepat di DietPi (STB HG680P / Odroid C2)
+## 🚀 Instalasi Interaktif Berbasis TUI di DietPi (STB HG680P / Odroid C2)
 
-Cukup clone repositori ini dan jalankan installer satu-klik:
+Senandung dilengkapi dengan **Wizard TUI Interaktif** (`install-tui.sh`) yang ramah pengguna, otomatis mendeteksi lokasi folder musik (penyimpanan lokal atau flashdisk/harddisk eksternal), serta memberikan menu konfigurasi lengkap sebelum proses pemasangan dimulai.
+
+Jalankan satu perintah ini di terminal STB Anda:
 
 ```bash
 git clone https://github.com/faisalfa123/Senandung.git
 cd Senandung
-sudo bash install.sh
+sudo bash install-tui.sh
 ```
 
-Installer otomatis akan:
-1. Memasang paket dependensi (`ffmpeg`, `curl`, `ca-certificates`).
-2. Mengunduh binary standalone `yt-dlp` terbaru.
-3. Memasang dan mengaktifkan service systemd `/etc/systemd/system/senandung.service`.
-4. Menerapkan aturan cgroups & nice prioritas di seluruh service terkait.
+### ⚙️ Menu Konfigurasi TUI yang Tersedia:
+1. **Autodetect Folder Musik**: Otomatis mendeteksi `/mnt/dietpi_userdata/music`, flashdisk USB `/mnt/sda1`, dll., dengan kebebasan untuk mengubahnya.
+2. **Kustomisasi Port HTTP**: Port web server (Default: `8989`).
+3. **Format Audio Utama**: Pilihan `✨ Hi-Res Lossless FLAC 24-bit/96kHz` atau `🎵 Standar MP3 320k`.
+4. **Nama Ruangan Default**: Pengaturan nama party room awal (misal: *Ruang Tamu*).
+5. **Batas CPU Quota & RAM OOM Guard**: Pengaturan cgroups (`30%`, `50%`, `75%` CPU, serta batas memori `200M`/`350M`).
+6. **Prioritas DietPi Otomatis**: Integrasi Systemd hierarki prioritas (`Immich > Senandung > Kompic > Bumiayu`).
+7. **Auto-Scan & Lirik Sidecar (.LRC)**: Pindai otomatis lagu & lirik saat boot pertama.
+8. **Deteksi IP LAN & Tailscale**: Menampilkan alamat URL lokal dan Tailscale remote secara otomatis setelah instalasi selesai.
 
 Buka browser di ponsel atau PC Anda:
 ```

@@ -219,43 +219,91 @@
         </div>
       </section>
 
-      <!-- ================= 2. TAB: PENCARIAN RINGAN YOUTUBE (TEXT ONLY - TANPA GAMBAR) ================= -->
+      <!-- ================= 2. TAB: PENCARIAN & DOWNLOAD MANAGER (SPLIT VIEW) ================= -->
       <section id="view-ytsearch" class="tab-view hidden space-y-6">
         <div>
           <div class="flex justify-between items-start">
             <div>
               <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2">
-                <span>⚡</span> Pencarian Ringan YouTube (Text-Only Mode)
+                <span>⚡</span> Pencarian YouTube & Download Manager
               </h2>
               <p class="text-xs text-[#888] mt-1">
-                Mode hemat RAM & bandwidth: 100% tanpa gambar thumbnail. Cari lagu, putar streaming Hi-Res langsung tanpa download, atau unduh FLAC ke STB.
+                Panel pencarian terpisah dengan antrean download: cari lagu bebas tanpa jeda meskipun proses download sedang berjalan.
               </p>
             </div>
-            <div class="bg-[#181818] border border-[#2a2a2a] px-3 py-1 rounded-lg text-[11px] text-[#1db954] font-mono">
-              Bandwidth Saver: ON (0 KB Images)
+            <div class="flex items-center gap-2">
+              <span class="bg-[#181818] border border-[#2a2a2a] px-3 py-1 rounded-lg text-[11px] text-[#1db954] font-mono">
+                Bebas Gambar (0 KB Thumbnail)
+              </span>
             </div>
           </div>
         </div>
 
-        <!-- Text-Only Search Input Box -->
-        <div class="bg-[#181818] p-4 rounded-xl border border-[#2a2a2a] flex flex-col sm:flex-row gap-3">
-          <input type="text" id="ytSearchInput" placeholder="Ketik judul lagu, penyanyi, atau link YouTube..." 
-                 class="flex-1 bg-[#242424] text-sm text-white placeholder-[#888] rounded-lg px-4 py-2.5 border border-[#333] focus:outline-none focus:border-[#1db954]">
-          <button onclick="performTextOnlyYTSearch()" id="btnPerformYTSearch" class="bg-[#1db954] hover:bg-[#1ed760] text-black font-bold px-6 py-2.5 rounded-lg text-xs transition flex items-center justify-center gap-2">
-            <span>🔍</span> Cari Cepat
-          </button>
-        </div>
+        <!-- Two Column Split Panel Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          <!-- LEFT PANEL: Text-Only Fast Search (Col 7) -->
+          <div class="lg:col-span-7 space-y-4">
+            <div class="bg-[#181818] p-4 rounded-xl border border-[#2a2a2a] space-y-3">
+              <div class="text-xs font-bold text-white flex items-center justify-between">
+                <span>🔍 Cari Lagu di YouTube</span>
+                <span class="text-[10px] text-[#888]">Tekan Enter atau klik tombol</span>
+              </div>
+              <div class="flex gap-2">
+                <input type="text" id="ytSearchInput" onkeydown="if(event.key==='Enter') performTextOnlyYTSearch()" placeholder="Ketik judul lagu, artis, atau link YouTube..." 
+                       class="flex-1 bg-[#242424] text-xs sm:text-sm text-white placeholder-[#888] rounded-lg px-3.5 py-2.5 border border-[#333] focus:outline-none focus:border-[#1db954]">
+                <button onclick="performTextOnlyYTSearch()" id="btnPerformYTSearch" class="bg-[#1db954] hover:bg-[#1ed760] text-black font-bold px-4 py-2.5 rounded-lg text-xs transition flex items-center gap-1.5 shrink-0">
+                  <span>🔍</span> Cari
+                </button>
+              </div>
+            </div>
 
-        <!-- Search Results List (Clean Text Only) -->
-        <div class="space-y-3">
-          <div class="flex justify-between items-center text-xs text-[#888]">
-            <span>Hasil Pencarian YouTube Audio Stream:</span>
-            <span id="ytResultCount">3 Hasil Siap Stream</span>
+            <!-- Search Results Container -->
+            <div class="space-y-2">
+              <div class="flex justify-between items-center text-xs text-[#888] px-1">
+                <span>Hasil Pencarian (Text-Only):</span>
+                <span id="ytResultCount">3 Hasil Siap Stream / Download</span>
+              </div>
+
+              <div id="ytSearchResults" class="space-y-2">
+                <!-- Rendered via JS -->
+              </div>
+            </div>
           </div>
 
-          <div id="ytSearchResults" class="space-y-2">
-            <!-- Rendered via JS -->
+          <!-- RIGHT PANEL: Live Download Queue & Progress Bar (Col 5) -->
+          <div class="lg:col-span-5 space-y-4">
+            <div class="bg-[#181818] p-4 rounded-xl border border-[#2a2a2a] space-y-3">
+              <div class="flex justify-between items-center border-b border-[#282828] pb-2.5">
+                <div class="text-xs font-bold text-white flex items-center gap-2">
+                  <span>⬇️</span> Antrean Download STB
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span id="queueBadgeCount" class="bg-[#1db954]/20 border border-[#1db954]/40 text-[#1db954] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    0 Antrean
+                  </span>
+                  <button onclick="clearCompletedJobs()" class="text-[10px] text-[#888] hover:text-white transition">Bersihkan</button>
+                </div>
+              </div>
+
+              <!-- Queue items list with live progress % -->
+              <div id="downloadQueueListContainer" class="space-y-2.5 max-h-[460px] overflow-y-auto custom-scroll pr-1">
+                <!-- Live Queue Items rendered via JS -->
+              </div>
+            </div>
+
+            <!-- STB CPU & Storage Guard Card -->
+            <div class="bg-[#141414] p-3.5 rounded-xl border border-[#222] text-[11px] text-[#888] space-y-1.5">
+              <div class="flex justify-between text-white font-medium">
+                <span>STB Background Worker</span>
+                <span class="text-[#1db954]">1 Active Worker</span>
+              </div>
+              <p class="text-[10px] text-[#777]">
+                Download berjalan dengan <code>nice 19</code> (idle priority). RAM dan CPU STB tetap dingin sehingga Immich tidak terganggu.
+              </p>
+            </div>
           </div>
+
         </div>
       </section>
 
@@ -758,6 +806,7 @@
       renderDashboardSongs();
       renderPlaylists();
       renderYTSearchResults();
+      renderDownloadQueue();
       updatePlayerUI();
       applyDynamicTheme();
     }
@@ -1083,45 +1132,147 @@
       alert(`Berhasil! Seluruh koleksi (${songs.length} lagu) telah disimpan ke Cache PWA ponsel untuk pemutaran offline.`);
     }
 
-    // Downloader with Format & Lyrics
+    // Live Download Queue Manager
+    let downloadQueueJobs = [
+      { id: "job_101", title: "Tulus - Interaksi (Acoustic)", format: "FLAC", status: "downloading", percent: 45, speed: "2.4 MB/s", eta: "8s" }
+    ];
+
+    function renderDownloadQueue() {
+      const container = document.getElementById('downloadQueueListContainer');
+      const badge = document.getElementById('queueBadgeCount');
+      if (!container) return;
+
+      container.innerHTML = '';
+      const activeJobs = downloadQueueJobs.filter(j => j.status === 'downloading' || j.status === 'pending');
+      badge.innerText = `${activeJobs.length} Aktif`;
+
+      if (downloadQueueJobs.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-[#777] text-xs">
+            <div class="text-2xl mb-1">☕</div>
+            Tidak ada antrean download saat ini.<br>Cari lagu di sebelah kiri untuk menambah antrean.
+          </div>
+        `;
+        return;
+      }
+
+      downloadQueueJobs.forEach(job => {
+        const item = document.createElement('div');
+        item.className = 'bg-[#1e1e1e] border border-[#2d2d2d] rounded-xl p-3 space-y-2 text-xs transition';
+        
+        let statusBadge = '';
+        if (job.status === 'downloading') {
+          statusBadge = `<span class="text-[#1db954] font-bold text-[10px] animate-pulse">⏳ Mengunduh (${job.percent}%)</span>`;
+        } else if (job.status === 'completed') {
+          statusBadge = `<span class="text-[#1db954] font-bold text-[10px]">✔ Selesai</span>`;
+        } else if (job.status === 'failed') {
+          statusBadge = `<span class="text-red-400 font-bold text-[10px]">✕ Gagal</span>`;
+        } else {
+          statusBadge = `<span class="text-[#ffd700] font-bold text-[10px]">Menunggu Antrean</span>`;
+        }
+
+        item.innerHTML = `
+          <div class="flex justify-between items-start gap-2">
+            <div class="truncate">
+              <div class="font-bold text-white truncate text-xs">${escapeHtml(job.title)}</div>
+              <div class="text-[10px] text-[#888] flex items-center gap-2 mt-0.5">
+                <span class="text-[#ffd700] font-semibold">${job.format}</span>
+                <span>• Speed: ${job.speed || 'N/A'}</span>
+                <span>• ETA: ${job.eta || '-'}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              ${statusBadge}
+              <button onclick="cancelDownloadJob('${job.id}')" class="text-[#666] hover:text-white text-xs px-1" title="Batalkan">✕</button>
+            </div>
+          </div>
+          <!-- Progress Bar -->
+          <div class="h-1.5 bg-[#2a2a2a] rounded-full overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-[#1db954] to-[#1ed760] transition-all duration-300" style="width: ${job.percent}%;"></div>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function cancelDownloadJob(id) {
+      downloadQueueJobs = downloadQueueJobs.filter(j => j.id !== id);
+      renderDownloadQueue();
+    }
+
+    function clearCompletedJobs() {
+      downloadQueueJobs = downloadQueueJobs.filter(j => j.status === 'downloading' || j.status === 'pending');
+      renderDownloadQueue();
+    }
+
+    // Downloader with Format & Progress Simulation (Split Panel)
     function startDownloadWithFormat(format) {
       const query = document.getElementById('dlInputQuery').value.trim();
       if (!query) return;
 
-      document.getElementById('dlQueueLoading').classList.remove('hidden');
-      document.getElementById('dlTargetText').innerText = `${query} (${format.toUpperCase()})`;
+      closeModal('downloadModal');
+      document.getElementById('dlInputQuery').value = '';
 
-      setTimeout(() => {
-        const isFlac = format === 'flac';
-        pendingDownloadedSong = {
-          id: 's_' + Date.now(),
-          title: query,
-          artist: "Hasil Unduhan YouTube",
-          album: isFlac ? "Koleksi FLAC Hi-Res" : "Koleksi Standar",
-          duration: 190,
-          cover: isFlac ? "✨" : "🎧",
-          themeColor: isFlac ? "#332a10" : "#1a253a",
-          isHiRes: isFlac,
-          codec: isFlac ? "FLAC" : "MP3",
-          bitDepth: isFlac ? 24 : 16,
-          sampleRate: isFlac ? "96 kHz" : "44.1 kHz",
-          bitrate: isFlac ? "1411 kbps" : "320 kbps",
-          source: "youtube",
-          lyrics: null
-        };
+      // Tambahkan ke Download Queue Panel
+      const isFlac = format.toLowerCase() === 'flac';
+      const jobId = 'job_' + Date.now();
+      const newJob = {
+        id: jobId,
+        title: query,
+        format: isFlac ? "FLAC 24-bit" : "MP3 320k",
+        status: "downloading",
+        percent: 5,
+        speed: "3.1 MB/s",
+        eta: "12s"
+      };
 
-        const simulatedInternetLRC = `[00:02.00] ♪ Alunan audio ${isFlac ? 'FLAC Lossless 24-bit' : 'MP3 320k'} ♪
+      downloadQueueJobs.unshift(newJob);
+      renderDownloadQueue();
+
+      // Animasi live progress bar (%) bertahap tanpa memblokir pencarian
+      let progress = 5;
+      const progressTimer = setInterval(() => {
+        progress += Math.floor(Math.random() * 15) + 8;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(progressTimer);
+          newJob.percent = 100;
+          newJob.status = "completed";
+          newJob.speed = "Selesai";
+          newJob.eta = "0s";
+          renderDownloadQueue();
+
+          // Buat objek lagu dan buka alur persetujuan lirik
+          pendingDownloadedSong = {
+            id: 's_' + Date.now(),
+            title: query,
+            artist: "Hasil Unduhan YouTube",
+            album: isFlac ? "Koleksi FLAC Hi-Res" : "Koleksi Standar",
+            duration: 190,
+            cover: isFlac ? "✨" : "🎧",
+            themeColor: isFlac ? "#332a10" : "#1a253a",
+            isHiRes: isFlac,
+            codec: isFlac ? "FLAC" : "MP3",
+            bitDepth: isFlac ? 24 : 16,
+            sampleRate: isFlac ? "96 kHz" : "44.1 kHz",
+            bitrate: isFlac ? "1411 kbps" : "320 kbps",
+            source: "youtube",
+            lyrics: null
+          };
+
+          const simulatedInternetLRC = `[00:02.00] ♪ Alunan audio ${isFlac ? 'FLAC Lossless 24-bit' : 'MP3 320k'} ♪
 [00:08.50] Di bawah langit malam yang tenang
 [00:16.00] Bersama senandung suara yang kurindu
 [00:25.00] Melangkah maju meraih impian kita
 [00:36.00] Takkan pernah berhenti bernyanyi...`;
 
-        document.getElementById('dlQueueLoading').classList.add('hidden');
-        closeModal('downloadModal');
-        document.getElementById('dlInputQuery').value = '';
-
-        openLyricsApproval(pendingDownloadedSong, simulatedInternetLRC);
-      }, 2000);
+          openLyricsApproval(pendingDownloadedSong, simulatedInternetLRC);
+        } else {
+          newJob.percent = progress;
+          newJob.eta = Math.max(1, Math.round((100 - progress) / 8)) + 's';
+          renderDownloadQueue();
+        }
+      }, 450);
     }
 
     function openLyricsApproval(song, lrcText) {
