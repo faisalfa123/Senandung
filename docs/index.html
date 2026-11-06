@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Senandung - Interactive Live Demo</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    /* Custom Spotify dark theme styling */
+    :root {
+      --spotify-green: #1db954;
+      --spotify-green-hover: #1ed760;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 3px;
+    }
+    .slider-vertical {
+      writing-mode: vertical-lr;
+      direction: rtl;
+      height: 90px;
+    }
+  </style>
+</head>
+<body class="bg-[#121212] text-white font-sans antialiased select-none h-screen flex flex-col overflow-hidden">
+
+  <!-- Top Info Banner -->
+  <div class="bg-[#181818] border-b border-[#282828] px-4 py-2 flex items-center justify-between text-xs text-[#a0a0a0]">
+    <div class="flex items-center gap-2">
+      <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#1db954] animate-pulse"></span>
+      <span class="font-medium text-white">Senandung Live Demo Mode</span>
+      <span class="bg-[#282828] px-2 py-0.5 rounded text-[11px] text-[#1db954]">STB DietPi (HG680P / Odroid C2) Simulator</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span>NTP Sync: <strong class="text-[#1db954]">±0.12ms</strong></span>
+      <span>Simulated RAM: <strong class="text-white">18.4 MB</strong></span>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="flex flex-1 overflow-hidden">
+    
+    <!-- Sidebar -->
+    <aside class="w-60 bg-black p-5 flex flex-col justify-between border-r border-[#222] hidden md:flex">
+      <div class="space-y-6">
+        <div class="flex items-center gap-3 text-[#1db954] text-xl font-bold tracking-tight">
+          <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+          </svg>
+          <span class="text-white">Senandung</span>
+        </div>
+
+        <nav class="space-y-1">
+          <button onclick="switchTab('home')" id="nav-home" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#242424] transition">
+            <span>🏠</span> Beranda
+          </button>
+          <button onclick="switchTab('favorites')" id="nav-favorites" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] transition">
+            <span>❤️</span> Lagu Favorit
+          </button>
+          <button onclick="switchTab('offline')" id="nav-offline" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] transition">
+            <span>📲</span> Offline Mode (HP)
+          </button>
+          <button onclick="switchTab('sync')" id="nav-sync" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] transition">
+            <span>📻</span> Party Sync Simulator
+          </button>
+        </nav>
+      </div>
+
+      <!-- Priority Badge Status -->
+      <div class="bg-[#1a1a1a] p-3 rounded-xl border border-[#2a2a2a] text-xs space-y-1.5">
+        <div class="text-[#a0a0a0] font-medium flex justify-between">
+          <span>Priority Engine</span>
+          <span class="text-[#1db954]">Cgroups Active</span>
+        </div>
+        <div class="space-y-1 text-[11px] text-[#888]">
+          <div class="flex justify-between"><span>Immich:</span> <span class="text-white font-mono">Nice -5</span></div>
+          <div class="flex justify-between"><span>Senandung:</span> <span class="text-[#1db954] font-mono">Nice 0</span></div>
+          <div class="flex justify-between"><span>Dompet Mungil:</span> <span class="text-white font-mono">Nice 0</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto custom-scroll p-6 bg-gradient-to-b from-[#202020] to-[#121212]">
+      
+      <!-- Top Action Bar -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6">
+        <div class="relative flex-1 max-w-md">
+          <input type="text" id="demoSearchInput" oninput="handleSearch(this.value)" placeholder="Cari lagu di koleksi atau unduh YouTube..." 
+                 class="w-full bg-[#242424] text-sm text-white placeholder-[#888] rounded-full px-4 py-2.5 pl-10 focus:outline-none focus:ring-2 focus:ring-[#1db954]">
+          <span class="absolute left-3.5 top-2.5 text-[#888] text-sm">🔍</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="openModal('downloadModal')" class="bg-[#1db954] hover:bg-[#1ed760] text-black font-semibold px-4 py-2 rounded-full text-xs flex items-center gap-1.5 transition">
+            <span>⬇️</span> Unduh YouTube
+          </button>
+          <button onclick="scanLocalSTB()" id="btnScan" class="bg-[#282828] hover:bg-[#333] border border-[#3a3a3a] text-white px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 transition">
+            <span>🔄</span> Scan STB
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab: Home -->
+      <section id="view-home" class="tab-view space-y-4">
+        <h2 class="text-xl font-bold">Koleksi Musik STB & Cloud</h2>
+        <div id="homeSongList" class="space-y-1.5">
+          <!-- Rendered via JS -->
+        </div>
+      </section>
+
+      <!-- Tab: Favorites -->
+      <section id="view-favorites" class="tab-view hidden space-y-4">
+        <h2 class="text-xl font-bold">Lagu Favorit ❤️</h2>
+        <div id="favSongList" class="space-y-1.5"></div>
+      </section>
+
+      <!-- Tab: Offline -->
+      <section id="view-offline" class="tab-view hidden space-y-4">
+        <div>
+          <h2 class="text-xl font-bold">Tersimpan di Memori HP (Offline Mode)</h2>
+          <p class="text-xs text-[#888] mt-1">Lagu ini disimpan di Cache API ponsel. Dapat diputar lancar meski WiFi rumah mati.</p>
+        </div>
+        <div id="offlineSongList" class="space-y-1.5"></div>
+      </section>
+
+      <!-- Tab: Multi-Device Sync Simulator -->
+      <section id="view-sync" class="tab-view hidden space-y-6">
+        <div>
+          <h2 class="text-xl font-bold">📻 Multi-Device Synchronized Audio Simulator</h2>
+          <p class="text-xs text-[#888] mt-1">Simulasi pemutaran sinkron di beberapa speaker dan smartphone dalam satu jaringan LAN.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Device 1: Host Phone -->
+          <div class="bg-[#1c1c1c] border border-[#2d2d2d] rounded-xl p-4 text-center space-y-3">
+            <div class="text-3xl">📱</div>
+            <div class="font-semibold text-sm">Smartphone Anda (Host)</div>
+            <div class="text-[11px] text-[#1db954] font-mono">Master Clock (0ms offset)</div>
+            <div class="h-2 bg-[#2d2d2d] rounded-full overflow-hidden">
+              <div id="dev1-bar" class="h-full bg-[#1db954] w-0 transition-all"></div>
+            </div>
+          </div>
+
+          <!-- Device 2: Speaker Ruang Tamu -->
+          <div class="bg-[#1c1c1c] border border-[#2d2d2d] rounded-xl p-4 text-center space-y-3">
+            <div class="text-3xl">🔊</div>
+            <div class="font-semibold text-sm">Speaker Ruang Tamu</div>
+            <div class="text-[11px] text-[#1db954] font-mono">Sync Client (+0.08ms offset)</div>
+            <div class="h-2 bg-[#2d2d2d] rounded-full overflow-hidden">
+              <div id="dev2-bar" class="h-full bg-[#1db954] w-0 transition-all"></div>
+            </div>
+          </div>
+
+          <!-- Device 3: Speaker Kamar Tidur -->
+          <div class="bg-[#1c1c1c] border border-[#2d2d2d] rounded-xl p-4 text-center space-y-3">
+            <div class="text-3xl">📻</div>
+            <div class="font-semibold text-sm">Odroid C2 / STB Audio Out</div>
+            <div class="text-[11px] text-[#1db954] font-mono">Direct DAC (-0.02ms offset)</div>
+            <div class="h-2 bg-[#2d2d2d] rounded-full overflow-hidden">
+              <div id="dev3-bar" class="h-full bg-[#1db954] w-0 transition-all"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-[#181818] border border-[#282828] rounded-xl p-4 text-xs text-[#aaa] space-y-2">
+          <div class="font-bold text-white">Cara Kerja Sinkronisasi Senandung:</div>
+          <p>Setiap perangkat mengirim paket ping ringan ke Go WebSocket Hub untuk menghitung selisih jam lokal dengan server STB. Saat tombol Play ditekan, server memancarkan target milidetik pemutaran ($T + 200\text{ms}$), sehingga semua hardware menembakkan audio serentak pada saat yang tepat.</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Bottom Player Bar -->
+  <footer class="h-24 bg-[#181818] border-t border-[#282828] px-4 sm:px-6 flex items-center justify-between z-50">
+    
+    <!-- Left: Track Meta -->
+    <div class="flex items-center gap-3 w-1/4 min-w-[160px]">
+      <div id="currentCover" class="w-12 h-12 rounded-lg bg-[#282828] flex items-center justify-center text-xl shrink-0">
+        🎵
+      </div>
+      <div class="overflow-hidden">
+        <div id="currentTitle" class="text-sm font-semibold truncate text-white">Belum Memutar</div>
+        <div id="currentArtist" class="text-xs text-[#a0a0a0] truncate">Pilih lagu di atas</div>
+      </div>
+      <button onclick="toggleFavCurrent()" id="btnCurrentFav" class="text-sm ml-1 hover:scale-110 transition">🤍</button>
+    </div>
+
+    <!-- Center: Controls & Slider -->
+    <div class="flex flex-col items-center w-2/4 max-w-xl">
+      <div class="flex items-center gap-4 mb-1">
+        <button onclick="toggleShuffle()" id="btnShuffle" class="text-xs text-[#888] hover:text-white transition">🔀</button>
+        <button onclick="prevSong()" class="text-sm text-[#ddd] hover:text-white transition">⏮️</button>
+        <button onclick="togglePlay()" id="btnPlay" class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center font-bold text-sm hover:scale-105 transition shadow-lg">
+          ▶️
+        </button>
+        <button onclick="nextSong()" class="text-sm text-[#ddd] hover:text-white transition">⏭️</button>
+        <button onclick="toggleRepeat()" id="btnRepeat" class="text-xs text-[#888] hover:text-white transition">🔁</button>
+      </div>
+
+      <div class="flex items-center gap-2 w-full text-[11px] text-[#888]">
+        <span id="txtCurrentTime">0:00</span>
+        <div onclick="seekProgress(event)" id="progressContainer" class="flex-1 h-1 bg-[#3a3a3a] rounded-full cursor-pointer relative group">
+          <div id="progressBar" class="h-full bg-white group-hover:bg-[#1db954] rounded-full w-0 transition-all"></div>
+        </div>
+        <span id="txtDuration">0:00</span>
+      </div>
+    </div>
+
+    <!-- Right: Extra Features -->
+    <div class="flex items-center justify-end gap-3 w-1/4">
+      <button onclick="openKaraoke()" class="text-sm p-1.5 hover:text-[#1db954] transition" title="Lirik Karaoke">🎤</button>
+      <button onclick="openModal('eqModal')" class="text-sm p-1.5 hover:text-[#1db954] transition" title="Equalizer 5-Band">🎚️</button>
+      <button onclick="setSleepTimer()" class="text-sm p-1.5 hover:text-[#1db954] transition" title="Sleep Timer">⏱️</button>
+      <button onclick="saveCurrentOffline()" class="text-sm p-1.5 hover:text-[#1db954] transition" title="Download ke HP (Offline PWA)">📲</button>
+      
+      <div class="hidden lg:flex items-center gap-1.5 ml-2">
+        <span class="text-xs">🔊</span>
+        <input type="range" min="0" max="1" step="0.05" value="0.8" oninput="changeVolume(this.value)" class="w-16 accent-[#1db954] cursor-pointer">
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modal: Download YouTube Simulator -->
+  <div id="downloadModal" class="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-[#242424] border border-[#333] rounded-2xl p-5 w-full max-w-md space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-base">⬇️ Unduh Lagu via YouTube (yt-dlp)</h3>
+        <button onclick="closeModal('downloadModal')" class="text-sm text-[#888] hover:text-white">✕</button>
+      </div>
+      <p class="text-xs text-[#aaa]">
+        Mendukung URL YouTube atau pencarian kata kunci. Proses otomatis dikawal dengan prioritas rendah (nice 19) agar STB tetap dingin.
+      </p>
+      <input type="text" id="dlQuery" placeholder="Judul lagu atau link YouTube..." 
+             class="w-full bg-[#181818] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1db954]">
+      
+      <div id="dlQueueDisplay" class="bg-[#181818] p-3 rounded-lg text-xs space-y-1.5 max-h-32 overflow-y-auto hidden">
+        <div class="text-[#1db954] font-semibold flex items-center gap-1.5">
+          <span class="animate-spin text-sm">⏳</span> Mengunduh di background STB...
+        </div>
+        <div class="text-[11px] text-[#888]">Antrean tunggal aman CPU: <span id="dlTargetName">...</span></div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal('downloadModal')" class="px-4 py-2 rounded-lg text-xs font-semibold bg-[#333] hover:bg-[#444]">Tutup</button>
+        <button onclick="simulateDownload()" id="btnStartDl" class="px-4 py-2 rounded-lg text-xs font-semibold bg-[#1db954] text-black hover:bg-[#1ed760]">Mulai Unduh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Equalizer 5-Band -->
+  <div id="eqModal" class="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-[#242424] border border-[#333] rounded-2xl p-5 w-full max-w-md space-y-5">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-base">🎚️ Equalizer 5-Band & Bass Booster</h3>
+        <button onclick="closeModal('eqModal')" class="text-sm text-[#888] hover:text-white">✕</button>
+      </div>
+      <div class="flex justify-around items-center py-2">
+        <div class="flex flex-col items-center gap-2 text-[11px] text-[#aaa]">
+          <input type="range" min="-12" max="12" value="4" class="slider-vertical accent-[#1db954]" oninput="updateEQ(0, this.value)">
+          <span>60Hz (Sub)</span>
+        </div>
+        <div class="flex flex-col items-center gap-2 text-[11px] text-[#aaa]">
+          <input type="range" min="-12" max="12" value="2" class="slider-vertical accent-[#1db954]" oninput="updateEQ(1, this.value)">
+          <span>250Hz (Bass)</span>
+        </div>
+        <div class="flex flex-col items-center gap-2 text-[11px] text-[#aaa]">
+          <input type="range" min="-12" max="12" value="0" class="slider-vertical accent-[#1db954]" oninput="updateEQ(2, this.value)">
+          <span>1kHz (Mid)</span>
+        </div>
+        <div class="flex flex-col items-center gap-2 text-[11px] text-[#aaa]">
+          <input type="range" min="-12" max="12" value="3" class="slider-vertical accent-[#1db954]" oninput="updateEQ(3, this.value)">
+          <span>4kHz (Presence)</span>
+        </div>
+        <div class="flex flex-col items-center gap-2 text-[11px] text-[#aaa]">
+          <input type="range" min="-12" max="12" value="5" class="slider-vertical accent-[#1db954]" oninput="updateEQ(4, this.value)">
+          <span>16kHz (Treble)</span>
+        </div>
+      </div>
+      <div class="flex justify-between items-center pt-2">
+        <button onclick="resetEQ()" class="text-xs text-[#888] hover:text-white">Reset Flat</button>
+        <button onclick="closeModal('eqModal')" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[#1db954] text-black">Terapkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fullscreen Karaoke Lyrics Overlay -->
+  <div id="lyricsOverlay" class="fixed inset-0 bg-[#121212]/95 backdrop-blur-md flex flex-col p-6 z-50 hidden">
+    <div class="flex justify-between items-center max-w-xl mx-auto w-full mb-6">
+      <div class="text-sm font-bold text-[#1db954] flex items-center gap-2">
+        <span>🎤</span> Lirik Karaoke Sinkron (.lrc)
+      </div>
+      <button onclick="closeKaraoke()" class="text-base text-[#aaa] hover:text-white">✕ Tutup</button>
+    </div>
+    <div id="karaokeLines" class="flex-1 overflow-y-auto custom-scroll flex flex-col items-center justify-center space-y-6 max-w-xl mx-auto w-full text-center">
+      <!-- Lyrics lines -->
+    </div>
+  </div>
+
+  <!-- JavaScript Logic with Web Audio API Synthesizer -->
+  <script>
+    // Sample Song Library with Synchronized LRC Lyrics
+    const songs = [
+      {
+        id: "s1",
+        title: "Senandung Hati di Bumiayu",
+        artist: "Harmoni Rumah",
+        album: "Suasana Santai STB",
+        duration: 180,
+        cover: "🎵",
+        source: "local",
+        lyrics: [
+          { time: 0, text: "♪ (Petikan melodi lembut mengalun) ♪" },
+          { time: 5, text: "Di hening malam angin berbisik ramah" },
+          { time: 12, text: "Keluarga berkumpul di hangatnya rumah" },
+          { time: 20, text: "Senandung nada mengisi ruang dan jiwa" },
+          { time: 30, text: "Semua bersatu dalam irama yang sama" },
+          { time: 45, text: "Harmoni mengalir tanpa ada jeda..." }
+        ]
+      },
+      {
+        id: "s2",
+        title: "Kopi Sore & Melodi Klasik",
+        artist: "Akustik Santai",
+        album: "Penyimpanan STB",
+        duration: 195,
+        cover: "☕",
+        source: "local",
+        lyrics: [
+          { time: 0, text: "♪ (Dentang piano hangat) ♪" },
+          { time: 6, text: "Secangkir kopi di sudut beranda" },
+          { time: 14, text: "Melepas lelah menutup cerita kita" },
+          { time: 25, text: "Biarkan musik tetap mengudara" }
+        ]
+      },
+      {
+        id: "s3",
+        title: "Jalan Pulang Menuju Bahagia",
+        artist: "Suara Jiwa",
+        album: "YouTube Download",
+        duration: 210,
+        cover: "🌅",
+        source: "youtube",
+        lyrics: [
+          { time: 0, text: "♪ (Alunan gitar akustik) ♪" },
+          { time: 8, text: "Langkah demi langkah kupijak jalanan" },
+          { time: 16, text: "Membawa rindu ke tempat tujuan" },
+          { time: 28, text: "Senandung merdu pelipur kelelahan" }
+        ]
+      }
+    ];
+
+    let currentSongIndex = 0;
+    let isPlaying = false;
+    let currentTime = 0;
+    let favorites = new Set(["s1"]);
+    let offlineSongs = new Set(["s1"]);
+    let timerInterval = null;
+
+    // Web Audio Synthesizer Tone Player (0 external audio dependencies)
+    let audioCtx = null;
+    let synthOsc = null;
+    let synthGain = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        synthGain = audioCtx.createGain();
+        synthGain.gain.value = 0.15;
+        synthGain.connect(audioCtx.destination);
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function startSynthMelody() {
+      try {
+        const ctx = getAudioContext();
+        if (synthOsc) synthOsc.stop();
+        synthOsc = ctx.createOscillator();
+        synthOsc.type = 'triangle';
+        synthOsc.frequency.setValueAtTime(261.63, ctx.currentTime); // Middle C
+        
+        // Gentle chord progression
+        const notes = [261.63, 329.63, 392.00, 523.25, 440.00];
+        let noteIdx = 0;
+        synthOsc.connect(synthGain);
+        synthOsc.start();
+
+        window.synthTimer = setInterval(() => {
+          if (isPlaying && synthOsc && audioCtx) {
+            noteIdx = (noteIdx + 1) % notes.length;
+            synthOsc.frequency.setValueAtTime(notes[noteIdx], audioCtx.currentTime);
+          }
+        }, 1200);
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    function stopSynthMelody() {
+      if (synthOsc) {
+        try { synthOsc.stop(); } catch(e){}
+        synthOsc = null;
+      }
+      if (window.synthTimer) clearInterval(window.synthTimer);
+    }
+
+    // Initialize UI
+    function init() {
+      renderSongList(songs, document.getElementById('homeSongList'));
+      renderFavList();
+      renderOfflineList();
+      updatePlayerUI();
+    }
+
+    function renderSongList(list, container) {
+      container.innerHTML = '';
+      if (list.length === 0) {
+        container.innerHTML = '<div class="text-[#888] text-xs py-4 text-center">Tidak ada lagu ditemukan.</div>';
+        return;
+      }
+      list.forEach((s, idx) => {
+        const isCurrent = idx === currentSongIndex;
+        const isFav = favorites.has(s.id);
+        const isOff = offlineSongs.has(s.id);
+
+        const row = document.createElement('div');
+        row.className = `flex items-center justify-between p-3 rounded-xl cursor-pointer transition ${isCurrent ? 'bg-[#282828]' : 'hover:bg-[#1a1a1a]'}`;
+        row.innerHTML = `
+          <div class="flex items-center gap-3 overflow-hidden" onclick="playSongAt(${idx})">
+            <div class="w-10 h-10 rounded-lg bg-[#222] flex items-center justify-center text-lg shrink-0">
+              ${s.cover}
+            </div>
+            <div class="truncate">
+              <div class="font-semibold text-sm truncate ${isCurrent ? 'text-[#1db954]' : 'text-white'}">${escapeHtml(s.title)}</div>
+              <div class="text-xs text-[#888] truncate">${escapeHtml(s.artist)} • ${escapeHtml(s.album)}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="toggleFav('${s.id}')" class="text-sm p-1.5 hover:scale-110 transition">${isFav ? '❤️' : '🤍'}</button>
+            <button onclick="toggleOffline('${s.id}')" class="text-xs px-2 py-1 rounded-full ${isOff ? 'bg-[#1db954]/20 text-[#1db954]' : 'bg-[#282828] text-[#888]'} hover:text-white transition" title="Offline PWA">
+              ${isOff ? '✓ Saved' : '📲 Save'}
+            </button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function renderFavList() {
+      const favList = songs.filter(s => favorites.has(s.id));
+      renderSongList(favList, document.getElementById('favSongList'));
+    }
+
+    function renderOfflineList() {
+      const offList = songs.filter(s => offlineSongs.has(s.id));
+      renderSongList(offList, document.getElementById('offlineSongList'));
+    }
+
+    function playSongAt(idx) {
+      currentSongIndex = idx;
+      currentTime = 0;
+      isPlaying = true;
+      startSynthMelody();
+      startProgress();
+      updatePlayerUI();
+      renderSongList(songs, document.getElementById('homeSongList'));
+    }
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        startSynthMelody();
+        startProgress();
+      } else {
+        stopSynthMelody();
+        clearInterval(timerInterval);
+      }
+      updatePlayerUI();
+    }
+
+    function startProgress() {
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (isPlaying) {
+          const s = songs[currentSongIndex];
+          currentTime++;
+          if (currentTime >= s.duration) {
+            nextSong();
+            return;
+          }
+          updateProgressUI();
+          updateKaraokeHighlight();
+        }
+      }, 1000);
+    }
+
+    function updateProgressUI() {
+      const s = songs[currentSongIndex];
+      const pct = (currentTime / s.duration) * 100;
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('txtCurrentTime').innerText = formatTime(currentTime);
+      document.getElementById('txtDuration').innerText = formatTime(s.duration);
+
+      // Multi-device sync bars
+      document.getElementById('dev1-bar').style.width = pct + '%';
+      document.getElementById('dev2-bar').style.width = pct + '%';
+      document.getElementById('dev3-bar').style.width = pct + '%';
+    }
+
+    function updatePlayerUI() {
+      const s = songs[currentSongIndex];
+      document.getElementById('currentTitle').innerText = s.title;
+      document.getElementById('currentArtist').innerText = s.artist;
+      document.getElementById('currentCover').innerText = s.cover;
+      document.getElementById('btnPlay').innerText = isPlaying ? '⏸️' : '▶️';
+      document.getElementById('btnCurrentFav').innerText = favorites.has(s.id) ? '❤️' : '🤍';
+      updateProgressUI();
+    }
+
+    function nextSong() {
+      currentSongIndex = (currentSongIndex + 1) % songs.length;
+      playSongAt(currentSongIndex);
+    }
+
+    function prevSong() {
+      currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+      playSongAt(currentSongIndex);
+    }
+
+    function seekProgress(e) {
+      const rect = document.getElementById('progressContainer').getBoundingClientRect();
+      const pos = (e.clientX - rect.left) / rect.width;
+      const s = songs[currentSongIndex];
+      currentTime = Math.floor(pos * s.duration);
+      updateProgressUI();
+      updateKaraokeHighlight();
+    }
+
+    function toggleFav(id) {
+      if (favorites.has(id)) favorites.delete(id);
+      else favorites.add(id);
+      renderFavList();
+      updatePlayerUI();
+      renderSongList(songs, document.getElementById('homeSongList'));
+    }
+
+    function toggleFavCurrent() {
+      toggleFav(songs[currentSongIndex].id);
+    }
+
+    function toggleOffline(id) {
+      if (offlineSongs.has(id)) {
+        offlineSongs.delete(id);
+      } else {
+        offlineSongs.add(id);
+      }
+      renderOfflineList();
+      renderSongList(songs, document.getElementById('homeSongList'));
+    }
+
+    function saveCurrentOffline() {
+      toggleOffline(songs[currentSongIndex].id);
+      alert('Trek musik berhasil disimpan ke Cache PWA browser!');
+    }
+
+    // Modal Handlers
+    function openModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function switchTab(name) {
+      document.querySelectorAll('.tab-view').forEach(t => t.classList.add('hidden'));
+      document.querySelectorAll('.nav-btn').forEach(b => {
+        b.classList.remove('bg-[#242424]', 'text-white');
+        b.classList.add('text-[#b3b3b3]');
+      });
+      document.getElementById('view-' + name).classList.remove('hidden');
+      const activeBtn = document.getElementById('nav-' + name);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-[#242424]', 'text-white');
+        activeBtn.classList.remove('text-[#b3b3b3]');
+      }
+    }
+
+    // Karaoke Lyrics Logic
+    function openKaraoke() {
+      const container = document.getElementById('karaokeLines');
+      const s = songs[currentSongIndex];
+      container.innerHTML = '';
+      s.lyrics.forEach((l, idx) => {
+        const div = document.createElement('div');
+        div.id = 'lyric-item-' + idx;
+        div.className = 'text-lg font-bold text-[#555] transition-all duration-300 cursor-pointer';
+        div.innerText = l.text;
+        div.onclick = () => {
+          currentTime = l.time;
+          updateProgressUI();
+          updateKaraokeHighlight();
+        };
+        container.appendChild(div);
+      });
+      document.getElementById('lyricsOverlay').classList.remove('hidden');
+      updateKaraokeHighlight();
+    }
+
+    function closeKaraoke() {
+      document.getElementById('lyricsOverlay').classList.add('hidden');
+    }
+
+    function updateKaraokeHighlight() {
+      const s = songs[currentSongIndex];
+      s.lyrics.forEach((l, idx) => {
+        const el = document.getElementById('lyric-item-' + idx);
+        if (!el) return;
+        const isCurrent = currentTime >= l.time && (idx === s.lyrics.length - 1 || currentTime < s.lyrics[idx + 1].time);
+        if (isCurrent) {
+          el.className = 'text-2xl font-extrabold text-[#1db954] scale-110 transition-all duration-300';
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          el.className = 'text-base font-bold text-[#555] transition-all duration-300';
+        }
+      });
+    }
+
+    // Downloader Simulation
+    function simulateDownload() {
+      const query = document.getElementById('dlQuery').value.trim();
+      if (!query) return;
+      document.getElementById('dlQueueDisplay').classList.remove('hidden');
+      document.getElementById('dlTargetName').innerText = query;
+      document.getElementById('btnStartDl').disabled = true;
+
+      setTimeout(() => {
+        const newSong = {
+          id: 's_' + Date.now(),
+          title: query,
+          artist: "YouTube Audio Stream",
+          album: "Unduhan Baru",
+          duration: 175,
+          cover: "🎧",
+          source: "youtube",
+          lyrics: [
+            { time: 0, text: "♪ Audio berhasil diunduh via yt-dlp STB ♪" },
+            { time: 8, text: "Tersimpan aman di /mnt/dietpi_userdata/music" }
+          ]
+        };
+        songs.unshift(newSong);
+        document.getElementById('dlQueueDisplay').classList.add('hidden');
+        document.getElementById('btnStartDl').disabled = false;
+        closeModal('downloadModal');
+        document.getElementById('dlQuery').value = '';
+        renderSongList(songs, document.getElementById('homeSongList'));
+        alert(`Sukses! "${query}" berhasil diunduh ke STB tanpa mengganggu Immich.`);
+      }, 2500);
+    }
+
+    function scanLocalSTB() {
+      const btn = document.getElementById('btnScan');
+      btn.innerText = 'Memindai...';
+      setTimeout(() => {
+        btn.innerHTML = '<span>🔄</span> Scan STB';
+        alert('Pemindaian selesai: Seluruh folder /mnt/dietpi_userdata/music telah tersinkron.');
+      }, 1200);
+    }
+
+    function handleSearch(q) {
+      const filtered = songs.filter(s => 
+        s.title.toLowerCase().includes(q.toLowerCase()) || 
+        s.artist.toLowerCase().includes(q.toLowerCase())
+      );
+      renderSongList(filtered, document.getElementById('homeSongList'));
+    }
+
+    function changeVolume(v) {
+      if (synthGain) synthGain.gain.value = parseFloat(v) * 0.2;
+    }
+
+    function updateEQ(band, val) {
+      console.log("EQ Band " + band + " changed to " + val + " dB");
+    }
+
+    function resetEQ() {
+      document.querySelectorAll('.slider-vertical').forEach(s => s.value = 0);
+    }
+
+    function setSleepTimer() {
+      const m = prompt("Matikan musik otomatis dalam berapa menit?", "30");
+      if (m && parseInt(m) > 0) {
+        alert(`Sleep timer aktif untuk ${m} menit.`);
+      }
+    }
+
+    function toggleShuffle() {
+      document.getElementById('btnShuffle').classList.toggle('text-[#1db954]');
+    }
+
+    function toggleRepeat() {
+      document.getElementById('btnRepeat').classList.toggle('text-[#1db954]');
+    }
+
+    function formatTime(s) {
+      const min = Math.floor(s / 60);
+      const sec = s % 60;
+      return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+    }
+
+    // Run init
+    init();
+  </script>
+</body>
+</html>
