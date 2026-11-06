@@ -139,97 +139,160 @@ if command -v tailscale >/dev/null 2>&1; then
   DETECTED_TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || true)
 fi
 
+VERSION="v0.1.0-beta"
+IS_UPDATE=0
+
+# Periksa apakah konfigurasi sebelumnya sudah ada (Mode Update / Re-install)
+OLD_PORT=""
+OLD_MUSIC_DIR=""
+OLD_QUALITY=""
+OLD_ROOM=""
+OLD_CPU=""
+OLD_RAM=""
+OLD_PRIORITY=""
+OLD_AUTOSCAN=""
+OLD_AUTOLYRICS=""
+OLD_PASSWORD=""
+
+if [ -f "$CONFIG_FILE" ]; then
+  IS_UPDATE=1
+  # Muat konfigurasi lama
+  # shellcheck disable=SC1090
+  source "$CONFIG_FILE" 2>/dev/null || true
+  OLD_PORT="${PORT:-8989}"
+  OLD_MUSIC_DIR="${MUSIC_DIR:-$AUTODETECTED_MUSIC_DIR}"
+  OLD_QUALITY="${DEFAULT_QUALITY:-flac}"
+  OLD_ROOM="${DEFAULT_ROOM:-"Ruang Tamu"}"
+  OLD_AUTOSCAN="${AUTOSCAN:-yes}"
+  OLD_AUTOLYRICS="${AUTOLYRICS:-yes}"
+  OLD_PASSWORD="${PASSWORD:-}"
+fi
+
 # ------------------------------------------------------------------------------
-# 3. SPLASH SCREEN TUI
+# 3. SPLASH SCREEN TUI (DENGAN IDENTITAS VERSI BETA)
 # ------------------------------------------------------------------------------
-SPLASH_TEXT="Selamat datang di Wizard Instalasi Senandung!\n\n"
+SPLASH_TEXT="Selamat datang di Wizard Instalasi Senandung [${VERSION}]!\n\n"
 SPLASH_TEXT+="Senandung adalah pemutar musik self-hosted Spotify-like ultra-ringan\n"
 SPLASH_TEXT+="dengan dukungan Hi-Res FLAC 24-bit/96kHz, sinkronisasi audio antar perangkat\n"
 SPLASH_TEXT+="(Listen Together Party Mode), dan PWA Offline Player untuk ponsel.\n\n"
+SPLASH_TEXT+="Versi Rilis   : ${VERSION} (Mode Beta Aktif)\n"
 SPLASH_TEXT+="STB Terdeteksi: Amlogic S905X / ARM (DietPi OS)\n"
-SPLASH_TEXT+="IP Lokal: ${DETECTED_LAN_IP}"
+SPLASH_TEXT+="IP Lokal      : ${DETECTED_LAN_IP}"
 if [ -n "$DETECTED_TAILSCALE_IP" ]; then
-  SPLASH_TEXT+="\nTailscale IP: ${DETECTED_TAILSCALE_IP}"
+  SPLASH_TEXT+="\nTailscale IP  : ${DETECTED_TAILSCALE_IP}"
 fi
 
-tui_msgbox "🎵 SENANDUNG - SETUP WIZARD" "$SPLASH_TEXT"
+tui_msgbox "🎵 SENANDUNG [${VERSION}] - SETUP WIZARD" "$SPLASH_TEXT"
 
 # ------------------------------------------------------------------------------
-# 4. MENU KONFIGURASI INTERAKTIF (SEBELUM INSTALASI)
+# 4. DETEKSI UPDATE & PERSETUJUAN MEMPERTAHANKAN KONFIGURASI SEBELUMNYA
 # ------------------------------------------------------------------------------
+USE_OLD_CONFIG=0
+if [ "$IS_UPDATE" -eq 1 ]; then
+  UPDATE_PROMPT="Terdeteksi instalasi Senandung sebelumnya di sistem Anda!\n\n"
+  UPDATE_PROMPT+="Konfigurasi yang sedang aktif:\n"
+  UPDATE_PROMPT+="* Folder Musik   : ${OLD_MUSIC_DIR}\n"
+  UPDATE_PROMPT+="* Port Aktif     : ${OLD_PORT}\n"
+  UPDATE_PROMPT+="* Format Audio   : ${OLD_QUALITY^^}\n"
+  UPDATE_PROMPT+="* Ruangan Utama  : ${OLD_ROOM}\n\n"
+  UPDATE_PROMPT+="Apakah Anda ingin langsung MEMPERTAHANKAN konfigurasi ini?\n\n"
+  UPDATE_PROMPT+="* Pilih [Yes] untuk langsung memperbarui binary & service tanpa perlu mengisi ulang.\n"
+  UPDATE_PROMPT+="* Pilih [No] jika Anda ingin mengubah / mengatur ulang konfigurasi."
 
-# 1. Folder Musik (Autodetect + opsi ganti)
-CONF_MUSIC_DIR=$(tui_input "1. LOKASI PENYIMPANAN MUSIK" \
-  "Folder musik otomatis terdeteksi di bawah ini.\nBisa diarahkan ke harddisk eksternal atau flashdisk USB:" \
-  "$AUTODETECTED_MUSIC_DIR")
-CONF_MUSIC_DIR=${CONF_MUSIC_DIR:-$AUTODETECTED_MUSIC_DIR}
+  if tui_yesno "DETEKSI UPDATE KONFIGURASI" "$UPDATE_PROMPT"; then
+    USE_OLD_CONFIG=1
+    CONF_MUSIC_DIR="$OLD_MUSIC_DIR"
+    CONF_PORT="$OLD_PORT"
+    CONF_QUALITY="$OLD_QUALITY"
+    CONF_DEFAULT_ROOM="$OLD_ROOM"
+    CONF_CPU_QUOTA="50%"
+    CONF_RAM_LIMIT="200M"
+    CONF_PRIORITY="yes"
+    CONF_AUTOSCAN="$OLD_AUTOSCAN"
+    CONF_AUTOLYRICS="$OLD_AUTOLYRICS"
+    CONF_PASSWORD="$OLD_PASSWORD"
+  fi
+fi
 
-# 2. Port Web Server
-CONF_PORT=$(tui_input "2. PORT WEB SERVER" \
-  "Tentukan port HTTP untuk mengakses Web PWA Senandung dari browser HP / PC:" \
-  "8989")
-CONF_PORT=${CONF_PORT:-8989}
+# ------------------------------------------------------------------------------
+# 5. MENU KONFIGURASI INTERAKTIF (JIKA BUKAN UPDATE CEPAT)
+# ------------------------------------------------------------------------------
+if [ "$USE_OLD_CONFIG" -eq 0 ]; then
 
-# 3. Kualitas Unduhan Default
-CONF_QUALITY=$(tui_menu "3. FORMAT AUDIO DEFAULT" \
-  "Pilih format kualitas audio utama untuk streaming & unduhan:" \
-  "flac" "✨ Hi-Res Lossless FLAC 24-bit/96kHz (1411 kbps Audio Murni)" \
-  "mp3"  "🎵 Standar MP3 320 kbps (Hemat Memori & Bandwidth)")
-CONF_QUALITY=${CONF_QUALITY:-flac}
+  # 1. Folder Musik (Autodetect + opsi ganti)
+  CONF_MUSIC_DIR=$(tui_input "1. LOKASI PENYIMPANAN MUSIK" \
+    "Folder musik otomatis terdeteksi di bawah ini.\nBisa diarahkan ke harddisk eksternal atau flashdisk USB:" \
+    "${OLD_MUSIC_DIR:-$AUTODETECTED_MUSIC_DIR}")
+  CONF_MUSIC_DIR=${CONF_MUSIC_DIR:-$AUTODETECTED_MUSIC_DIR}
 
-# 4. Nama Ruangan Utama (Default Party Room)
-CONF_DEFAULT_ROOM=$(tui_input "4. NAMA RUANG UTAMA (PARTY ROOM)" \
-  "Nama ruangan default untuk sinkronisasi audio bersama:" \
-  "Ruang Tamu")
-CONF_DEFAULT_ROOM=${CONF_DEFAULT_ROOM:-"Ruang Tamu"}
+  # 2. Port Web Server
+  CONF_PORT=$(tui_input "2. PORT WEB SERVER" \
+    "Tentukan port HTTP untuk mengakses Web PWA Senandung dari browser HP / PC:" \
+    "${OLD_PORT:-8989}")
+  CONF_PORT=${CONF_PORT:-8989}
 
-# 5. Batas CPU Quota (Cgroups)
-CONF_CPU_QUOTA=$(tui_menu "5. BATAS CPU QUOTA (CGROUPS)" \
-  "Batas beban CPU STB agar Immich & OS tidak overheat:" \
-  "50%" "50% CPU Quota (Direkomendasikan untuk S905X / Odroid C2)" \
-  "30%" "30% CPU Quota (Ultra-Dingin / Low Power)" \
-  "75%" "75% CPU Quota (Performa Tinggi)")
-CONF_CPU_QUOTA=${CONF_CPU_QUOTA:-"50%"}
+  # 3. Kualitas Unduhan Default
+  CONF_QUALITY=$(tui_menu "3. FORMAT AUDIO DEFAULT" \
+    "Pilih format kualitas audio utama untuk streaming & unduhan:" \
+    "flac" "✨ Hi-Res Lossless FLAC 24-bit/96kHz (1411 kbps Audio Murni)" \
+    "mp3"  "🎵 Standar MP3 320 kbps (Hemat Memori & Bandwidth)")
+  CONF_QUALITY=${CONF_QUALITY:-${OLD_QUALITY:-flac}}
 
-# 6. Batas RAM Memory Limit (OOM Guard)
-CONF_RAM_LIMIT=$(tui_menu "6. BATAS PENGGUNAAN MEMORI RAM" \
-  "Batas maksimal konsumsi RAM sebelum OOM Protection aktif:" \
-  "200M" "200 MB RAM (Sangat Aman & Hemat)" \
-  "350M" "350 MB RAM (Standar untuk Library Besar >10.000 lagu)" \
-  "unlimited" "Tanpa Batas RAM")
-CONF_RAM_LIMIT=${CONF_RAM_LIMIT:-"200M"}
+  # 4. Nama Ruangan Utama (Default Party Room)
+  CONF_DEFAULT_ROOM=$(tui_input "4. NAMA RUANG UTAMA (PARTY ROOM)" \
+    "Nama ruangan default untuk sinkronisasi audio bersama:" \
+    "${OLD_ROOM:-"Ruang Tamu"}")
+  CONF_DEFAULT_ROOM=${CONF_DEFAULT_ROOM:-"Ruang Tamu"}
 
-# 7. Penerapan Prioritas OS DietPi (Immich > Senandung > Kompic > Bumiayu)
-CONF_PRIORITY="yes"
-if tui_yesno "7. MANAJEMEN PRIORITAS OS DIETPI" \
-  "Terapkan prioritas otomatis di Systemd?\n\nUrutan: Immich (Nice -5) > Senandung (Nice 0) > Kompic (Nice 10) > Bumiayu (Nice 15)\n\nFitur ini menjamin Immich tidak akan pernah lag."; then
+  # 5. Batas CPU Quota (Cgroups)
+  CONF_CPU_QUOTA=$(tui_menu "5. BATAS CPU QUOTA (CGROUPS)" \
+    "Batas beban CPU STB agar Immich & OS tidak overheat:" \
+    "50%" "50% CPU Quota (Direkomendasikan untuk S905X / Odroid C2)" \
+    "30%" "30% CPU Quota (Ultra-Dingin / Low Power)" \
+    "75%" "75% CPU Quota (Performa Tinggi)")
+  CONF_CPU_QUOTA=${CONF_CPU_QUOTA:-"50%"}
+
+  # 6. Batas RAM Memory Limit (OOM Guard)
+  CONF_RAM_LIMIT=$(tui_menu "6. BATAS PENGGUNAAN MEMORI RAM" \
+    "Batas maksimal konsumsi RAM sebelum OOM Protection aktif:" \
+    "200M" "200 MB RAM (Sangat Aman & Hemat)" \
+    "350M" "350 MB RAM (Standar untuk Library Besar >10.000 lagu)" \
+    "unlimited" "Tanpa Batas RAM")
+  CONF_RAM_LIMIT=${CONF_RAM_LIMIT:-"200M"}
+
+  # 7. Penerapan Prioritas OS DietPi (Immich > Senandung > Kompic > Bumiayu)
   CONF_PRIORITY="yes"
-else
-  CONF_PRIORITY="no"
-fi
+  if tui_yesno "7. MANAJEMEN PRIORITAS OS DIETPI" \
+    "Terapkan prioritas otomatis di Systemd?\n\nUrutan: Immich (Nice -5) > Senandung (Nice 0) > Kompic (Nice 10) > Bumiayu (Nice 15)\n\nFitur ini menjamin Immich tidak akan pernah lag."; then
+    CONF_PRIORITY="yes"
+  else
+    CONF_PRIORITY="no"
+  fi
 
-# 8. Auto-Scan Folder Musik saat Boot
-CONF_AUTOSCAN="yes"
-if tui_yesno "8. AUTO-SCAN SAAT STARTUP" \
-  "Apakah Senandung otomatis memindai file lagu baru di folder musik setiap kali STB menyala?"; then
+  # 8. Auto-Scan Folder Musik saat Boot
   CONF_AUTOSCAN="yes"
-else
-  CONF_AUTOSCAN="no"
-fi
+  if tui_yesno "8. AUTO-SCAN SAAT STARTUP" \
+    "Apakah Senandung otomatis memindai file lagu baru di folder musik setiap kali STB menyala?"; then
+    CONF_AUTOSCAN="yes"
+  else
+    CONF_AUTOSCAN="no"
+  fi
 
-# 9. Auto-Attach Sidecar Lyrics (.LRC)
-CONF_AUTOLYRICS="yes"
-if tui_yesno "9. SIDECAR LIRIK KARAOKE (.LRC)" \
-  "Otomatis tautkan file lirik (.lrc) jika memiliki nama file yang sama dengan lagu?"; then
+  # 9. Auto-Attach Sidecar Lyrics (.LRC)
   CONF_AUTOLYRICS="yes"
-else
-  CONF_AUTOLYRICS="no"
-fi
+  if tui_yesno "9. SIDECAR LIRIK KARAOKE (.LRC)" \
+    "Otomatis tautkan file lirik (.lrc) jika memiliki nama file yang sama dengan lagu?"; then
+    CONF_AUTOLYRICS="yes"
+  else
+    CONF_AUTOLYRICS="no"
+  fi
 
-# 10. Konfigurasi Password Keamanan Akses LAN
-CONF_PASSWORD=$(tui_input "10. KEAMANAN AKSES (OPTIONAL)" \
-  "Kosongkan jika ingin Open LAN untuk keluarga (tanpa password),\natau ketik password jika ingin diproteksi:" \
-  "")
+  # 10. Konfigurasi Password Keamanan Akses LAN
+  CONF_PASSWORD=$(tui_input "10. KEAMANAN AKSES (OPTIONAL)" \
+    "Kosongkan jika ingin Open LAN untuk keluarga (tanpa password),\natau ketik password jika ingin diproteksi:" \
+    "${OLD_PASSWORD:-}")
+
+fi
 
 # ------------------------------------------------------------------------------
 # 5. REVIEW KONFIGURASI SEBELUM EKSEKUSI
