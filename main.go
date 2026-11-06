@@ -23,6 +23,8 @@ import (
 //go:embed web/*
 var webFS embed.FS
 
+const AppVersion = "v0.1.0-beta"
+
 func main() {
 	port := flag.Int("port", 8989, "Port server Senandung")
 	dataDir := flag.String("data-dir", "./data", "Direktori penyimpanan database, cover, dan riwayat")
@@ -30,7 +32,7 @@ func main() {
 	flag.Parse()
 
 	log.Printf("=====================================================")
-	log.Printf(" 🎵 SENANDUNG - Ultra-Lightweight Spotify-like PWA    ")
+	log.Printf(" 🎵 SENANDUNG %s - Spotify-like PWA            ", AppVersion)
 	log.Printf(" Multi-Device Audio Sync | Safe yt-dlp | Offline Mode ")
 	log.Printf(" Target: Odroid C2 / STB HG680P (Amlogic S905X) DietPi")
 	log.Printf("=====================================================")
