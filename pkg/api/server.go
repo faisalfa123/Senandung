@@ -10,6 +10,7 @@ import (
 
 	"github.com/faisalfa123/Senandung/pkg/db"
 	"github.com/faisalfa123/Senandung/pkg/downloader"
+	"github.com/faisalfa123/Senandung/pkg/models"
 	"github.com/faisalfa123/Senandung/pkg/scanner"
 	"github.com/faisalfa123/Senandung/pkg/searcher"
 	synchub "github.com/faisalfa123/Senandung/pkg/sync"
@@ -66,6 +67,9 @@ func (s *Server) handleSongs(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	if songs == nil {
+		songs = []models.Song{}
 	}
 	_ = json.NewEncoder(w).Encode(songs)
 }
@@ -255,6 +259,9 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleDownloadStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	jobs := s.downloader.GetJobs()
+	if jobs == nil {
+		jobs = []*models.DownloadJob{}
+	}
 	_ = json.NewEncoder(w).Encode(jobs)
 }
 

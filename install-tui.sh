@@ -238,7 +238,7 @@ if [ "$USE_OLD_CONFIG" -eq 0 ]; then
     "Pilih format kualitas audio utama untuk streaming & unduhan:" \
     "flac" "✨ Hi-Res Lossless FLAC 24-bit/96kHz (1411 kbps Audio Murni)" \
     "mp3"  "🎵 Standar MP3 320 kbps (Hemat Memori & Bandwidth)")
-  CONF_QUALITY=${CONF_QUALITY:-${OLD_QUALITY:-flac}}
+  CONF_QUALITY=${CONF_QUALITY:-${OLD_QUALITY:-mp3}}
 
   # 4. Nama Ruangan Utama (Default Party Room)
   CONF_DEFAULT_ROOM=$(tui_input "4. NAMA RUANG UTAMA (PARTY ROOM)" \
@@ -436,11 +436,12 @@ if [ ! -s "${INSTALL_DIR}/senandung" ]; then
 fi
 echo -e "    ${GREEN}✔ Binary Senandung siap di ${INSTALL_DIR}/senandung${NC}"
 
-# Salin direktori web agar update tampilan langsung aktif
+# Menautkan direktori web secara langsung (symlink) agar git pull langsung update seketika
 if [ -d "${SCRIPT_DIR}/web" ]; then
-  echo -e "    * Menyinkronkan aset web PWA ke ${INSTALL_DIR}/web..."
-  mkdir -p "${INSTALL_DIR}/web"
-  cp -rf "${SCRIPT_DIR}/web/"* "${INSTALL_DIR}/web/"
+  echo -e "    * Menautkan aset web PWA (${INSTALL_DIR}/web -> ${SCRIPT_DIR}/web)..."
+  rm -rf "${INSTALL_DIR}/web"
+  ln -sfn "${SCRIPT_DIR}/web" "${INSTALL_DIR}/web"
+  echo -e "    ${GREEN}✔ Symlink web PWA aktif.${NC}"
 fi
 
 # 5. Konfigurasi Systemd Unit

@@ -10,6 +10,8 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/faisalfa123/Senandung/pkg/api"
@@ -37,12 +39,16 @@ func main() {
 	log.Printf(" Target: Odroid C2 / STB HG680P (Amlogic S905X) DietPi")
 	log.Printf("=====================================================")
 
+	// Muat konfigurasi dari /etc/senandung/senandung.conf jika ada
+	loadEnvConfig(port, dataDir, musicDir)
+
 	if err := os.MkdirAll(*dataDir, 0755); err != nil {
 		log.Fatalf("Gagal membuat direktori data: %v", err)
 	}
 	if err := os.MkdirAll(*musicDir, 0755); err != nil {
 		log.Fatalf("Gagal membuat direktori musik: %v", err)
 	}
+	log.Printf("[Senandung] Storage Musik Fisik: %s", *musicDir)
 
 	coverDir := filepath.Join(*dataDir, "covers")
 	_ = os.MkdirAll(coverDir, 0755)
@@ -92,7 +98,15 @@ func main() {
 		staticFS = http.FS(subFS)
 		log.Printf("[Senandung] Menggunakan embedded web assets bawaan binary")
 	}
-	mux.Handle("/", http.FileServer(staticFS))
+
+	// Sajikan static web dengan header Cache-Control no-cache agar browser HP tidak menyimpan cache lama
+	fileServer := http.FileServer(staticFS)
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+		fileServer.ServeHTTP(w, r)
+	})
 
 	serverAddr := fmt.Sprintf("0.0.0.0:%d", *port)
 	server := &http.Server{
@@ -114,4 +128,40 @@ func main() {
 
 	<-stopChan
 	log.Printf("[Senandung] Mematikan server secara aman...")
+}
+
+func loadEnvConfig(port *int, dataDir, musicDir *string) {
+	paths := []string{"/etc/senandung/senandung.conf", "./senandung.conf"}
+	for _, p := range paths {
+		data, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "#") || !strings.Contains(line, "=") {
+				continue
+			}
+			parts := strings.SplitN(line, "=", 2)
+			k := strings.TrimSpace(parts[0])
+			v := strings.Trim(strings.TrimSpace(parts[1]), "\"")
+			switch k {
+			case "PORT":
+				if val, err := strconv.Atoi(v); err == nil && *port == 8989 {
+					*port = val
+				}
+			case "DATA_DIR":
+				if *dataDir == "./data" && v != "" {
+					*dataDir = v
+				}
+			case "MUSIC_DIR":
+				if *musicDir == "./data/music" && v != "" {
+					*musicDir = v
+				}
+			}
+		}
+		log.Printf("[Senandung] Konfigurasi dimuat dari file: %s", p)
+		break
+	}
 }
