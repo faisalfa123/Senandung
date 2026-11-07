@@ -21,6 +21,8 @@ APP_NAME="senandung"
 INSTALL_DIR="/opt/${APP_NAME}"
 SYSTEMD_FILE="/etc/systemd/system/${APP_NAME}.service"
 CONFIG_FILE="/etc/${APP_NAME}/${APP_NAME}.conf"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
 # Cek Izin Root
 if [ "$EUID" -ne 0 ]; then
@@ -376,28 +378,55 @@ EOF
 
 # 4. Pasang binary
 echo -e "${CYAN}[4/6] Menyiapkan executable Senandung...${NC}"
-ARCH=$(uname -m)
+RAW_ARCH=$(uname -m)
 BIN_FOUND=0
 
-if [ -f "./bin/senandung-linux-${ARCH}" ]; then
-  cp "./bin/senandung-linux-${ARCH}" "${INSTALL_DIR}/senandung"
-  chmod +x "${INSTALL_DIR}/senandung"
-  BIN_FOUND=1
-elif [ -f "./senandung" ]; then
-  cp "./senandung" "${INSTALL_DIR}/senandung"
-  chmod +x "${INSTALL_DIR}/senandung"
-  BIN_FOUND=1
+# Normalisasi arsitektur CPU
+TARGET_ARCH="$RAW_ARCH"
+if [ "$RAW_ARCH" = "aarch64" ] || [ "$RAW_ARCH" = "arm64" ]; then
+  TARGET_ARCH="aarch64"
+elif [ "$RAW_ARCH" = "armv7l" ] || [ "$RAW_ARCH" = "armhf" ] || [ "$RAW_ARCH" = "arm" ]; then
+  TARGET_ARCH="armv7l"
+elif [ "$RAW_ARCH" = "x86_64" ] || [ "$RAW_ARCH" = "amd64" ]; then
+  TARGET_ARCH="x86_64"
 fi
 
+# Cari binary pre-compiled lokal di folder repo
+for CANDIDATE in \
+  "${SCRIPT_DIR}/bin/senandung-linux-${TARGET_ARCH}" \
+  "${SCRIPT_DIR}/bin/senandung-linux-${RAW_ARCH}" \
+  "${SCRIPT_DIR}/senandung" \
+  "./bin/senandung-linux-${TARGET_ARCH}" \
+  "./bin/senandung-linux-${RAW_ARCH}" \
+  "./senandung"; do
+  if [ -f "$CANDIDATE" ] && [ -s "$CANDIDATE" ]; then
+    echo -e "    * Menggunakan binary pre-compiled: $(basename "$CANDIDATE")"
+    cp -f "$CANDIDATE" "${INSTALL_DIR}/senandung"
+    chmod +x "${INSTALL_DIR}/senandung"
+    BIN_FOUND=1
+    break
+  fi
+done
+
+# Jika binary lokal tidak ada, unduh langsung rilis pre-compiled (hanya ~7MB, ~3 detik)
+if [ "$BIN_FOUND" -eq 0 ]; then
+  echo -e "    * Mengunduh binary pre-compiled untuk ${TARGET_ARCH} (~7MB)..."
+  curl -sSL --connect-timeout 15 --retry 3 -o "${INSTALL_DIR}/senandung" \
+    "https://raw.githubusercontent.com/faisalfa123/Senandung/main/bin/senandung-linux-${TARGET_ARCH}" || true
+  
+  if [ -s "${INSTALL_DIR}/senandung" ]; then
+    chmod +x "${INSTALL_DIR}/senandung"
+    BIN_FOUND=1
+  fi
+fi
+
+# Fallback terakhir jika download gagal dan mesin memiliki Go compiler
 if [ "$BIN_FOUND" -eq 0 ]; then
   if command -v go >/dev/null 2>&1; then
-    echo "    Mengompilasi binary langsung di target OS..."
+    echo "    [Fallback] Mengompilasi binary langsung di target OS..."
     go build -ldflags="-s -w" -o "${INSTALL_DIR}/senandung" .
     chmod +x "${INSTALL_DIR}/senandung"
-  else
-    echo "    Mengunduh binary pre-compiled untuk ${ARCH}..."
-    curl -sSL -o "${INSTALL_DIR}/senandung" "https://raw.githubusercontent.com/faisalfa123/Senandung/main/bin/senandung-linux-${ARCH}" || true
-    chmod +x "${INSTALL_DIR}/senandung"
+    BIN_FOUND=1
   fi
 fi
 
@@ -405,6 +434,7 @@ if [ ! -s "${INSTALL_DIR}/senandung" ]; then
   echo -e "${RED}[ERROR] Gagal memasang binary ${INSTALL_DIR}/senandung!${NC}"
   exit 1
 fi
+echo -e "    ${GREEN}✔ Binary Senandung siap di ${INSTALL_DIR}/senandung${NC}"
 
 # 5. Konfigurasi Systemd Unit
 echo -e "${CYAN}[5/6] Menerapkan Systemd Service & Cgroups (${CONF_CPU_QUOTA} CPU, ${CONF_RAM_LIMIT} RAM)...${NC}"
