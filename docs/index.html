@@ -73,11 +73,11 @@
       </div>
     </div>
 
-    <!-- Header Right Buttons: Hi-Res Mode, Text YT Search & Status -->
+    <!-- Header Right Buttons: Unduh Musik (Direct Tab Switch) & Status -->
     <div class="flex items-center gap-3">
-      <!-- One-Click Open Text-Only Search -->
-      <button onclick="switchTab('ytsearch')" class="bg-[#242424] hover:bg-[#333] border border-[#383838] text-white px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition">
-        <span>⚡</span> Cari YT (Tanpa Gambar)
+      <!-- One-Click Open Unduh Musik Tab -->
+      <button onclick="switchTab('ytsearch')" class="bg-[#242424] hover:bg-[#333] border border-[#383838] text-white px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition hover:border-[#1db954]">
+        <span>🎵 ⬇️</span> Unduh Musik
       </button>
 
       <!-- Active Mode Pill -->
@@ -100,7 +100,7 @@
             <span class="text-lg">🏠</span> Dashboard
           </button>
           <button onclick="switchTab('ytsearch')" id="nav-ytsearch" class="nav-btn w-full flex items-center gap-4 px-3 py-2.5 rounded-lg text-sm font-bold text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] transition">
-            <span class="text-lg">⚡</span> Cari YT (Text-Only)
+            <span class="text-lg">🎵</span> Unduh Musik
           </button>
           <button onclick="switchTab('karaoke')" id="nav-karaoke" class="nav-btn w-full flex items-center gap-4 px-3 py-2.5 rounded-lg text-sm font-bold text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] transition">
             <span class="text-lg">🎤</span> Karaoke Lirik Penuh
@@ -219,91 +219,113 @@
         </div>
       </section>
 
-      <!-- ================= 2. TAB: PENCARIAN & DOWNLOAD MANAGER (SPLIT VIEW) ================= -->
-      <section id="view-ytsearch" class="tab-view hidden space-y-6">
-        <div>
-          <div class="flex justify-between items-start">
-            <div>
-              <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2">
-                <span>⚡</span> Pencarian YouTube & Download Manager
-              </h2>
-              <p class="text-xs text-[#888] mt-1">
-                Panel pencarian terpisah dengan antrean download: cari lagu bebas tanpa jeda meskipun proses download sedang berjalan.
-              </p>
+      <!-- ================= 2. TAB: UNDUH MUSIK (MATCH SCREENSHOT 1:1) ================= -->
+      <section id="view-ytsearch" class="tab-view hidden space-y-4 max-w-4xl mx-auto pb-12">
+        <!-- Top Sticky Search & Action Bar -->
+        <div class="sticky top-0 z-20 bg-[#121212]/95 backdrop-blur-md pt-1 pb-3 space-y-2 border-b border-[#222]">
+          <div class="flex items-center gap-2">
+            <!-- Back / Label button -->
+            <button onclick="switchTab('dashboard')" class="flex items-center gap-1.5 text-white/90 hover:text-white px-2 py-1.5 rounded-lg hover:bg-[#282828] transition text-sm font-semibold shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+              </svg>
+              <span>Search</span>
+            </button>
+
+            <!-- Search Input Container with Pill style -->
+            <div class="relative flex-1">
+              <div class="flex items-center bg-[#242424] border border-[#333] focus-within:border-[#3ea6ff] rounded-full px-3 py-1.5 transition shadow-inner">
+                <!-- Red YouTube/Music Icon -->
+                <div class="w-6 h-6 rounded-md bg-[#ff0000] flex items-center justify-center text-white shrink-0 mr-2 shadow-sm">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                </div>
+                <!-- Input field -->
+                <input type="text" id="musicSearchInput" 
+                       value="guyon waton"
+                       onfocus="showSearchHistoryDropdown()"
+                       onblur="hideSearchHistoryDropdownWithDelay()"
+                       oninput="handleSearchInputChange(this.value)"
+                       onkeydown="if(event.key==='Enter') executeMusicSearch()" 
+                       placeholder="Cari lagu bebas atau ketik judul..." 
+                       class="w-full bg-transparent text-sm text-white placeholder-[#888] focus:outline-none">
+                
+                <!-- Clear Button ✕ -->
+                <button onclick="clearMusicSearchInput()" id="btnMusicSearchClear" class="text-[#888] hover:text-white px-1.5 text-xs transition">✕</button>
+
+                <!-- Search Action Blue Pill -->
+                <button onclick="executeMusicSearch()" class="bg-[#263850] hover:bg-[#3ea6ff] hover:text-black text-[#3ea6ff] p-1.5 rounded-full ml-1 transition shrink-0" title="Cari">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Search History Dropdown (Shown on Focus) -->
+              <div id="searchHistoryDropdown" class="absolute left-0 right-0 top-full mt-1.5 bg-[#1f1f1f] border border-[#333] rounded-2xl shadow-2xl p-2 z-40 hidden space-y-1">
+                <div class="flex items-center justify-between px-3 py-1 text-[11px] font-bold text-[#888] uppercase tracking-wider">
+                  <span>🕒 Riwayat Pencarian</span>
+                  <button onclick="clearAllSearchHistory()" class="text-[10px] text-[#3ea6ff] hover:underline normal-case">Hapus Semua</button>
+                </div>
+                <div id="searchHistoryList" class="space-y-0.5 max-h-56 overflow-y-auto custom-scroll">
+                  <!-- History items populated via JS -->
+                </div>
+              </div>
             </div>
-            <div class="flex items-center gap-2">
-              <span class="bg-[#181818] border border-[#2a2a2a] px-3 py-1 rounded-lg text-[11px] text-[#1db954] font-mono">
-                Bebas Gambar (0 KB Thumbnail)
+
+            <!-- Global Filter Dropdown -->
+            <div class="relative shrink-0">
+              <button onclick="toggleGlobalFilterMenu()" class="flex items-center gap-1 bg-[#1e1e1e] hover:bg-[#282828] border border-[#333] px-3 py-2 rounded-full text-xs font-medium text-white transition">
+                <span id="txtGlobalFilter">Global</span>
+                <span class="text-[10px] text-[#888]">⌄</span>
+              </button>
+              <div id="globalFilterMenu" class="absolute right-0 top-full mt-1 bg-[#1e1e1e] border border-[#333] rounded-xl shadow-xl p-1 z-30 hidden min-w-[130px] text-xs">
+                <button onclick="setGlobalFilter('Global')" class="w-full text-left px-3 py-1.5 hover:bg-[#2a2a2a] rounded-lg text-white">Global (Semua)</button>
+                <button onclick="setGlobalFilter('Videos')" class="w-full text-left px-3 py-1.5 hover:bg-[#2a2a2a] rounded-lg text-[#aaa] hover:text-white">Video & Musik</button>
+                <button onclick="setGlobalFilter('Playlists')" class="w-full text-left px-3 py-1.5 hover:bg-[#2a2a2a] rounded-lg text-[#aaa] hover:text-white">Playlists</button>
+              </div>
+            </div>
+
+            <!-- Queue Drawer Toggle Button -->
+            <button onclick="openDownloadQueueModal()" class="relative bg-[#1e1e1e] hover:bg-[#282828] border border-[#333] p-2 rounded-full text-white transition shrink-0" title="Buka Antrean Download">
+              <svg class="w-5 h-5 text-[#1db954]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+              </svg>
+              <!-- Live Queue Badge Counter -->
+              <span id="queueHeaderBadge" class="absolute -top-1 -right-1 bg-[#1db954] text-black font-extrabold text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow">
+                1
               </span>
+            </button>
+          </div>
+
+          <!-- Format 30-Day Active Preference Notice Pill -->
+          <div id="pref30NoticePill" class="hidden flex items-center justify-between bg-[#1a2e1d] border border-[#1db954]/40 px-3 py-1.5 rounded-xl text-xs text-white">
+            <div class="flex items-center gap-2">
+              <span class="text-[#1db954]">✓</span>
+              <span>Preferensi aktif: <strong id="pref30FormatTxt" class="text-[#1db954]">FLAC Hi-Res Lossless</strong> (berlaku s/d <span id="pref30ExpireTxt" class="text-[#aaa]">30 hari</span>)</span>
             </div>
+            <button onclick="resetFormatPreference()" class="text-[11px] text-[#3ea6ff] hover:underline font-semibold ml-2">Ubah</button>
           </div>
         </div>
 
-        <!-- Two Column Split Panel Layout -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
-          <!-- LEFT PANEL: Text-Only Fast Search (Col 7) -->
-          <div class="lg:col-span-7 space-y-4">
-            <div class="bg-[#181818] p-4 rounded-xl border border-[#2a2a2a] space-y-3">
-              <div class="text-xs font-bold text-white flex items-center justify-between">
-                <span>🔍 Cari Lagu di YouTube</span>
-                <span class="text-[10px] text-[#888]">Tekan Enter atau klik tombol</span>
-              </div>
-              <div class="flex gap-2">
-                <input type="text" id="ytSearchInput" onkeydown="if(event.key==='Enter') performTextOnlyYTSearch()" placeholder="Ketik judul lagu, artis, atau link YouTube..." 
-                       class="flex-1 bg-[#242424] text-xs sm:text-sm text-white placeholder-[#888] rounded-lg px-3.5 py-2.5 border border-[#333] focus:outline-none focus:border-[#1db954]">
-                <button onclick="performTextOnlyYTSearch()" id="btnPerformYTSearch" class="bg-[#1db954] hover:bg-[#1ed760] text-black font-bold px-4 py-2.5 rounded-lg text-xs transition flex items-center gap-1.5 shrink-0">
-                  <span>🔍</span> Cari
-                </button>
-              </div>
-            </div>
-
-            <!-- Search Results Container -->
-            <div class="space-y-2">
-              <div class="flex justify-between items-center text-xs text-[#888] px-1">
-                <span>Hasil Pencarian (Text-Only):</span>
-                <span id="ytResultCount">3 Hasil Siap Stream / Download</span>
-              </div>
-
-              <div id="ytSearchResults" class="space-y-2">
-                <!-- Rendered via JS -->
-              </div>
+        <!-- Channel / Artist Card (Matches screenshot guyonwaton) -->
+        <div id="channelHeaderCard" class="bg-[#181818] border border-[#262626] rounded-2xl p-3.5 flex items-center gap-3.5 shadow-sm">
+          <div class="w-14 h-14 rounded-full bg-black border border-[#ffd700] flex items-center justify-center shrink-0 overflow-hidden shadow">
+            <div class="text-[9px] font-black text-[#ffd700] leading-tight text-center px-1">
+              GUYON<br>WATON
             </div>
           </div>
-
-          <!-- RIGHT PANEL: Live Download Queue & Progress Bar (Col 5) -->
-          <div class="lg:col-span-5 space-y-4">
-            <div class="bg-[#181818] p-4 rounded-xl border border-[#2a2a2a] space-y-3">
-              <div class="flex justify-between items-center border-b border-[#282828] pb-2.5">
-                <div class="text-xs font-bold text-white flex items-center gap-2">
-                  <span>⬇️</span> Antrean Download STB
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <span id="queueBadgeCount" class="bg-[#1db954]/20 border border-[#1db954]/40 text-[#1db954] text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    0 Antrean
-                  </span>
-                  <button onclick="clearCompletedJobs()" class="text-[10px] text-[#888] hover:text-white transition">Bersihkan</button>
-                </div>
-              </div>
-
-              <!-- Queue items list with live progress % -->
-              <div id="downloadQueueListContainer" class="space-y-2.5 max-h-[460px] overflow-y-auto custom-scroll pr-1">
-                <!-- Live Queue Items rendered via JS -->
-              </div>
-            </div>
-
-            <!-- STB CPU & Storage Guard Card -->
-            <div class="bg-[#141414] p-3.5 rounded-xl border border-[#222] text-[11px] text-[#888] space-y-1.5">
-              <div class="flex justify-between text-white font-medium">
-                <span>STB Background Worker</span>
-                <span class="text-[#1db954]">1 Active Worker</span>
-              </div>
-              <p class="text-[10px] text-[#777]">
-                Download berjalan dengan <code>nice 19</code> (idle priority). RAM dan CPU STB tetap dingin sehingga Immich tidak terganggu.
-              </p>
-            </div>
+          <div class="overflow-hidden flex-1">
+            <h3 class="font-bold text-sm text-white tracking-wide truncate">GUYONWATON OFFICIAL</h3>
+            <p class="text-xs text-[#888] truncate mt-0.5">3,1M subs • 166 videos</p>
+            <p class="text-[11px] text-[#777] truncate mt-0.5">Halo teman-teman, perkenalkan kami Adalah GUYONWATON. Band dangdut akusti...</p>
           </div>
+        </div>
 
+        <!-- Music / Video Track Cards Container (1:1 Horizontal Cards) -->
+        <div id="musicCardsContainer" class="space-y-2.5">
+          <!-- Populated via JS renderMusicSearchCards() -->
         </div>
       </section>
 
@@ -511,38 +533,85 @@
 
   <!-- ================= MODALS & DIALOGS ================= -->
 
-  <!-- Modal: Unduh YouTube (Pilihan MP3 vs FLAC Lossless) -->
+  <!-- Modal: Unduh Musik / Pilih Format Kualitas Audio -->
   <div id="downloadModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-[#242424] border border-[#333] rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+    <div class="bg-[#242424] border border-[#333] rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl relative">
       <div class="flex justify-between items-center">
-        <h3 class="font-bold text-base flex items-center gap-2">
-          <span>⬇️</span> Unduh YouTube ke STB
+        <h3 class="font-bold text-base flex items-center gap-2 text-white">
+          <span>⬇️</span> Pilih Format Unduhan Musik
         </h3>
         <button onclick="closeModal('downloadModal')" class="text-sm text-[#888] hover:text-white">✕</button>
       </div>
+
+      <div class="bg-[#1a1a1a] p-3 rounded-xl border border-[#333]">
+        <div class="text-[11px] text-[#888]">Judul Lagu:</div>
+        <div id="modalDlSongTitle" class="text-xs font-bold text-white truncate mt-0.5">...</div>
+      </div>
+
       <p class="text-xs text-[#aaa]">
-        Pilih format kualitas audio yang diinginkan. Dijalankan dengan prioritas rendah (nice 19) agar STB dan Immich tetap aman.
+        Pilih kualitas file audio yang ingin disimpan ke STB / Server. Dijalankan dengan prioritas hemat CPU (nice 19).
       </p>
-      <input type="text" id="dlInputQuery" placeholder="Judul lagu atau link YouTube..." 
-             class="w-full bg-[#181818] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#1db954]">
+
+      <input type="hidden" id="dlInputQuery">
+      <input type="hidden" id="dlInputSongId">
       
       <!-- Format Selector Buttons -->
       <div class="grid grid-cols-2 gap-3 pt-1">
-        <button onclick="startDownloadWithFormat('flac')" class="bg-gradient-to-r from-[#ffd700]/20 to-[#b8860b]/30 border border-[#ffd700] hover:scale-102 p-3 rounded-xl text-left transition">
-          <div class="text-xs font-bold text-[#ffd700]">✨ FLAC Lossless</div>
-          <div class="text-[10px] text-[#aaa] mt-0.5">Audio 24-bit / 96kHz High-Res murni</div>
+        <button onclick="handleFormatSelection('flac')" class="bg-gradient-to-r from-[#ffd700]/20 to-[#b8860b]/30 border border-[#ffd700] hover:scale-102 p-3.5 rounded-xl text-left transition group">
+          <div class="text-xs font-bold text-[#ffd700] flex items-center gap-1.5">
+            <span>✨</span> FLAC Lossless
+          </div>
+          <div class="text-[10px] text-[#ccc] mt-1 leading-snug">Audio 24-bit / 96kHz High-Res Studio Master murni</div>
         </button>
-        <button onclick="startDownloadWithFormat('mp3')" class="bg-[#181818] border border-[#333] hover:border-[#666] p-3 rounded-xl text-left transition">
-          <div class="text-xs font-bold text-white">🎵 Standar MP3</div>
-          <div class="text-[10px] text-[#888] mt-0.5">128/320kbps hemat memori STB</div>
+        <button onclick="handleFormatSelection('mp3')" class="bg-[#181818] border border-[#333] hover:border-[#666] hover:scale-102 p-3.5 rounded-xl text-left transition">
+          <div class="text-xs font-bold text-white flex items-center gap-1.5">
+            <span>🎵</span> Standar MP3
+          </div>
+          <div class="text-[10px] text-[#888] mt-1 leading-snug">320kbps hemat memori & hemat ruang penyimpanan STB</div>
         </button>
       </div>
 
-      <div id="dlQueueLoading" class="bg-[#181818] p-3 rounded-lg text-xs space-y-1.5 hidden border border-[#333]">
-        <div class="text-[#1db954] font-semibold flex items-center gap-2">
-          <span class="animate-spin text-sm">⏳</span> Mengunduh di background STB...
+      <!-- 30 Days Checkbox -->
+      <div class="bg-[#1c1c1c] p-3 rounded-xl border border-[#2d2d2d] flex items-center gap-3 cursor-pointer select-none" onclick="document.getElementById('chkRemember30Days').click()">
+        <input type="checkbox" id="chkRemember30Days" onclick="event.stopPropagation()" class="w-4 h-4 rounded accent-[#1db954] cursor-pointer">
+        <label for="chkRemember30Days" class="text-xs text-[#ddd] cursor-pointer" onclick="event.stopPropagation()">
+          Terapkan ke semua download <strong>30 hari ke depan</strong>
+        </label>
+      </div>
+
+      <div class="text-[10px] text-[#777] text-center">
+        *Jika dicentang, unduhan selanjutnya langsung diproses tanpa jendela konfirmasi ini lagi.
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal / Drawer: Antrean Download STB Live -->
+  <div id="downloadQueueModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center sm:justify-end p-4 z-50 hidden">
+    <div class="bg-[#1f1f1f] border border-[#333] rounded-2xl w-full max-w-md h-[90vh] sm:h-[80vh] flex flex-col shadow-2xl p-4 space-y-4">
+      <div class="flex justify-between items-center border-b border-[#2a2a2a] pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">⬇️</span>
+          <h3 class="font-bold text-base text-white">Daftar Antrean Download</h3>
         </div>
-        <div class="text-[11px] text-[#888]">Antrean hemat CPU: <span id="dlTargetText" class="text-white font-medium">...</span></div>
+        <div class="flex items-center gap-2">
+          <button onclick="clearCompletedJobs()" class="text-xs text-[#888] hover:text-white px-2 py-1 bg-[#282828] rounded-md transition">Bersihkan Selesai</button>
+          <button onclick="closeModal('downloadQueueModal')" class="text-sm text-[#888] hover:text-white px-2 py-1">✕</button>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between text-xs text-[#888] px-1">
+        <span>Status Worker: <span class="text-[#1db954] font-semibold">1 Active (nice 19)</span></span>
+        <span id="queueBadgeCountModal" class="text-white font-bold">1 Antrean</span>
+      </div>
+
+      <!-- Scrollable Queue Items -->
+      <div id="downloadQueueListContainer" class="flex-1 overflow-y-auto custom-scroll space-y-2.5 pr-1">
+        <!-- Live Queue Items rendered via JS -->
+      </div>
+
+      <!-- STB Info Footer -->
+      <div class="bg-[#141414] p-3 rounded-xl border border-[#282828] text-[11px] text-[#777]">
+        💡 Download berjalan di background tanpa membebani CPU HG680P / Odroid C2, sehingga streaming Immich tetap lancar tanpa buffering.
       </div>
     </div>
   </div>
@@ -805,8 +874,11 @@
     function init() {
       renderDashboardSongs();
       renderPlaylists();
-      renderYTSearchResults();
+      renderMusicSearchCards();
+      renderSearchHistoryList();
+      updatePreferenceNoticeUI();
       renderDownloadQueue();
+      updateQueueBadge();
       updatePlayerUI();
       applyDynamicTheme();
     }
@@ -903,64 +975,472 @@
       renderDashboardSongs();
     }
 
-    // Render Text-Only YouTube Search (Zero Images)
-    function renderYTSearchResults() {
-      const container = document.getElementById('ytSearchResults');
-      container.innerHTML = '';
+    // Search History Storage Key
+    const SEARCH_HISTORY_KEY = 'senandung_search_history';
+    const FORMAT_PREF_KEY = 'senandung_format_preference_30d';
 
-      ytSearchResults.forEach((item, index) => {
-        const itemRow = document.createElement('div');
-        itemRow.className = 'bg-[#181818] hover:bg-[#222] p-4 rounded-xl border border-[#2a2a2a] flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition';
-        itemRow.innerHTML = `
-          <div class="space-y-1">
-            <div class="font-bold text-sm text-white flex items-center gap-2">
-              <span>🎵</span> ${escapeHtml(item.title)}
-              <span class="badge-hires-gold text-[9px] font-black px-1.5 py-0.2 rounded">FLAC STREAM</span>
-            </div>
-            <div class="text-xs text-[#888]">
-              <span>${escapeHtml(item.artist)}</span> • Durasi: <span>${item.duration}</span> • Audio: <span class="text-[#ffd700]">${item.quality}</span>
-            </div>
-          </div>
-          <div class="flex items-center gap-2 shrink-0">
-            <!-- Stream Direct Hi-Res without saving -->
-            <button onclick="streamYTHiResDirect('${escapeHtml(item.title)}', '${escapeHtml(item.artist)}')" class="bg-gradient-to-r from-[#ffd700] to-[#e6b800] text-black font-extrabold px-3 py-1.5 rounded-lg text-xs hover:scale-105 transition shadow">
-              ⚡ Stream Hi-Res
-            </button>
-            <!-- Download FLAC -->
-            <button onclick="triggerYTHiResDownload('${escapeHtml(item.title)}', 'flac')" class="bg-[#2a2a2a] hover:bg-[#333] text-white font-semibold px-3 py-1.5 rounded-lg text-xs border border-[#444] transition">
-              ⬇️ FLAC
-            </button>
-            <!-- Download MP3 -->
-            <button onclick="triggerYTHiResDownload('${escapeHtml(item.title)}', 'mp3')" class="bg-[#242424] hover:bg-[#333] text-[#888] hover:text-white px-2.5 py-1.5 rounded-lg text-xs transition">
-              ⬇️ MP3
-            </button>
-          </div>
-        `;
-        container.appendChild(itemRow);
-      });
-      document.getElementById('ytResultCount').innerText = `${ytSearchResults.length} Hasil Siap Stream`;
+    function getSearchHistory() {
+      try {
+        const raw = localStorage.getItem(SEARCH_HISTORY_KEY);
+        return raw ? JSON.parse(raw) : ["guyon waton", "wirang guyonwaton", "klebus guyonwaton", "tulus interaksi", "sebatas teman"];
+      } catch (e) {
+        return ["guyon waton", "wirang guyonwaton", "klebus guyonwaton"];
+      }
     }
 
-    function performTextOnlyYTSearch() {
-      const q = document.getElementById('ytSearchInput').value.trim();
-      if (!q) return;
+    function saveSearchHistory(term) {
+      if (!term || !term.trim()) return;
+      let hist = getSearchHistory();
+      hist = [term.trim(), ...hist.filter(item => item.toLowerCase() !== term.trim().toLowerCase())].slice(0, 10);
+      try {
+        localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(hist));
+      } catch(e) {}
+      renderSearchHistoryList();
+    }
 
-      const btn = document.getElementById('btnPerformYTSearch');
-      btn.innerHTML = '<span class="animate-spin">⏳</span> Mencari...';
-      btn.disabled = true;
+    function clearAllSearchHistory() {
+      try {
+        localStorage.removeItem(SEARCH_HISTORY_KEY);
+      } catch(e) {}
+      renderSearchHistoryList();
+    }
 
+    function removeSearchHistoryItem(idx, e) {
+      if (e) e.stopPropagation();
+      let hist = getSearchHistory();
+      hist.splice(idx, 1);
+      try {
+        localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(hist));
+      } catch(e){}
+      renderSearchHistoryList();
+    }
+
+    function renderSearchHistoryList() {
+      const container = document.getElementById('searchHistoryList');
+      if (!container) return;
+      const hist = getSearchHistory();
+      if (hist.length === 0) {
+        container.innerHTML = `<div class="px-3 py-2 text-xs text-[#777] italic">Belum ada riwayat pencarian.</div>`;
+        return;
+      }
+      container.innerHTML = '';
+      hist.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between px-3 py-2 hover:bg-[#2a2a2a] rounded-xl cursor-pointer text-xs transition group';
+        row.innerHTML = `
+          <div class="flex items-center gap-2.5 truncate flex-1 text-white/90 group-hover:text-white">
+            <span class="text-[#888] text-[11px]">🕒</span>
+            <span class="truncate">${escapeHtml(item)}</span>
+          </div>
+          <button onclick="removeSearchHistoryItem(${index}, event)" class="text-[#666] hover:text-white text-xs px-1.5 py-0.5 rounded transition" title="Hapus">✕</button>
+        `;
+        row.onmousedown = (e) => {
+          e.preventDefault();
+          selectSearchHistoryItem(item);
+        };
+        container.appendChild(row);
+      });
+    }
+
+    function showSearchHistoryDropdown() {
+      renderSearchHistoryList();
+      const dd = document.getElementById('searchHistoryDropdown');
+      if (dd) dd.classList.remove('hidden');
+    }
+
+    function hideSearchHistoryDropdownWithDelay() {
       setTimeout(() => {
-        ytSearchResults.unshift({
-          id: 'yt_' + Date.now(),
-          title: q,
-          artist: "YouTube Best Stream",
-          duration: "3:50",
-          quality: "24-bit/96kHz Hi-Res FLAC"
+        const dd = document.getElementById('searchHistoryDropdown');
+        if (dd) dd.classList.add('hidden');
+      }, 200);
+    }
+
+    function selectSearchHistoryItem(term) {
+      document.getElementById('musicSearchInput').value = term;
+      const dd = document.getElementById('searchHistoryDropdown');
+      if (dd) dd.classList.add('hidden');
+      executeMusicSearch();
+    }
+
+    function clearMusicSearchInput() {
+      const input = document.getElementById('musicSearchInput');
+      input.value = '';
+      input.focus();
+      showSearchHistoryDropdown();
+    }
+
+    function handleSearchInputChange(val) {
+      const btnClear = document.getElementById('btnMusicSearchClear');
+      if (btnClear) {
+        btnClear.style.visibility = val ? 'visible' : 'hidden';
+      }
+    }
+
+    function toggleGlobalFilterMenu() {
+      const menu = document.getElementById('globalFilterMenu');
+      if (menu) menu.classList.toggle('hidden');
+    }
+
+    function setGlobalFilter(filter) {
+      document.getElementById('txtGlobalFilter').innerText = filter;
+      toggleGlobalFilterMenu();
+    }
+
+    // 30-Day Preference Helper
+    function getStoredFormatPreference() {
+      try {
+        const raw = localStorage.getItem(FORMAT_PREF_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (Date.now() > parsed.expiresAt) {
+          localStorage.removeItem(FORMAT_PREF_KEY);
+          return null;
+        }
+        return parsed;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveFormatPreference(format) {
+      const pref = {
+        format: format, // 'flac' or 'mp3'
+        expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 hari ke depan
+      };
+      try {
+        localStorage.setItem(FORMAT_PREF_KEY, JSON.stringify(pref));
+      } catch (e) {}
+      updatePreferenceNoticeUI();
+    }
+
+    function resetFormatPreference() {
+      try {
+        localStorage.removeItem(FORMAT_PREF_KEY);
+      } catch (e) {}
+      updatePreferenceNoticeUI();
+      alert("Preferensi unduhan 30 hari telah direset! Anda akan ditanyakan format kualitas audio pada unduhan berikutnya.");
+    }
+
+    function updatePreferenceNoticeUI() {
+      const pref = getStoredFormatPreference();
+      const pill = document.getElementById('pref30NoticePill');
+      if (!pill) return;
+      if (pref) {
+        const daysLeft = Math.max(1, Math.round((pref.expiresAt - Date.now()) / (24 * 60 * 60 * 1000)));
+        document.getElementById('pref30FormatTxt').innerText = pref.format === 'flac' ? 'FLAC Lossless Hi-Res (24-bit)' : 'Standar MP3 (320 kbps)';
+        document.getElementById('pref30ExpireTxt').innerText = `${daysLeft} hari lagi`;
+        pill.classList.remove('hidden');
+      } else {
+        pill.classList.add('hidden');
+      }
+    }
+
+    // Track state: Set of downloaded/queued IDs to show green checkmark
+    let downloadedTrackIds = new Set(["gw_2", "gw_7"]); // matches Perlahan and Sebatas Teman in screenshot
+
+    // Music Search Results (Matching screenshot 1:1)
+    let musicSearchResults = [
+      {
+        id: "gw_1",
+        title: "GuyonWaton - Wirang (Official Music Video)",
+        channel: "GUYONWATON OFFICIAL",
+        duration: "5:05",
+        views: "131,5M views",
+        date: "3 years ago",
+        thumbText: "Wirang",
+        thumbBg: "#1f2a38"
+      },
+      {
+        id: "gw_2",
+        title: "GuyonWaton Official - Perlahan (Official Music Video)",
+        channel: "GUYONWATON OFFICIAL",
+        duration: "6:20",
+        views: "155,3M views",
+        date: "7 years ago",
+        thumbText: "Perlahan",
+        thumbBg: "#2d2319"
+      },
+      {
+        id: "gw_topic",
+        isTopicChannel: true,
+        title: "Guyon Waton - Topic",
+        channel: "41,1K subs"
+      },
+      {
+        id: "gw_3",
+        title: "Guyon Waton full album 2025 | tanpa iklan | wirang | gam...",
+        channel: "Blangkon Music",
+        duration: "24:11",
+        views: "3M views",
+        date: "1 year ago",
+        thumbText: "Album 2025",
+        thumbBg: "#3b1e28"
+      },
+      {
+        id: "gw_4",
+        title: "GUYON WATON FULL ALBUM || GUYON WATON FULL AL...",
+        channel: "Dangdut Koplo Hits",
+        duration: "58:21",
+        views: "15,5K views",
+        date: "2 days ago",
+        thumbText: "Full Album",
+        thumbBg: "#1d2e38"
+      },
+      {
+        id: "gw_5",
+        title: "NGATMOMBILUNG - KLEBUS (GUYONWATON COVER)",
+        channel: "GUYONWATON OFFICIAL",
+        duration: "5:13",
+        views: "192,3M views",
+        date: "4 years ago",
+        thumbText: "Klebus",
+        thumbBg: "#2b261b"
+      },
+      {
+        id: "gw_7",
+        title: "GUYONWATON OFFICIAL - SEBATAS TEMAN (OFFICIAL L...",
+        channel: "GUYONWATON OFFICIAL",
+        duration: "5:39",
+        views: "91M views",
+        date: "8 years ago",
+        thumbText: "Sebatas Teman",
+        thumbBg: "#1f2b24"
+      },
+      {
+        id: "gw_8",
+        title: "GuyonWaton Official - Korban Janji (Official Music Video)",
+        channel: "GUYONWATON OFFICIAL",
+        duration: "4:54",
+        views: "123,6M views",
+        date: "9 years ago",
+        thumbText: "Korban Janji",
+        thumbBg: "#1d2430"
+      }
+    ];
+
+    function renderMusicSearchCards() {
+      const container = document.getElementById('musicCardsContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      musicSearchResults.forEach(item => {
+        if (item.isTopicChannel) {
+          // Render Topic Channel row
+          const topicCard = document.createElement('div');
+          topicCard.className = "bg-[#181818] border border-[#242424] rounded-2xl p-3 flex items-center gap-3.5 shadow-sm";
+          topicCard.innerHTML = `
+            <div class="w-12 h-12 rounded-full bg-black border border-[#ffd700] flex items-center justify-center shrink-0">
+              <span class="text-[8px] font-black text-[#ffd700] text-center leading-tight">Guyon<br>Waton</span>
+            </div>
+            <div class="truncate flex-1">
+              <h4 class="font-bold text-sm text-white">${escapeHtml(item.title)}</h4>
+              <p class="text-xs text-[#888]">${escapeHtml(item.channel)}</p>
+            </div>
+          `;
+          container.appendChild(topicCard);
+          return;
+        }
+
+        const isDownloaded = downloadedTrackIds.has(item.id);
+
+        const card = document.createElement('div');
+        card.className = "bg-[#181818] hover:bg-[#202020] border border-[#262626] rounded-2xl p-2.5 sm:p-3 flex items-center gap-3.5 transition group shadow-sm";
+        
+        card.innerHTML = `
+          <!-- Thumbnail 16:9 rounded with duration badge -->
+          <div class="relative w-28 sm:w-36 aspect-video rounded-xl overflow-hidden shrink-0 shadow flex items-center justify-center select-none" style="background: ${item.thumbBg || '#222'};">
+            <div class="text-center px-1">
+              <div class="text-[11px] sm:text-xs font-bold text-white/90 drop-shadow truncate">${escapeHtml(item.thumbText || 'Music')}</div>
+              <div class="text-[9px] text-[#ffd700] font-semibold">Senandung HQ</div>
+            </div>
+            <!-- Duration Pill in bottom-right corner -->
+            <span class="absolute bottom-1 right-1 bg-black/85 text-white font-semibold text-[10px] px-1.5 py-0.5 rounded-md tracking-tight">
+              ${item.duration}
+            </span>
+          </div>
+
+          <!-- Middle: Metadata 3 lines -->
+          <div class="flex-1 min-w-0 pr-1">
+            <!-- Line 1: Title (2 lines max, bold white) -->
+            <h4 class="font-bold text-xs sm:text-sm text-white line-clamp-2 leading-snug group-hover:text-white transition">
+              ${escapeHtml(item.title)}
+            </h4>
+            <!-- Line 2: Channel / Artist (gray uppercase) -->
+            <p class="text-[11px] sm:text-xs text-[#8e8e8e] font-medium truncate mt-1">
+              ${escapeHtml(item.channel)}
+            </p>
+            <!-- Line 3: Views and Upload date -->
+            <p class="text-[10px] sm:text-[11px] text-[#717171] truncate mt-0.5">
+              ${escapeHtml(item.views)} • ${escapeHtml(item.date)}
+            </p>
+          </div>
+
+          <!-- Right Action: Download Icon or Green Checkmark -->
+          <div class="shrink-0 flex items-center">
+            ${
+              isDownloaded
+                ? `<div class="w-8 h-8 rounded-full border border-[#1db954] flex items-center justify-center text-[#1db954] font-bold text-sm shadow-sm" title="Tersimpan / Terunduh">
+                    ✓
+                   </div>`
+                : `<button onclick="handleTrackDownloadClick('${item.id}', '${escapeHtml(item.title).replace(/'/g, "\\'")}')" 
+                           class="w-8 h-8 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] flex items-center justify-center text-white/90 hover:text-white transition shadow hover:scale-105" 
+                           title="Unduh Musik">
+                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                     </svg>
+                   </button>`
+            }
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function executeMusicSearch() {
+      const q = document.getElementById('musicSearchInput').value.trim();
+      if (!q) return;
+      saveSearchHistory(q);
+
+      const headerCard = document.getElementById('channelHeaderCard');
+      if (q.toLowerCase().includes('guyon')) {
+        headerCard.classList.remove('hidden');
+      } else {
+        headerCard.classList.add('hidden');
+      }
+
+      // Add new simulated search result if not already existing
+      const existing = musicSearchResults.find(x => x.title && x.title.toLowerCase().includes(q.toLowerCase()));
+      if (!existing) {
+        musicSearchResults.unshift({
+          id: 'custom_' + Date.now(),
+          title: `${q} (Audio High Definition HQ)`,
+          channel: "Hasil Pencarian Musik Bebas",
+          duration: "4:12",
+          views: "Baru saja",
+          date: "Siap Unduh",
+          thumbText: q.slice(0, 15),
+          thumbBg: "#1d2b3a"
         });
-        renderYTSearchResults();
-        btn.innerHTML = '<span>🔍</span> Cari Cepat';
-        btn.disabled = false;
-      }, 1000);
+      }
+      renderMusicSearchCards();
+    }
+
+    // Handle Click on Download Button for a Track
+    function handleTrackDownloadClick(trackId, title) {
+      const storedPref = getStoredFormatPreference();
+
+      if (storedPref && storedPref.format) {
+        // Direct download using remembered 30-day format!
+        executeDownloadForTrack(trackId, title, storedPref.format);
+      } else {
+        // Show format selection modal
+        document.getElementById('dlInputQuery').value = title;
+        document.getElementById('dlInputSongId').value = trackId;
+        document.getElementById('modalDlSongTitle').innerText = title;
+        document.getElementById('chkRemember30Days').checked = false;
+        openModal('downloadModal');
+      }
+    }
+
+    function handleFormatSelection(format) {
+      const title = document.getElementById('dlInputQuery').value;
+      const trackId = document.getElementById('dlInputSongId').value;
+      const remember30 = document.getElementById('chkRemember30Days').checked;
+
+      if (remember30) {
+        saveFormatPreference(format);
+      }
+
+      closeModal('downloadModal');
+      executeDownloadForTrack(trackId, title, format);
+    }
+
+    function executeDownloadForTrack(trackId, title, format) {
+      // 1. Mark as downloaded/queued (turns icon into green checkmark)
+      downloadedTrackIds.add(trackId);
+      renderMusicSearchCards();
+
+      // 2. Add to download queue
+      const isFlac = format.toLowerCase() === 'flac';
+      const jobId = 'job_' + Date.now();
+      const newJob = {
+        id: jobId,
+        title: title,
+        format: isFlac ? "FLAC 24-bit Lossless" : "MP3 320k",
+        status: "downloading",
+        percent: 5,
+        speed: "3.4 MB/s",
+        eta: "10s"
+      };
+
+      downloadQueueJobs.unshift(newJob);
+      renderDownloadQueue();
+
+      // 3. Update queue badge counter
+      updateQueueBadge();
+
+      // 4. Progress simulation
+      let progress = 5;
+      const progressTimer = setInterval(() => {
+        progress += Math.floor(Math.random() * 18) + 12;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(progressTimer);
+          newJob.percent = 100;
+          newJob.status = "completed";
+          newJob.speed = "Selesai";
+          newJob.eta = "0s";
+          renderDownloadQueue();
+          updateQueueBadge();
+
+          // Prepare song object and prompt lyrics approval if needed
+          pendingDownloadedSong = {
+            id: 's_' + Date.now(),
+            title: title,
+            artist: "Unduhan Musik STB",
+            album: isFlac ? "Koleksi FLAC Hi-Res" : "Koleksi Standar",
+            duration: 210,
+            cover: isFlac ? "✨" : "🎧",
+            themeColor: isFlac ? "#332a10" : "#1a253a",
+            isHiRes: isFlac,
+            codec: isFlac ? "FLAC" : "MP3",
+            bitDepth: isFlac ? 24 : 16,
+            sampleRate: isFlac ? "96 kHz" : "44.1 kHz",
+            bitrate: isFlac ? "1411 kbps" : "320 kbps",
+            source: "youtube",
+            lyrics: null
+          };
+
+          const simulatedInternetLRC = `[00:02.00] ♪ Alunan audio ${isFlac ? 'FLAC Lossless 24-bit/96kHz' : 'MP3 320k'} ♪
+[00:08.50] Di hening malam senandung terdengar indah
+[00:16.00] Bersama irama jernih tanpa kompresi
+[00:25.00] Menemani setiap detik waktu bersantai...`;
+
+          openLyricsApproval(pendingDownloadedSong, simulatedInternetLRC);
+        } else {
+          newJob.percent = progress;
+          newJob.eta = Math.max(1, Math.round((100 - progress) / 10)) + 's';
+          renderDownloadQueue();
+        }
+      }, 400);
+    }
+
+    function openDownloadQueueModal() {
+      renderDownloadQueue();
+      openModal('downloadQueueModal');
+    }
+
+    function updateQueueBadge() {
+      const activeCount = downloadQueueJobs.filter(j => j.status === 'downloading' || j.status === 'pending').length;
+      const b1 = document.getElementById('queueHeaderBadge');
+      const b2 = document.getElementById('queueBadgeCountModal');
+      if (b1) {
+        b1.innerText = activeCount;
+        b1.style.display = activeCount > 0 ? 'flex' : 'none';
+      }
+      if (b2) {
+        b2.innerText = `${activeCount} Antrean Aktif`;
+      }
     }
 
     function streamYTHiResDirect(title, artist) {
