@@ -170,41 +170,8 @@
           <button onclick="filterByChip('offline')" id="chip-offline" class="filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-[#2a2a2a] text-white hover:bg-[#333] transition">Offline (HP) 📲</button>
         </div>
 
-        <!-- Featured Recent Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div onclick="playSongAt(0)" class="flex items-center bg-[#282828]/70 hover:bg-[#383838] transition rounded-md overflow-hidden cursor-pointer shadow group relative">
-            <div class="w-16 h-16 bg-[#333] flex items-center justify-center text-2xl shrink-0">🎵</div>
-            <div class="px-4 py-2 font-bold text-sm truncate flex-1">
-              <div class="truncate text-white flex items-center gap-1.5">
-                Senandung Hati di Bumiayu
-                <span class="badge-hires-gold text-[9px] font-black px-1.5 py-0.2 rounded shrink-0">HI-RES</span>
-              </div>
-              <div class="text-[11px] text-[#888] font-normal">FLAC 24-bit / 96kHz • 1411 kbps</div>
-            </div>
-            <button class="w-10 h-10 rounded-full bg-[#1db954] text-black flex items-center justify-center text-sm font-bold shadow-lg mr-3 opacity-0 group-hover:opacity-100 transition hover:scale-105">▶</button>
-          </div>
-
-          <div onclick="playSongAt(1)" class="flex items-center bg-[#282828]/70 hover:bg-[#383838] transition rounded-md overflow-hidden cursor-pointer shadow group relative">
-            <div class="w-16 h-16 bg-[#333] flex items-center justify-center text-2xl shrink-0">☕</div>
-            <div class="px-4 py-2 font-bold text-sm truncate flex-1">
-              <div class="truncate text-white">Kopi Sore & Melodi Klasik</div>
-              <div class="text-[11px] text-[#888] font-normal">MP3 320 kbps • Suasana Santai</div>
-            </div>
-            <button class="w-10 h-10 rounded-full bg-[#1db954] text-black flex items-center justify-center text-sm font-bold shadow-lg mr-3 opacity-0 group-hover:opacity-100 transition hover:scale-105">▶</button>
-          </div>
-
-          <div onclick="playSongAt(2)" class="flex items-center bg-[#282828]/70 hover:bg-[#383838] transition rounded-md overflow-hidden cursor-pointer shadow group relative">
-            <div class="w-16 h-16 bg-[#333] flex items-center justify-center text-2xl shrink-0">🌅</div>
-            <div class="px-4 py-2 font-bold text-sm truncate flex-1">
-              <div class="truncate text-white flex items-center gap-1.5">
-                Jalan Pulang Menuju Bahagia
-                <span class="badge-hires-gold text-[9px] font-black px-1.5 py-0.2 rounded shrink-0">HI-RES</span>
-              </div>
-              <div class="text-[11px] text-[#888] font-normal">FLAC 24-bit / 48kHz • Lossless</div>
-            </div>
-            <button class="w-10 h-10 rounded-full bg-[#1db954] text-black flex items-center justify-center text-sm font-bold shadow-lg mr-3 opacity-0 group-hover:opacity-100 transition hover:scale-105">▶</button>
-          </div>
-        </div>
+        <!-- Featured Recent Cards (Dynamic based on songs database) -->
+        <div id="featuredRecentCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
 
         <!-- Song List Table -->
         <div class="space-y-4">
@@ -724,74 +691,166 @@
 
   <!-- JavaScript Audio Engine & Hi-Res Logic -->
   <script>
+    const STORAGE_SONGS_KEY = 'senandung_songs_db';
+    const STORAGE_DOWNLOADED_IDS = 'senandung_downloaded_ids';
+
+    function getInitialSongs() {
+      const defaultSongs = [
+        {
+          id: "gw_2",
+          title: "GuyonWaton Official - Perlahan",
+          artist: "GUYONWATON OFFICIAL",
+          album: "Hasil Unduhan Musik",
+          duration: 380,
+          cover: "🎵",
+          themeColor: "#2d2319",
+          isHiRes: true,
+          codec: "FLAC",
+          bitDepth: 24,
+          sampleRate: "96 kHz",
+          bitrate: "1411 kbps",
+          source: "youtube",
+          lyrics: [
+            { time: 0, text: "♪ Memulai lagu Perlahan - GuyonWaton ♪" },
+            { time: 8, text: "Perlahan engkau pun menjauh dari hatiku..." },
+            { time: 20, text: "Membawa semua cerita indah yang pernah ada..." }
+          ]
+        },
+        {
+          id: "gw_7",
+          title: "GUYONWATON OFFICIAL - SEBATAS TEMAN",
+          artist: "GUYONWATON OFFICIAL",
+          album: "Hasil Unduhan Musik",
+          duration: 339,
+          cover: "🎵",
+          themeColor: "#1f2b24",
+          isHiRes: false,
+          codec: "MP3",
+          bitDepth: 16,
+          sampleRate: "44.1 kHz",
+          bitrate: "320 kbps",
+          source: "youtube",
+          lyrics: [
+            { time: 0, text: "♪ GuyonWaton - Sebatas Teman ♪" },
+            { time: 6, text: "Koe teko gowo cerito ro liyane..." },
+            { time: 18, text: "Nanging aku mung iso dadi sebatas teman..." }
+          ]
+        },
+        {
+          id: "s1",
+          title: "Senandung Hati di Bumiayu",
+          artist: "Harmoni Rumah",
+          album: "Suasana Santai STB",
+          duration: 180,
+          cover: "🎵",
+          themeColor: "#1a3a2a",
+          isHiRes: true,
+          codec: "FLAC",
+          bitDepth: 24,
+          sampleRate: "96 kHz",
+          bitrate: "1411 kbps",
+          source: "local",
+          lyrics: [
+            { time: 0, text: "♪ (Petikan melodi lembut mengalun) ♪" },
+            { time: 5, text: "Di hening malam angin berbisik ramah" },
+            { time: 12, text: "Keluarga berkumpul di hangatnya rumah" },
+            { time: 20, text: "Senandung nada mengisi ruang dan jiwa" },
+            { time: 30, text: "Semua bersatu dalam irama yang sama" }
+          ]
+        },
+        {
+          id: "s2",
+          title: "Kopi Sore & Melodi Klasik",
+          artist: "Akustik Santai",
+          album: "Penyimpanan STB",
+          duration: 195,
+          cover: "☕",
+          themeColor: "#3a2a1a",
+          isHiRes: false,
+          codec: "MP3",
+          bitDepth: 16,
+          sampleRate: "44.1 kHz",
+          bitrate: "320 kbps",
+          source: "local",
+          lyrics: [
+            { time: 0, text: "♪ (Dentang piano hangat) ♪" },
+            { time: 6, text: "Secangkir kopi di sudut beranda" },
+            { time: 14, text: "Melepas lelah menutup cerita kita" }
+          ]
+        },
+        {
+          id: "s3",
+          title: "Jalan Pulang Menuju Bahagia",
+          artist: "Suara Jiwa",
+          album: "YouTube Download",
+          duration: 210,
+          cover: "🌅",
+          themeColor: "#351a3a",
+          isHiRes: true,
+          codec: "FLAC",
+          bitDepth: 24,
+          sampleRate: "48 kHz",
+          bitrate: "1024 kbps",
+          source: "youtube",
+          lyrics: [
+            { time: 0, text: "♪ (Alunan gitar akustik) ♪" },
+            { time: 8, text: "Langkah demi langkah kupijak jalanan" },
+            { time: 16, text: "Membawa rindu ke tempat tujuan" }
+          ]
+        }
+      ];
+      try {
+        const saved = localStorage.getItem(STORAGE_SONGS_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Ensure default songs (like gw_2 and gw_7) exist in the list if missing
+            defaultSongs.forEach(ds => {
+              if (!parsed.some(p => p.id === ds.id || (p.title && p.title.toLowerCase().includes(ds.title.toLowerCase().slice(0, 15))))) {
+                parsed.push(ds);
+              }
+            });
+            return parsed;
+          }
+        }
+      } catch (e) {}
+      return defaultSongs;
+    }
+
     // Song Database with Hi-Res metadata
-    let songs = [
-      {
-        id: "s1",
-        title: "Senandung Hati di Bumiayu",
-        artist: "Harmoni Rumah",
-        album: "Suasana Santai STB",
-        duration: 180,
-        cover: "🎵",
-        themeColor: "#1a3a2a",
-        isHiRes: true,
-        codec: "FLAC",
-        bitDepth: 24,
-        sampleRate: "96 kHz",
-        bitrate: "1411 kbps",
-        source: "local",
-        lyrics: [
-          { time: 0, text: "♪ (Petikan melodi lembut mengalun) ♪" },
-          { time: 5, text: "Di hening malam angin berbisik ramah" },
-          { time: 12, text: "Keluarga berkumpul di hangatnya rumah" },
-          { time: 20, text: "Senandung nada mengisi ruang dan jiwa" },
-          { time: 30, text: "Semua bersatu dalam irama yang sama" },
-          { time: 45, text: "Harmoni mengalir tanpa ada jeda..." }
-        ]
-      },
-      {
-        id: "s2",
-        title: "Kopi Sore & Melodi Klasik",
-        artist: "Akustik Santai",
-        album: "Penyimpanan STB",
-        duration: 195,
-        cover: "☕",
-        themeColor: "#3a2a1a",
-        isHiRes: false,
-        codec: "MP3",
-        bitDepth: 16,
-        sampleRate: "44.1 kHz",
-        bitrate: "320 kbps",
-        source: "local",
-        lyrics: [
-          { time: 0, text: "♪ (Dentang piano hangat) ♪" },
-          { time: 6, text: "Secangkir kopi di sudut beranda" },
-          { time: 14, text: "Melepas lelah menutup cerita kita" },
-          { time: 25, text: "Biarkan musik tetap mengudara" }
-        ]
-      },
-      {
-        id: "s3",
-        title: "Jalan Pulang Menuju Bahagia",
-        artist: "Suara Jiwa",
-        album: "YouTube Download",
-        duration: 210,
-        cover: "🌅",
-        themeColor: "#351a3a",
-        isHiRes: true,
-        codec: "FLAC",
-        bitDepth: 24,
-        sampleRate: "48 kHz",
-        bitrate: "1024 kbps",
-        source: "youtube",
-        lyrics: [
-          { time: 0, text: "♪ (Alunan gitar akustik) ♪" },
-          { time: 8, text: "Langkah demi langkah kupijak jalanan" },
-          { time: 16, text: "Membawa rindu ke tempat tujuan" },
-          { time: 28, text: "Senandung merdu pelipur kelelahan" }
-        ]
+    let songs = getInitialSongs();
+
+    function persistSongsToStorage() {
+      try {
+        localStorage.setItem(STORAGE_SONGS_KEY, JSON.stringify(songs));
+      } catch(e) {}
+    }
+
+    function getInitialDownloadedTrackIds() {
+      const set = new Set(["gw_2", "gw_7"]);
+      try {
+        const saved = localStorage.getItem(STORAGE_DOWNLOADED_IDS);
+        if (saved) {
+          const arr = JSON.parse(saved);
+          if (Array.isArray(arr)) arr.forEach(id => set.add(id));
+        }
+      } catch(e) {}
+      // Sync from existing songs
+      if (Array.isArray(songs)) {
+        songs.forEach(s => {
+          if (s.id) set.add(s.id);
+        });
       }
-    ];
+      return set;
+    }
+
+    let downloadedTrackIds = getInitialDownloadedTrackIds();
+
+    function persistDownloadedIdsToStorage() {
+      try {
+        localStorage.setItem(STORAGE_DOWNLOADED_IDS, JSON.stringify(Array.from(downloadedTrackIds)));
+      } catch(e) {}
+    }
 
     // Mock YouTube Text-Only Search Data
     let ytSearchResults = [
@@ -910,8 +969,46 @@
       document.getElementById('appBody').style.background = `linear-gradient(180deg, ${color} 0%, #121212 500px)`;
     }
 
+    function renderFeaturedRecentCards() {
+      const container = document.getElementById('featuredRecentCards');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const topSongs = songs.slice(0, 6);
+      topSongs.forEach((s) => {
+        const originalIdx = songs.findIndex(x => x.id === s.id);
+        const card = document.createElement('div');
+        card.className = "flex items-center bg-[#282828]/70 hover:bg-[#383838] transition rounded-md overflow-hidden cursor-pointer shadow group relative";
+        card.onclick = () => playSongAt(originalIdx);
+
+        const hiResBadgeHtml = s.isHiRes 
+          ? `<span class="badge-hires-gold text-[9px] font-black px-1.5 py-0.2 rounded shrink-0">HI-RES</span>` 
+          : '';
+
+        card.innerHTML = `
+          <div class="w-16 h-16 bg-[#333] flex items-center justify-center text-2xl shrink-0">
+            ${s.cover || '🎵'}
+          </div>
+          <div class="px-4 py-2 font-bold text-sm truncate flex-1">
+            <div class="truncate text-white flex items-center gap-1.5">
+              <span>${escapeHtml(s.title)}</span>
+              ${hiResBadgeHtml}
+            </div>
+            <div class="text-[11px] text-[#888] font-normal truncate">
+              ${escapeHtml(s.artist)} • ${s.codec} (${s.sampleRate || 'Lossless'})
+            </div>
+          </div>
+          <button class="w-10 h-10 rounded-full bg-[#1db954] text-black flex items-center justify-center text-sm font-bold shadow-lg mr-3 opacity-0 group-hover:opacity-100 transition hover:scale-105">
+            ▶
+          </button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
     // Render Dashboard Songs with Gold Hi-Res Badge
     function renderDashboardSongs() {
+      renderFeaturedRecentCards();
       const container = document.getElementById('dashboardSongList');
       container.innerHTML = '';
 
@@ -1135,8 +1232,7 @@
       }
     }
 
-    // Track state: Set of downloaded/queued IDs to show green checkmark
-    let downloadedTrackIds = new Set(["gw_2", "gw_7"]); // matches Perlahan and Sebatas Teman in screenshot
+    // Track state synced with storage and songs database
 
     // Music Search Results (Matching screenshot 1:1)
     let musicSearchResults = [
@@ -1275,15 +1371,25 @@
             </p>
           </div>
 
-          <!-- Right Action: Download Icon or Green Checkmark -->
-          <div class="shrink-0 flex items-center">
+          <!-- Right Action: Interactive Download / Play Button -->
+          <div class="shrink-0 flex items-center gap-1">
             ${
               isDownloaded
-                ? `<div class="w-8 h-8 rounded-full border border-[#1db954] flex items-center justify-center text-[#1db954] font-bold text-sm shadow-sm" title="Tersimpan / Terunduh">
-                    ✓
-                   </div>`
-                : `<button onclick="handleTrackDownloadClick('${item.id}', '${escapeHtml(item.title).replace(/'/g, "\\'")}')" 
-                           class="w-8 h-8 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] flex items-center justify-center text-white/90 hover:text-white transition shadow hover:scale-105" 
+                ? `<button onclick="handleTrackAction('${item.id}', '${escapeHtml(item.title).replace(/'/g, "\\'")}', true)" 
+                           class="h-8 px-2.5 rounded-full bg-[#1db954]/15 hover:bg-[#1db954]/25 border border-[#1db954] flex items-center gap-1.5 text-[#1db954] hover:text-[#1ed760] font-bold text-xs shadow-sm transition hover:scale-105 active:scale-95" 
+                           title="Lagu sudah ada di Dashboard. Klik untuk langsung memutar atau unduh ulang format lain">
+                     <span>✓</span>
+                     <span class="text-[10px] hidden sm:inline font-semibold">Tersimpan</span>
+                   </button>
+                   <button onclick="openFormatPickerForTrack('${item.id}', '${escapeHtml(item.title).replace(/'/g, "\\'")}')"
+                           class="w-8 h-8 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] flex items-center justify-center text-[#aaa] hover:text-white transition shadow text-xs"
+                           title="Unduh ulang dengan format audio lain">
+                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                     </svg>
+                   </button>`
+                : `<button onclick="handleTrackAction('${item.id}', '${escapeHtml(item.title).replace(/'/g, "\\'")}', false)" 
+                           class="w-8 h-8 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] flex items-center justify-center text-white/90 hover:text-white transition shadow hover:scale-105 active:scale-95" 
                            title="Unduh Musik">
                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
@@ -1325,6 +1431,31 @@
       renderMusicSearchCards();
     }
 
+    // Handle Track Action (Play if already saved, or prompt download)
+    function handleTrackAction(trackId, title, isDownloaded) {
+      if (isDownloaded) {
+        // Find existing song in database
+        const existingIdx = songs.findIndex(s => s.id === trackId || s.title.toLowerCase().includes(title.toLowerCase().slice(0, 15)));
+        if (existingIdx !== -1) {
+          switchTab('dashboard');
+          playSongAt(existingIdx);
+          alert(`Memutar "${songs[existingIdx].title}" (${songs[existingIdx].codec}) dari koleksi Dashboard!`);
+          return;
+        }
+      }
+      // If not downloaded yet or user wants download
+      handleTrackDownloadClick(trackId, title);
+    }
+
+    // Force Open Format Selector Modal (even if already saved or 30-day pref set)
+    function openFormatPickerForTrack(trackId, title) {
+      document.getElementById('dlInputQuery').value = title;
+      document.getElementById('dlInputSongId').value = trackId;
+      document.getElementById('modalDlSongTitle').innerText = title;
+      document.getElementById('chkRemember30Days').checked = false;
+      openModal('downloadModal');
+    }
+
     // Handle Click on Download Button for a Track
     function handleTrackDownloadClick(trackId, title) {
       const storedPref = getStoredFormatPreference();
@@ -1334,11 +1465,7 @@
         executeDownloadForTrack(trackId, title, storedPref.format);
       } else {
         // Show format selection modal
-        document.getElementById('dlInputQuery').value = title;
-        document.getElementById('dlInputSongId').value = trackId;
-        document.getElementById('modalDlSongTitle').innerText = title;
-        document.getElementById('chkRemember30Days').checked = false;
-        openModal('downloadModal');
+        openFormatPickerForTrack(trackId, title);
       }
     }
 
@@ -1358,6 +1485,7 @@
     function executeDownloadForTrack(trackId, title, format) {
       // 1. Mark as downloaded/queued (turns icon into green checkmark)
       downloadedTrackIds.add(trackId);
+      persistDownloadedIdsToStorage();
       renderMusicSearchCards();
 
       // 2. Add to download queue
@@ -1393,11 +1521,11 @@
           renderDownloadQueue();
           updateQueueBadge();
 
-          // Prepare song object and prompt lyrics approval if needed
-          pendingDownloadedSong = {
-            id: 's_' + Date.now(),
+          // Prepare song object
+          const newSongObj = {
+            id: trackId || ('s_' + Date.now()),
             title: title,
-            artist: "Unduhan Musik STB",
+            artist: title.toLowerCase().includes('guyon') ? "GUYONWATON OFFICIAL" : "Unduhan Musik STB",
             album: isFlac ? "Koleksi FLAC Hi-Res" : "Koleksi Standar",
             duration: 210,
             cover: isFlac ? "✨" : "🎧",
@@ -1408,8 +1536,23 @@
             sampleRate: isFlac ? "96 kHz" : "44.1 kHz",
             bitrate: isFlac ? "1411 kbps" : "320 kbps",
             source: "youtube",
-            lyrics: null
+            lyrics: [
+              { time: 0, text: `♪ Alunan audio ${isFlac ? 'FLAC 24-bit Lossless' : 'MP3 320k'} ♪` },
+              { time: 8, text: "Tersimpan otomatis di penyimpanan STB & Dashboard" }
+            ]
           };
+
+          // Immediately add to songs database if not present, and persist to storage
+          const existingSongIdx = songs.findIndex(s => s.id === newSongObj.id);
+          if (existingSongIdx === -1) {
+            songs.unshift(newSongObj);
+          } else {
+            songs[existingSongIdx] = newSongObj;
+          }
+          persistSongsToStorage();
+          renderDashboardSongs();
+
+          pendingDownloadedSong = newSongObj;
 
           const simulatedInternetLRC = `[00:02.00] ♪ Alunan audio ${isFlac ? 'FLAC Lossless 24-bit/96kHz' : 'MP3 320k'} ♪
 [00:08.50] Di hening malam senandung terdengar indah
@@ -1470,9 +1613,7 @@
     }
 
     function triggerYTHiResDownload(title, format) {
-      document.getElementById('dlInputQuery').value = title;
-      openModal('downloadModal');
-      startDownloadWithFormat(format);
+      executeDownloadForTrack('yt_' + Date.now(), title, format);
     }
 
     // Playback Logic
@@ -1685,76 +1826,6 @@
       renderDownloadQueue();
     }
 
-    // Downloader with Format & Progress Simulation (Split Panel)
-    function startDownloadWithFormat(format) {
-      const query = document.getElementById('dlInputQuery').value.trim();
-      if (!query) return;
-
-      closeModal('downloadModal');
-      document.getElementById('dlInputQuery').value = '';
-
-      // Tambahkan ke Download Queue Panel
-      const isFlac = format.toLowerCase() === 'flac';
-      const jobId = 'job_' + Date.now();
-      const newJob = {
-        id: jobId,
-        title: query,
-        format: isFlac ? "FLAC 24-bit" : "MP3 320k",
-        status: "downloading",
-        percent: 5,
-        speed: "3.1 MB/s",
-        eta: "12s"
-      };
-
-      downloadQueueJobs.unshift(newJob);
-      renderDownloadQueue();
-
-      // Animasi live progress bar (%) bertahap tanpa memblokir pencarian
-      let progress = 5;
-      const progressTimer = setInterval(() => {
-        progress += Math.floor(Math.random() * 15) + 8;
-        if (progress >= 100) {
-          progress = 100;
-          clearInterval(progressTimer);
-          newJob.percent = 100;
-          newJob.status = "completed";
-          newJob.speed = "Selesai";
-          newJob.eta = "0s";
-          renderDownloadQueue();
-
-          // Buat objek lagu dan buka alur persetujuan lirik
-          pendingDownloadedSong = {
-            id: 's_' + Date.now(),
-            title: query,
-            artist: "Hasil Unduhan YouTube",
-            album: isFlac ? "Koleksi FLAC Hi-Res" : "Koleksi Standar",
-            duration: 190,
-            cover: isFlac ? "✨" : "🎧",
-            themeColor: isFlac ? "#332a10" : "#1a253a",
-            isHiRes: isFlac,
-            codec: isFlac ? "FLAC" : "MP3",
-            bitDepth: isFlac ? 24 : 16,
-            sampleRate: isFlac ? "96 kHz" : "44.1 kHz",
-            bitrate: isFlac ? "1411 kbps" : "320 kbps",
-            source: "youtube",
-            lyrics: null
-          };
-
-          const simulatedInternetLRC = `[00:02.00] ♪ Alunan audio ${isFlac ? 'FLAC Lossless 24-bit' : 'MP3 320k'} ♪
-[00:08.50] Di bawah langit malam yang tenang
-[00:16.00] Bersama senandung suara yang kurindu
-[00:25.00] Melangkah maju meraih impian kita
-[00:36.00] Takkan pernah berhenti bernyanyi...`;
-
-          openLyricsApproval(pendingDownloadedSong, simulatedInternetLRC);
-        } else {
-          newJob.percent = progress;
-          newJob.eta = Math.max(1, Math.round((100 - progress) / 8)) + 's';
-          renderDownloadQueue();
-        }
-      }, 450);
-    }
-
     function openLyricsApproval(song, lrcText) {
       document.getElementById('lyricsApprovalSongTitle').innerText = song.title;
       const previewContainer = document.getElementById('lyricsApprovalPreview');
@@ -1771,7 +1842,7 @@
     }
 
     function acceptLyricsApproval() {
-      const lines = window.pendingLrcText.split('\n');
+      const lines = window.pendingLrcText ? window.pendingLrcText.split('\n') : [];
       const parsedLyrics = [];
       const regex = /\[(\d{2}):(\d{2})\.?(\d{2,3})?\](.*)/;
 
@@ -1783,20 +1854,31 @@
         }
       });
 
-      pendingDownloadedSong.lyrics = parsedLyrics;
-      songs.unshift(pendingDownloadedSong);
+      if (pendingDownloadedSong) {
+        pendingDownloadedSong.lyrics = parsedLyrics;
+        const sIdx = songs.findIndex(s => s.id === pendingDownloadedSong.id);
+        if (sIdx !== -1) {
+          songs[sIdx].lyrics = parsedLyrics;
+        } else {
+          songs.unshift(pendingDownloadedSong);
+        }
+        persistSongsToStorage();
+        renderDashboardSongs();
+        alert(`Lirik disetujui! "${pendingDownloadedSong.title}" (${pendingDownloadedSong.codec}) siap diputar.`);
+        const targetIdx = songs.findIndex(s => s.id === pendingDownloadedSong.id);
+        if (targetIdx !== -1) playSongAt(targetIdx);
+      }
       closeModal('lyricsApprovalModal');
-      renderDashboardSongs();
-      alert(`Lirik disetujui! "${pendingDownloadedSong.title}" (${pendingDownloadedSong.codec}) siap diputar.`);
-      playSongAt(0);
     }
 
     function skipLyricsApproval() {
-      pendingDownloadedSong.lyrics = null;
-      songs.unshift(pendingDownloadedSong);
+      if (pendingDownloadedSong) {
+        pendingDownloadedSong.lyrics = null;
+        persistSongsToStorage();
+        renderDashboardSongs();
+        alert(`"${pendingDownloadedSong.title}" tersimpan di Dashboard STB.`);
+      }
       closeModal('lyricsApprovalModal');
-      renderDashboardSongs();
-      alert(`"${pendingDownloadedSong.title}" disimpan ke STB tanpa lirik.`);
     }
 
     function searchInternetLyricsForCurrent() {
