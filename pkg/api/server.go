@@ -233,14 +233,15 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Query string `json:"query"`
+		Query  string `json:"query"`
+		Format string `json:"format"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Query) == "" {
 		http.Error(w, "Invalid query", http.StatusBadRequest)
 		return
 	}
 
-	job := s.downloader.AddJob(req.Query)
+	job := s.downloader.AddJob(req.Query, req.Format)
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(job)
 }
