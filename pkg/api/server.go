@@ -10,6 +10,7 @@ import (
 	"github.com/faisalfa123/Senandung/pkg/db"
 	"github.com/faisalfa123/Senandung/pkg/downloader"
 	"github.com/faisalfa123/Senandung/pkg/scanner"
+	"github.com/faisalfa123/Senandung/pkg/searcher"
 	synchub "github.com/faisalfa123/Senandung/pkg/sync"
 )
 
@@ -46,6 +47,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/playlists/", s.handlePlaylistByID)
 
 	// Downloader & Scanner
+	mux.HandleFunc("/api/search", s.handleSearchLive)
 	mux.HandleFunc("/api/download", s.handleDownload)
 	mux.HandleFunc("/api/download/status", s.handleDownloadStatus)
 	mux.HandleFunc("/api/scan", s.handleScan)
@@ -261,3 +263,20 @@ func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{"status": "success", "new_songs": count})
 }
+
+func (s *Server) handleSearchLive(w http.ResponseWriter, r *http.Request) {
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	w.Header().Set("Content-Type", "application/json")
+	if q == "" {
+		_ = json.NewEncoder(w).Encode([]searcher.SearchResult{})
+		return
+	}
+
+	results, err := searcher.SearchYouTube(q)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	_ = json.NewEncoder(w).Encode(results)
+}
+

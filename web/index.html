@@ -1457,21 +1457,49 @@
         headerCard.classList.add('hidden');
       }
 
-      // Add new simulated search result if not already existing
-      const existing = musicSearchResults.find(x => x.title && x.title.toLowerCase().includes(q.toLowerCase()));
-      if (!existing) {
-        musicSearchResults.unshift({
-          id: 'custom_' + Date.now(),
-          title: `${q} (Audio High Definition HQ)`,
-          channel: "Hasil Pencarian Musik Bebas",
-          duration: "4:12",
-          views: "Baru saja",
-          date: "Siap Unduh",
-          thumbText: q.slice(0, 15),
-          thumbBg: "#1d2b3a"
-        });
+      const container = document.getElementById('musicSearchCardsContainer');
+      if (container) {
+        container.innerHTML = `
+          <div class="py-12 text-center text-[#888] space-y-3">
+            <div class="inline-block animate-spin text-2xl text-[#3ea6ff]">⏳</div>
+            <div class="text-xs">Mencari musik "${escapeHtml(q)}" secara live langsung dari YouTube via STB...</div>
+          </div>
+        `;
       }
-      renderMusicSearchCards();
+
+      // Hubungi endpoint Live Search Wrapper backend STB
+      fetch('/api/search?q=' + encodeURIComponent(q))
+        .then(res => {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        })
+        .then(liveResults => {
+          if (Array.isArray(liveResults) && liveResults.length > 0) {
+            musicSearchResults = liveResults;
+            showToast(`Ditemukan ${liveResults.length} hasil live untuk "${q}"`, 'success');
+          } else {
+            showToast(`Tidak ada hasil live ditemukan untuk "${q}".`, 'error');
+          }
+          renderMusicSearchCards();
+        })
+        .catch(() => {
+          // Fallback jika backend Go offline / mode GitHub Pages preview
+          const existing = musicSearchResults.find(x => x.title && x.title.toLowerCase().includes(q.toLowerCase()));
+          if (!existing) {
+            musicSearchResults.unshift({
+              id: 'custom_' + Date.now(),
+              title: `${q} (Audio High Definition HQ)`,
+              channel: "Hasil Pencarian Musik Bebas",
+              duration: "4:12",
+              views: "Baru saja",
+              date: "Siap Unduh",
+              thumbText: q.slice(0, 15),
+              thumbBg: "#1d2b3a"
+            });
+          }
+          renderMusicSearchCards();
+          showToast(`Menampilkan hasil pencarian untuk "${q}"`, 'success');
+        });
     }
 
     // Handle Track Action (Play if already saved, or prompt download)
