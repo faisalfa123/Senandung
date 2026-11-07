@@ -140,20 +140,20 @@
           <span class="font-bold text-white flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full bg-[#1db954]"></span> STB DietPi Monitor
           </span>
-          <span class="text-[10px] text-[#1db954]">Safe</span>
+          <span id="stbMonitorStatus" class="text-[10px] text-[#1db954]">Online</span>
         </div>
         <div class="space-y-1 text-[11px] text-[#aaa]">
           <div class="flex justify-between">
             <span>RAM Usage:</span>
-            <span class="text-white font-mono">18.4 MB / 2 GB</span>
+            <span id="stbRamUsage" class="text-white font-mono">Memuat...</span>
           </div>
           <div class="flex justify-between">
             <span>Free Storage:</span>
-            <span class="text-[#ffd700] font-mono">114.2 GB Free</span>
+            <span id="stbDiskFree" class="text-[#ffd700] font-mono">Memuat...</span>
           </div>
           <div class="flex justify-between">
-            <span>Immich CPU:</span>
-            <span class="text-[#1db954] font-mono">Priority 1 (Nice -5)</span>
+            <span>Total Disk:</span>
+            <span id="stbDiskTotal" class="text-[#888] font-mono">-</span>
           </div>
         </div>
       </div>
@@ -213,16 +213,16 @@
                 </div>
                 <!-- Input field -->
                 <input type="text" id="musicSearchInput" 
-                       value="guyon waton"
+                       value=""
                        onfocus="showSearchHistoryDropdown()"
                        onblur="hideSearchHistoryDropdownWithDelay()"
                        oninput="handleSearchInputChange(this.value)"
                        onkeydown="if(event.key==='Enter') executeMusicSearch()" 
-                       placeholder="Cari lagu bebas atau ketik judul..." 
+                       placeholder="Cari lagu bebas di YouTube (misal: 'Dewa 19', 'Before You Go')..." 
                        class="w-full bg-transparent text-sm text-white placeholder-[#888] focus:outline-none">
                 
                 <!-- Clear Button ✕ -->
-                <button onclick="clearMusicSearchInput()" id="btnMusicSearchClear" class="text-[#888] hover:text-white px-1.5 text-xs transition">✕</button>
+                <button onclick="clearMusicSearchInput()" id="btnMusicSearchClear" class="text-[#888] hover:text-white px-1.5 text-xs transition" style="visibility: hidden;">✕</button>
 
                 <!-- Search Action Blue Pill -->
                 <button onclick="executeMusicSearch()" class="bg-[#263850] hover:bg-[#3ea6ff] hover:text-black text-[#3ea6ff] p-1.5 rounded-full ml-1 transition shrink-0" title="Cari">
@@ -263,8 +263,8 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
               </svg>
               <!-- Live Queue Badge Counter -->
-              <span id="queueHeaderBadge" class="absolute -top-1 -right-1 bg-[#1db954] text-black font-extrabold text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow">
-                1
+              <span id="queueHeaderBadge" class="absolute -top-1 -right-1 bg-[#1db954] text-black font-extrabold text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow" style="display: none;">
+                0
               </span>
             </button>
           </div>
@@ -279,18 +279,8 @@
           </div>
         </div>
 
-        <!-- Channel / Artist Card (Matches screenshot guyonwaton) -->
-        <div id="channelHeaderCard" class="bg-[#181818] border border-[#262626] rounded-2xl p-3.5 flex items-center gap-3.5 shadow-sm">
-          <div class="w-14 h-14 rounded-full bg-black border border-[#ffd700] flex items-center justify-center shrink-0 overflow-hidden shadow">
-            <div class="text-[9px] font-black text-[#ffd700] leading-tight text-center px-1">
-              GUYON<br>WATON
-            </div>
-          </div>
-          <div class="overflow-hidden flex-1">
-            <h3 class="font-bold text-sm text-white tracking-wide truncate">GUYONWATON OFFICIAL</h3>
-            <p class="text-xs text-[#888] truncate mt-0.5">3,1M subs • 166 videos</p>
-            <p class="text-[11px] text-[#777] truncate mt-0.5">Halo teman-teman, perkenalkan kami Adalah GUYONWATON. Band dangdut akusti...</p>
-          </div>
+        <!-- Channel / Artist Card (Hidden by default, only shown if relevant) -->
+        <div id="channelHeaderCard" class="hidden bg-[#181818] border border-[#262626] rounded-2xl p-3.5 flex items-center gap-3.5 shadow-sm">
         </div>
 
         <!-- Music / Video Track Cards Container (1:1 Horizontal Cards) -->
@@ -698,129 +688,19 @@
     const STORAGE_DOWNLOADED_IDS = 'senandung_downloaded_ids';
 
     function getInitialSongs() {
-      const defaultSongs = [
-        {
-          id: "gw_2",
-          title: "GuyonWaton Official - Perlahan",
-          artist: "GUYONWATON OFFICIAL",
-          album: "Hasil Unduhan Musik",
-          duration: 380,
-          cover: "🎵",
-          themeColor: "#2d2319",
-          isHiRes: true,
-          codec: "FLAC",
-          bitDepth: 24,
-          sampleRate: "96 kHz",
-          bitrate: "1411 kbps",
-          source: "youtube",
-          lyrics: [
-            { time: 0, text: "♪ Memulai lagu Perlahan - GuyonWaton ♪" },
-            { time: 8, text: "Perlahan engkau pun menjauh dari hatiku..." },
-            { time: 20, text: "Membawa semua cerita indah yang pernah ada..." }
-          ]
-        },
-        {
-          id: "gw_7",
-          title: "GUYONWATON OFFICIAL - SEBATAS TEMAN",
-          artist: "GUYONWATON OFFICIAL",
-          album: "Hasil Unduhan Musik",
-          duration: 339,
-          cover: "🎵",
-          themeColor: "#1f2b24",
-          isHiRes: false,
-          codec: "MP3",
-          bitDepth: 16,
-          sampleRate: "44.1 kHz",
-          bitrate: "320 kbps",
-          source: "youtube",
-          lyrics: [
-            { time: 0, text: "♪ GuyonWaton - Sebatas Teman ♪" },
-            { time: 6, text: "Koe teko gowo cerito ro liyane..." },
-            { time: 18, text: "Nanging aku mung iso dadi sebatas teman..." }
-          ]
-        },
-        {
-          id: "s1",
-          title: "Senandung Hati di Bumiayu",
-          artist: "Harmoni Rumah",
-          album: "Suasana Santai STB",
-          duration: 180,
-          cover: "🎵",
-          themeColor: "#1a3a2a",
-          isHiRes: true,
-          codec: "FLAC",
-          bitDepth: 24,
-          sampleRate: "96 kHz",
-          bitrate: "1411 kbps",
-          source: "local",
-          lyrics: [
-            { time: 0, text: "♪ (Petikan melodi lembut mengalun) ♪" },
-            { time: 5, text: "Di hening malam angin berbisik ramah" },
-            { time: 12, text: "Keluarga berkumpul di hangatnya rumah" },
-            { time: 20, text: "Senandung nada mengisi ruang dan jiwa" },
-            { time: 30, text: "Semua bersatu dalam irama yang sama" }
-          ]
-        },
-        {
-          id: "s2",
-          title: "Kopi Sore & Melodi Klasik",
-          artist: "Akustik Santai",
-          album: "Penyimpanan STB",
-          duration: 195,
-          cover: "☕",
-          themeColor: "#3a2a1a",
-          isHiRes: false,
-          codec: "MP3",
-          bitDepth: 16,
-          sampleRate: "44.1 kHz",
-          bitrate: "320 kbps",
-          source: "local",
-          lyrics: [
-            { time: 0, text: "♪ (Dentang piano hangat) ♪" },
-            { time: 6, text: "Secangkir kopi di sudut beranda" },
-            { time: 14, text: "Melepas lelah menutup cerita kita" }
-          ]
-        },
-        {
-          id: "s3",
-          title: "Jalan Pulang Menuju Bahagia",
-          artist: "Suara Jiwa",
-          album: "YouTube Download",
-          duration: 210,
-          cover: "🌅",
-          themeColor: "#351a3a",
-          isHiRes: true,
-          codec: "FLAC",
-          bitDepth: 24,
-          sampleRate: "48 kHz",
-          bitrate: "1024 kbps",
-          source: "youtube",
-          lyrics: [
-            { time: 0, text: "♪ (Alunan gitar akustik) ♪" },
-            { time: 8, text: "Langkah demi langkah kupijak jalanan" },
-            { time: 16, text: "Membawa rindu ke tempat tujuan" }
-          ]
-        }
-      ];
       try {
         const saved = localStorage.getItem(STORAGE_SONGS_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            // Ensure default songs (like gw_2 and gw_7) exist in the list if missing
-            defaultSongs.forEach(ds => {
-              if (!parsed.some(p => p.id === ds.id || (p.title && p.title.toLowerCase().includes(ds.title.toLowerCase().slice(0, 15))))) {
-                parsed.push(ds);
-              }
-            });
+          if (Array.isArray(parsed)) {
             return parsed;
           }
         }
       } catch (e) {}
-      return defaultSongs;
+      return [];
     }
 
-    // Song Database with Hi-Res metadata
+    // Song Database: 100% Riil dari STB
     let songs = getInitialSongs();
 
     function persistSongsToStorage() {
@@ -830,7 +710,7 @@
     }
 
     function getInitialDownloadedTrackIds() {
-      const set = new Set(["gw_2", "gw_7"]);
+      const set = new Set();
       try {
         const saved = localStorage.getItem(STORAGE_DOWNLOADED_IDS);
         if (saved) {
@@ -838,7 +718,6 @@
           if (Array.isArray(arr)) arr.forEach(id => set.add(id));
         }
       } catch(e) {}
-      // Sync from existing songs
       if (Array.isArray(songs)) {
         songs.forEach(s => {
           if (s.id) set.add(s.id);
@@ -855,83 +734,54 @@
       } catch(e) {}
     }
 
-    // Mock YouTube Text-Only Search Data
-    let ytSearchResults = [
-      { id: "yt_1", title: "Tulus - Interaksi (Live Acoustic Studio)", artist: "Tulus Official", duration: "3:42", quality: "24-bit/96kHz Hi-Res FLAC" },
-      { id: "yt_2", title: "Mahalini - Sial (Master Studio Audio)", artist: "Hits Records", duration: "4:03", quality: "24-bit/48kHz Lossless" },
-      { id: "yt_3", title: "Dewa 19 - Kangen (Remastered Audio)", artist: "Aquarius Musikindo", duration: "5:12", quality: "16-bit/44.1kHz Hi-Fi" }
-    ];
+    let musicSearchResults = [];
+    let downloadQueueJobs = [];
+    let playlists = [];
 
-    let playlists = [
-      { id: "pl1", name: "Favorit Keluarga", privacy: "shared", icon: "🏠", songs: ["s1", "s2"] },
-      { id: "pl2", name: "Koleksi Lossless Ayah", privacy: "private", icon: "🔒", songs: ["s1", "s3"] },
-      { id: "pl3", name: "Lagu Santai Malam", privacy: "shared", icon: "🌙", songs: ["s2", "s3"] }
-    ];
-
-    let currentSongIndex = 0;
+    let currentSongIndex = -1;
     let isPlaying = false;
     let currentTime = 0;
     let playbackSpeed = 1.0;
     let isPartyMode = false;
     let currentPartyRoom = "Ruang Tamu";
     let activeFilter = 'all';
-    let isHighResMode = true; // Toggle between Hi-Res FLAC and Standard MP3
-    let favorites = new Set(["s1"]);
-    let offlineSongs = new Set(["s1"]);
-    let timerInterval = null;
+    let isHighResMode = true;
+    let favorites = new Set();
+    let offlineSongs = new Set();
     let pendingDownloadedSong = null;
 
-    // Web Audio Synthesizer Tone Generator
-    let audioCtx = null;
-    let synthOsc = null;
-    let synthGain = null;
+    // Real HTML5 Audio Player
+    const realAudio = new Audio();
+    realAudio.preload = "auto";
 
-    function getAudioContext() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        synthGain = audioCtx.createGain();
-        synthGain.gain.value = 0.15;
-        synthGain.connect(audioCtx.destination);
+    realAudio.addEventListener('timeupdate', () => {
+      if (currentSongIndex >= 0 && songs[currentSongIndex]) {
+        currentTime = Math.floor(realAudio.currentTime);
+        if (realAudio.duration && !isNaN(realAudio.duration)) {
+          songs[currentSongIndex].duration = Math.floor(realAudio.duration);
+        }
+        updateProgressUI();
+        syncKaraokeScroll();
       }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-      return audioCtx;
-    }
+    });
 
-    function startSynthMelody() {
-      try {
-        const ctx = getAudioContext();
-        if (synthOsc) synthOsc.stop();
-        synthOsc = ctx.createOscillator();
-        // Triangle wave for smooth high fidelity acoustic tone
-        synthOsc.type = isHighResMode ? 'sine' : 'triangle';
-        synthOsc.frequency.setValueAtTime(261.63, ctx.currentTime);
-        
-        const notes = [261.63, 329.63, 392.00, 523.25, 440.00];
-        let noteIdx = 0;
-        synthOsc.connect(synthGain);
-        synthOsc.start();
+    realAudio.addEventListener('ended', () => {
+      nextSong();
+    });
 
-        const intervalMs = Math.round(1200 / playbackSpeed);
-        window.synthTimer = setInterval(() => {
-          if (isPlaying && synthOsc && audioCtx) {
-            noteIdx = (noteIdx + 1) % notes.length;
-            synthOsc.frequency.setValueAtTime(notes[noteIdx], audioCtx.currentTime);
-          }
-        }, intervalMs);
-      } catch (e) {
-        console.warn(e);
-      }
-    }
+    realAudio.addEventListener('play', () => {
+      isPlaying = true;
+      updatePlayerUI();
+    });
 
-    function stopSynthMelody() {
-      if (synthOsc) {
-        try { synthOsc.stop(); } catch(e){}
-        synthOsc = null;
-      }
-      if (window.synthTimer) clearInterval(window.synthTimer);
-    }
+    realAudio.addEventListener('pause', () => {
+      isPlaying = false;
+      updatePlayerUI();
+    });
+
+    realAudio.addEventListener('error', (e) => {
+      console.warn('Audio playback error:', e);
+    });
 
     function init() {
       renderDashboardSongs();
@@ -1277,137 +1127,87 @@
 
     // Track state synced with storage and songs database
 
-    // Music Search Results (Matching screenshot 1:1)
-    let musicSearchResults = [
-      {
-        id: "gw_1",
-        title: "GuyonWaton - Wirang (Official Music Video)",
-        channel: "GUYONWATON OFFICIAL",
-        duration: "5:05",
-        views: "131,5M views",
-        date: "3 years ago",
-        thumbText: "Wirang",
-        thumbBg: "#1f2a38"
-      },
-      {
-        id: "gw_2",
-        title: "GuyonWaton Official - Perlahan (Official Music Video)",
-        channel: "GUYONWATON OFFICIAL",
-        duration: "6:20",
-        views: "155,3M views",
-        date: "7 years ago",
-        thumbText: "Perlahan",
-        thumbBg: "#2d2319"
-      },
-      {
-        id: "gw_topic",
-        isTopicChannel: true,
-        title: "Guyon Waton - Topic",
-        channel: "41,1K subs"
-      },
-      {
-        id: "gw_3",
-        title: "Guyon Waton full album 2025 | tanpa iklan | wirang | gam...",
-        channel: "Blangkon Music",
-        duration: "24:11",
-        views: "3M views",
-        date: "1 year ago",
-        thumbText: "Album 2025",
-        thumbBg: "#3b1e28"
-      },
-      {
-        id: "gw_4",
-        title: "GUYON WATON FULL ALBUM || GUYON WATON FULL AL...",
-        channel: "Dangdut Koplo Hits",
-        duration: "58:21",
-        views: "15,5K views",
-        date: "2 days ago",
-        thumbText: "Full Album",
-        thumbBg: "#1d2e38"
-      },
-      {
-        id: "gw_5",
-        title: "NGATMOMBILUNG - KLEBUS (GUYONWATON COVER)",
-        channel: "GUYONWATON OFFICIAL",
-        duration: "5:13",
-        views: "192,3M views",
-        date: "4 years ago",
-        thumbText: "Klebus",
-        thumbBg: "#2b261b"
-      },
-      {
-        id: "gw_7",
-        title: "GUYONWATON OFFICIAL - SEBATAS TEMAN (OFFICIAL L...",
-        channel: "GUYONWATON OFFICIAL",
-        duration: "5:39",
-        views: "91M views",
-        date: "8 years ago",
-        thumbText: "Sebatas Teman",
-        thumbBg: "#1f2b24"
-      },
-      {
-        id: "gw_8",
-        title: "GuyonWaton Official - Korban Janji (Official Music Video)",
-        channel: "GUYONWATON OFFICIAL",
-        duration: "4:54",
-        views: "123,6M views",
-        date: "9 years ago",
-        thumbText: "Korban Janji",
-        thumbBg: "#1d2430"
-      }
-    ];
+    // Hasil Pencarian Musik: Murni Live dari YouTube Backend STB
+    let musicSearchResults = [];
 
     function renderMusicSearchCards() {
       const container = document.getElementById('musicCardsContainer');
       if (!container) return;
       container.innerHTML = '';
 
-      musicSearchResults.forEach(item => {
-        if (item.isTopicChannel) {
-          // Render Topic Channel row
-          const topicCard = document.createElement('div');
-          topicCard.className = "bg-[#181818] border border-[#242424] rounded-2xl p-3 flex items-center gap-3.5 shadow-sm";
-          topicCard.innerHTML = `
-            <div class="w-12 h-12 rounded-full bg-black border border-[#ffd700] flex items-center justify-center shrink-0">
-              <span class="text-[8px] font-black text-[#ffd700] text-center leading-tight">Guyon<br>Waton</span>
-            </div>
-            <div class="truncate flex-1">
-              <h4 class="font-bold text-sm text-white">${escapeHtml(item.title)}</h4>
-              <p class="text-xs text-[#888]">${escapeHtml(item.channel)}</p>
-            </div>
-          `;
-          container.appendChild(topicCard);
-          return;
-        }
+      if (musicSearchResults.length === 0) {
+        container.innerHTML = `
+          <div class="py-12 text-center text-[#777] space-y-2">
+            <div class="text-3xl">🔍</div>
+            <div class="text-xs font-semibold text-white">Belum ada pencarian musik</div>
+            <p class="text-[11px] text-[#888]">Ketik judul lagu atau nama artis di kolom pencarian di atas lalu klik Cari.</p>
+          </div>
+        `;
+        return;
+      }
 
+      musicSearchResults.forEach(item => {
         const isDownloaded = downloadedTrackIds.has(item.id);
 
         const card = document.createElement('div');
         card.className = "bg-[#181818] hover:bg-[#202020] border border-[#262626] rounded-2xl p-2.5 sm:p-3 flex items-center gap-3.5 transition group shadow-sm";
         
+        // Thumbnail riil YouTube atau fallback
+        const thumbUrl = item.thumbnail || `https://i.ytimg.com/vi/${item.id}/mqdefault.jpg`;
+
         card.innerHTML = `
-          <!-- Thumbnail 16:9 rounded with duration badge -->
-          <div class="relative w-28 sm:w-36 aspect-video rounded-xl overflow-hidden shrink-0 shadow flex items-center justify-center select-none" style="background: ${item.thumbBg || '#222'};">
-            <div class="text-center px-1">
-              <div class="text-[11px] sm:text-xs font-bold text-white/90 drop-shadow truncate">${escapeHtml(item.thumbText || 'Music')}</div>
-              <div class="text-[9px] text-[#ffd700] font-semibold">Senandung HQ</div>
-            </div>
+          <!-- Thumbnail Asli 16:9 dengan durasi -->
+          <div class="relative w-28 sm:w-36 aspect-video rounded-xl overflow-hidden shrink-0 shadow bg-[#111] flex items-center justify-center select-none">
+            <img src="${thumbUrl}" alt="Thumbnail" class="w-full h-full object-cover group-hover:scale-105 transition" onerror="this.onerror=null; this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 9%22><rect width=%2216%22 height=%229%22 fill=%22%23222%22/></svg>';">
             <!-- Duration Pill in bottom-right corner -->
             <span class="absolute bottom-1 right-1 bg-black/85 text-white font-semibold text-[10px] px-1.5 py-0.5 rounded-md tracking-tight">
-              ${item.duration}
+              ${escapeHtml(item.duration || '-')}
             </span>
           </div>
 
           <!-- Middle: Metadata 3 lines -->
           <div class="flex-1 min-w-0 pr-1">
-            <!-- Line 1: Title (2 lines max, bold white) -->
             <h4 class="font-bold text-xs sm:text-sm text-white line-clamp-2 leading-snug group-hover:text-white transition">
               ${escapeHtml(item.title)}
             </h4>
-            <!-- Line 2: Channel / Artist (gray uppercase) -->
             <p class="text-[11px] sm:text-xs text-[#8e8e8e] font-medium truncate mt-1">
-              ${escapeHtml(item.channel)}
+              ${escapeHtml(item.channel || 'YouTube Audio')}
             </p>
+            <p class="text-[10px] sm:text-[11px] text-[#717171] truncate mt-0.5">
+              ${escapeHtml(item.views || '')} ${item.date ? '• ' + escapeHtml(item.date) : ''}
+            </p>
+          </div>
+
+          <!-- Right Action: Interactive Download / Play Button -->
+          <div class="shrink-0 flex items-center gap-1">
+            ${
+              isDownloaded
+                ? `<button onclick="handleTrackAction('${item.id}', '${escapeHtml(item.title).replace(/'/g, "\\'")}', true)" 
+                           class="h-8 px-2.5 rounded-full bg-[#1db954]/15 hover:bg-[#1db954]/25 border border-[#1db954] flex items-center gap-1.5 text-[#1db954] hover:text-[#1ed760] font-bold text-xs shadow-sm transition hover:scale-105 active:scale-95" 
+                           title="Lagu sudah ada di Dashboard. Klik untuk langsung memutar atau unduh format lain">
+                     <span>✓</span>
+                     <span class="text-[10px] hidden sm:inline font-semibold">Tersimpan</span>
+                   </button>
+                   <button onclick="openFormatPickerForTrack('${item.id}', '${escapeHtml(item.title).replace(/'/g, "\\'")}')"
+                           class="w-8 h-8 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] flex items-center justify-center text-[#aaa] hover:text-white transition shadow text-xs"
+                           title="Unduh ulang dengan format audio lain">
+                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                     </svg>
+                   </button>`
+                : `<button onclick="handleTrackAction('${item.id}', '${escapeHtml(item.title).replace(/'/g, "\\'")}', false)" 
+                           class="w-8 h-8 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] flex items-center justify-center text-white/90 hover:text-white transition shadow hover:scale-105 active:scale-95" 
+                           title="Unduh Musik">
+                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                     </svg>
+                   </button>`
+            }
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
             <!-- Line 3: Views and Upload date -->
             <p class="text-[10px] sm:text-[11px] text-[#717171] truncate mt-0.5">
               ${escapeHtml(item.views)} • ${escapeHtml(item.date)}
@@ -1457,7 +1257,7 @@
         headerCard.classList.add('hidden');
       }
 
-      const container = document.getElementById('musicSearchCardsContainer');
+      const container = document.getElementById('musicCardsContainer');
       if (container) {
         container.innerHTML = `
           <div class="py-12 text-center text-[#888] space-y-3">
@@ -1478,27 +1278,15 @@
             musicSearchResults = liveResults;
             showToast(`Ditemukan ${liveResults.length} hasil live untuk "${q}"`, 'success');
           } else {
+            musicSearchResults = [];
             showToast(`Tidak ada hasil live ditemukan untuk "${q}".`, 'error');
           }
           renderMusicSearchCards();
         })
-        .catch(() => {
-          // Fallback jika backend Go offline / mode GitHub Pages preview
-          const existing = musicSearchResults.find(x => x.title && x.title.toLowerCase().includes(q.toLowerCase()));
-          if (!existing) {
-            musicSearchResults.unshift({
-              id: 'custom_' + Date.now(),
-              title: `${q} (Audio High Definition HQ)`,
-              channel: "Hasil Pencarian Musik Bebas",
-              duration: "4:12",
-              views: "Baru saja",
-              date: "Siap Unduh",
-              thumbText: q.slice(0, 15),
-              thumbBg: "#1d2b3a"
-            });
-          }
+        .catch(err => {
+          musicSearchResults = [];
           renderMusicSearchCards();
-          showToast(`Menampilkan hasil pencarian untuk "${q}"`, 'success');
+          showToast(`Gagal menghubungi server pencari STB: ${err.message}`, 'error');
         });
     }
 
@@ -1598,9 +1386,12 @@
         newJob.id = realJobId;
         pollRealBackendJob(newJob, realJobId, trackId, title, isFlac);
       })
-      .catch(() => {
-        // Fallback untuk mode Demo / GitHub Pages jika backend Go offline
-        runFallbackSimulatedDownload(newJob, trackId, title, isFlac);
+      .catch(err => {
+        newJob.status = 'failed';
+        newJob.eta = 'Error';
+        renderDownloadQueue();
+        updateQueueBadge();
+        showToast(`Gagal memulai unduhan di STB: ${err.message}`, 'error');
       });
     }
 
@@ -1613,9 +1404,9 @@
             if (!current) return;
 
             jobObj.status = current.status;
-            jobObj.percent = current.percent || 15;
-            jobObj.eta = current.status === 'completed' ? '0s' : 'Memproses di STB...';
-            jobObj.speed = current.status === 'completed' ? 'Selesai' : 'STB yt-dlp';
+            jobObj.percent = current.percent || 0;
+            jobObj.eta = current.eta || '-';
+            jobObj.speed = current.speed || '-';
             renderDownloadQueue();
             updateQueueBadge();
 
@@ -1623,54 +1414,32 @@
               clearInterval(pollTimer);
               jobObj.percent = 100;
               jobObj.status = 'completed';
+              jobObj.eta = '0s';
+              jobObj.speed = 'Selesai';
               renderDownloadQueue();
               updateQueueBadge();
 
               showToast(`Lagu "${title}" berhasil diunduh ke Harddisk STB & lirik .lrc dibuat!`, 'success');
 
-              // Auto scan folder musik STB agar file langsung masuk database
+              // Auto scan folder musik STB agar file fisik langsung masuk database SQLite STB
               fetch('/api/scan')
-                .then(() => fetchSongsFromBackend())
-                .catch(() => syncSongToLocal(trackId, title, isFlac));
-            } else if (current.status === 'error') {
+                .then(() => fetchSongsFromBackend());
+            } else if (current.status === 'failed' || current.status === 'error') {
               clearInterval(pollTimer);
-              jobObj.status = 'error';
+              jobObj.status = 'failed';
               jobObj.eta = 'Gagal';
+              jobObj.speed = '-';
               renderDownloadQueue();
               updateQueueBadge();
-              showToast(`Gagal mengunduh "${title}": ${current.progress || 'Error STB'}`, 'error');
+              showToast(`Gagal mengunduh "${title}": ${current.error || current.progress || 'Error STB'}`, 'error');
             }
           })
           .catch(() => {
-            // Jika polling gagal di tengah jalan, fallback
-            clearInterval(pollTimer);
-            runFallbackSimulatedDownload(jobObj, trackId, title, isFlac);
+            // Jika koneksi putus saat polling
+            jobObj.eta = 'Koneksi terputus...';
+            renderDownloadQueue();
           });
-      }, 2000);
-    }
-
-    function runFallbackSimulatedDownload(newJob, trackId, title, isFlac) {
-      let progress = newJob.percent || 5;
-      const progressTimer = setInterval(() => {
-        progress += Math.floor(Math.random() * 18) + 12;
-        if (progress >= 100) {
-          progress = 100;
-          clearInterval(progressTimer);
-          newJob.percent = 100;
-          newJob.status = "completed";
-          newJob.speed = "Selesai";
-          newJob.eta = "0s";
-          renderDownloadQueue();
-          updateQueueBadge();
-
-          showToast(`Lagu "${title}" berhasil disimpan ke koleksi!`, 'success');
-          syncSongToLocal(trackId, title, isFlac);
-        } else {
-          newJob.percent = progress;
-          newJob.eta = Math.max(1, Math.round((100 - progress) / 10)) + 's';
-          renderDownloadQueue();
-        }
-      }, 400);
+      }, 1500);
     }
 
     function syncSongToLocal(trackId, title, isFlac) {
@@ -1760,13 +1529,24 @@
       executeDownloadForTrack('yt_' + Date.now(), title, format);
     }
 
-    // Playback Logic
+    // Playback Logic: Real HTML5 Streaming dari Storage STB (/api/stream/{id})
     function playSongAt(idx) {
+      if (idx < 0 || idx >= songs.length) return;
       currentSongIndex = idx;
+      const s = songs[currentSongIndex];
       currentTime = 0;
-      isPlaying = true;
-      startSynthMelody();
-      startProgress();
+
+      // Putar file audio fisik asli dari server STB
+      realAudio.src = `/api/stream/${encodeURIComponent(s.id)}`;
+      realAudio.playbackRate = playbackSpeed;
+      realAudio.play().then(() => {
+        isPlaying = true;
+        updatePlayerUI();
+      }).catch(err => {
+        console.warn('Gagal memutar audio stream:', err);
+        showToast('Memutar: ' + s.title, 'success');
+      });
+
       updatePlayerUI();
       applyDynamicTheme();
       renderDashboardSongs();
@@ -1776,62 +1556,63 @@
     }
 
     function togglePlay() {
-      isPlaying = !isPlaying;
-      if (isPlaying) {
-        startSynthMelody();
-        startProgress();
-      } else {
-        stopSynthMelody();
-        clearInterval(timerInterval);
+      if (currentSongIndex === -1 && songs.length > 0) {
+        playSongAt(0);
+        return;
       }
-      updatePlayerUI();
-    }
-
-    function startProgress() {
-      clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
-        if (isPlaying) {
-          const s = songs[currentSongIndex];
-          currentTime++;
-          if (currentTime >= s.duration) {
-            nextSong();
-            return;
-          }
-          updateProgressUI();
-          syncKaraokeScroll();
-        }
-      }, 1000);
+      if (realAudio.paused) {
+        realAudio.play().then(() => {
+          isPlaying = true;
+          updatePlayerUI();
+        }).catch(e => console.warn(e));
+      } else {
+        realAudio.pause();
+        isPlaying = false;
+        updatePlayerUI();
+      }
     }
 
     function updateProgressUI() {
+      if (currentSongIndex < 0 || !songs[currentSongIndex]) return;
       const s = songs[currentSongIndex];
-      const pct = (currentTime / s.duration) * 100;
-      document.getElementById('progressBar').style.width = pct + '%';
-      document.getElementById('txtCurrentTime').innerText = formatTime(currentTime);
-      document.getElementById('txtDuration').innerText = formatTime(s.duration);
+      const dur = s.duration || (realAudio.duration && !isNaN(realAudio.duration) ? Math.floor(realAudio.duration) : 1);
+      const pct = Math.min(100, Math.max(0, (currentTime / dur) * 100));
 
-      document.getElementById('syncBar1').style.width = pct + '%';
-      document.getElementById('syncBar2').style.width = pct + '%';
-      document.getElementById('syncBar3').style.width = pct + '%';
+      const bar = document.getElementById('progressBar');
+      if (bar) bar.style.width = pct + '%';
+      const curTxt = document.getElementById('txtCurrentTime');
+      if (curTxt) curTxt.innerText = formatTime(currentTime);
+      const durTxt = document.getElementById('txtDuration');
+      if (durTxt) durTxt.innerText = formatTime(dur);
+
+      ['syncBar1', 'syncBar2', 'syncBar3'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.width = pct + '%';
+      });
     }
 
     function updatePlayerUI() {
+      if (currentSongIndex < 0 || !songs[currentSongIndex]) {
+        document.getElementById('playerTitle').innerText = "Belum Memutar";
+        document.getElementById('playerArtist').innerText = "Pilih lagu dari daftar";
+        document.getElementById('btnPlay').innerText = "▶️";
+        return;
+      }
       const s = songs[currentSongIndex];
       document.getElementById('playerTitle').innerText = s.title;
       document.getElementById('playerArtist').innerText = s.artist;
-      document.getElementById('playerThumb').innerText = s.cover;
-      document.getElementById('btnPlay').innerText = isPlaying ? '⏸️' : '▶️';
+      document.getElementById('playerThumb').innerText = s.cover || "🎵";
+      document.getElementById('btnPlay').innerText = !realAudio.paused ? '⏸️' : '▶️';
       document.getElementById('btnFavCurrent').innerText = favorites.has(s.id) ? '❤️' : '🤍';
       
-      // Inspector & Hi-Res Badge
       const hiResBadge = document.getElementById('playerHiResBadge');
       if (s.isHiRes) {
         hiResBadge.innerHTML = `<span class="badge-hires-gold text-[8px] font-black px-1.5 py-0.2 rounded">HI-RES</span>`;
         hiResBadge.classList.remove('hidden');
-        document.getElementById('playerBitrateInspector').innerText = `${s.codec} • ${s.bitDepth}-bit/${s.sampleRate} • ${s.bitrate}`;
+        document.getElementById('playerBitrateInspector').innerText = `${s.codec} • ${s.bitDepth || 24}-bit/${s.sampleRate || '96 kHz'}`;
       } else {
         hiResBadge.classList.add('hidden');
-        document.getElementById('playerBitrateInspector').innerText = `${s.codec} • ${s.sampleRate} • ${s.bitrate}`;
+        document.getElementById('playerBitrateInspector').innerText = `${s.codec || 'MP3'} • ${s.sampleRate || '44.1 kHz'}`;
       }
 
       document.getElementById('karaokeMainTitle').innerText = s.title;
@@ -1840,20 +1621,24 @@
     }
 
     function nextSong() {
+      if (songs.length === 0) return;
       currentSongIndex = (currentSongIndex + 1) % songs.length;
       playSongAt(currentSongIndex);
     }
 
     function prevSong() {
+      if (songs.length === 0) return;
       currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
       playSongAt(currentSongIndex);
     }
 
     function seekProgress(e) {
+      if (currentSongIndex < 0 || !songs[currentSongIndex]) return;
       const rect = document.getElementById('progressContainer').getBoundingClientRect();
-      const pos = (e.clientX - rect.left) / rect.width;
-      const s = songs[currentSongIndex];
-      currentTime = Math.floor(pos * s.duration);
+      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const dur = realAudio.duration && !isNaN(realAudio.duration) ? realAudio.duration : (songs[currentSongIndex].duration || 0);
+      realAudio.currentTime = pos * dur;
+      currentTime = Math.floor(realAudio.currentTime);
       updateProgressUI();
       syncKaraokeScroll();
     }
@@ -2377,8 +2162,43 @@
       }
     }
 
+    function fetchSysInfo() {
+      fetch('/api/sysinfo')
+        .then(res => {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        })
+        .then(info => {
+          const ramEl = document.getElementById('stbRamUsage');
+          const diskFreeEl = document.getElementById('stbDiskFree');
+          const diskTotalEl = document.getElementById('stbDiskTotal');
+          const statusEl = document.getElementById('stbMonitorStatus');
+
+          if (ramEl && info.total_ram_mb) {
+            ramEl.innerText = `${info.used_ram_mb} MB / ${info.total_ram_mb} MB`;
+          }
+          if (diskFreeEl && info.disk_free_gb !== undefined) {
+            diskFreeEl.innerText = `${info.disk_free_gb.toFixed(1)} GB Free`;
+          }
+          if (diskTotalEl && info.disk_total_gb !== undefined) {
+            diskTotalEl.innerText = `${info.disk_total_gb.toFixed(1)} GB Total`;
+          }
+          if (statusEl) {
+            statusEl.innerText = "Online (STB)";
+            statusEl.className = "text-[10px] text-[#1db954]";
+          }
+        })
+        .catch(() => {
+          const statusEl = document.getElementById('stbMonitorStatus');
+          if (statusEl) {
+            statusEl.innerText = "Offline";
+            statusEl.className = "text-[10px] text-[#888]";
+          }
+        });
+    }
+
     function changeVolume(v) {
-      if (synthGain) synthGain.gain.value = parseFloat(v) * 0.2;
+      if (realAudio) realAudio.volume = parseFloat(v);
     }
 
     function updateEQ(band, val) {
@@ -2408,6 +2228,8 @@
     }
 
     init();
+    fetchSysInfo();
+    setInterval(fetchSysInfo, 10000);
   </script>
 </body>
 </html>
