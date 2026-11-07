@@ -104,7 +104,7 @@ func (d *DB) GetAllSongs() ([]models.Song, error) {
 	}
 	defer rows.Close()
 
-	var songs []models.Song
+	songs := []models.Song{}
 	for rows.Next() {
 		var s models.Song
 		var createdAtStr string

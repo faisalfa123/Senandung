@@ -30,7 +30,6 @@ git reset --hard origin/main
 
 INSTALL_DIR="/opt/senandung"
 mkdir -p "${INSTALL_DIR}"
-mkdir -p "${INSTALL_DIR}/web"
 
 echo -e "\n${YELLOW}[2/4] Menyinkronkan binary & executable untuk arsitektur STB...${NC}"
 RAW_ARCH=$(uname -m)
@@ -45,15 +44,16 @@ fi
 
 BIN_SRC="${SCRIPT_DIR}/bin/senandung-linux-${TARGET_ARCH}"
 if [ -f "$BIN_SRC" ]; then
-  echo -e "    * Memasang binary: senandung-linux-${TARGET_ARCH}"
+  echo -e "    * Menautkan binary: senandung-linux-${TARGET_ARCH}"
   cp -f "$BIN_SRC" "${INSTALL_DIR}/senandung"
   chmod +x "${INSTALL_DIR}/senandung"
 fi
 
-echo -e "\n${YELLOW}[3/4] Menyinkronkan aset web PWA (/opt/senandung/web)...${NC}"
+echo -e "\n${YELLOW}[3/4] Menautkan aset web PWA (/opt/senandung/web -> ${SCRIPT_DIR}/web)...${NC}"
 if [ -d "${SCRIPT_DIR}/web" ]; then
-  cp -rf "${SCRIPT_DIR}/web/"* "${INSTALL_DIR}/web/"
-  echo -e "    * Aset web berhasil diperbarui."
+  rm -rf "${INSTALL_DIR}/web"
+  ln -sfn "${SCRIPT_DIR}/web" "${INSTALL_DIR}/web"
+  echo -e "    * Symlink aset web aktif: Pembaruan git pull langsung terlihat seketika!"
 fi
 
 echo -e "\n${YELLOW}[4/4] Merestart service Senandung...${NC}"
