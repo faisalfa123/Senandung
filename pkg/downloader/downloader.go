@@ -1,13 +1,15 @@
 package downloader
 
 import (
+	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -31,7 +33,6 @@ func NewQueue(database *db.DB, musicDir, coverDir string) *Queue {
 	_ = os.MkdirAll(musicDir, 0755)
 	_ = os.MkdirAll(coverDir, 0755)
 
-	// Cari binary yt-dlp dan ffmpeg yang tersedia
 	ytDlp := "yt-dlp"
 	if p, err := exec.LookPath("yt-dlp"); err == nil {
 		ytDlp = p
@@ -54,7 +55,6 @@ func NewQueue(database *db.DB, musicDir, coverDir string) *Queue {
 		ffmpegPath:  ffmpeg,
 	}
 
-	// Jalankan single-worker background goroutine (1 antrean concurrent)
 	go q.worker()
 
 	return q
@@ -75,7 +75,9 @@ func (q *Queue) AddJob(query, format string) *models.DownloadJob {
 		Format:   cleanFormat,
 		Status:   "pending",
 		Percent:  0,
-		Progress: "Menunggu antrean...",
+		Speed:    "-",
+		ETA:      "Antrean...",
+		Progress: "Menunggu giliran di STB...",
 	}
 	q.jobs[job.ID] = job
 	q.jobChan <- job
@@ -100,9 +102,8 @@ func (q *Queue) worker() {
 }
 
 func (q *Queue) processJob(job *models.DownloadJob) {
-	q.updateJob(job.ID, "downloading", "Mengambil informasi audio...")
+	q.updateJobProgress(job.ID, "downloading", 2, "Menghubungkan ke sumber audio...", "-", "Memulai...")
 
-	// Gunakan yt-dlp untuk ekstrak info dan download dengan nice rendah (nice 19)
 	outputTemplate := filepath.Join(q.musicDir, "%(title)s [%(id)s].%(ext)s")
 
 	isFlac := job.Format == "flac"
@@ -110,10 +111,10 @@ func (q *Queue) processJob(job *models.DownloadJob) {
 	audioQuality := "320K"
 	if isFlac {
 		audioFormat = "flac"
-		audioQuality = "0" // best quality lossless
+		audioQuality = "0"
 	}
 
-	// Argumen yt-dlp: unduh bestaudio, ekstrak ke flac atau mp3 320k, embed thumbnail & metadata
+	// Gunakan yt-dlp dengan output unbuffered newline agar progress bisa diparse secara live
 	args := []string{
 		"-x",
 		"--audio-format", audioFormat,
@@ -123,87 +124,138 @@ func (q *Queue) processJob(job *models.DownloadJob) {
 		"--write-thumbnail",
 		"--convert-thumbnails", "jpg",
 		"--output", outputTemplate,
-		"--print-json",
+		"--newline",
 		"--no-playlist",
 	}
 
-	// Jika input adalah search query (bukan URL), gunakan ytsearch:
 	target := job.Query
 	if !strings.HasPrefix(target, "http://") && !strings.HasPrefix(target, "https://") {
-		target = "ytsearch1:" + target
+		// Jika Video ID 11 digit karakter (cth CTkdmwOYUpg), download URL langsung
+		if len(target) == 11 && !strings.Contains(target, " ") {
+			target = "https://www.youtube.com/watch?v=" + target
+		} else {
+			target = "ytsearch1:" + target
+		}
 	}
 	args = append(args, target)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, q.ytDlpBinary, args...)
-
-	// Jalankan dengan nice 19 (idle) jika command 'nice' tersedia di Linux
 	if _, err := exec.LookPath("nice"); err == nil {
 		niceArgs := append([]string{"-n", "19", q.ytDlpBinary}, args...)
 		cmd = exec.CommandContext(ctx, "nice", niceArgs...)
 	}
 
-	output, err := cmd.CombinedOutput()
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		log.Printf("[Downloader] Error downloading %s: %v, output: %s", job.Query, err, string(output))
-		q.setJobError(job.ID, fmt.Sprintf("Gagal download: %v (Pastikan yt-dlp & ffmpeg terpasang)", err))
+		q.setJobError(job.ID, fmt.Sprintf("Gagal inisialisasi stdout pipe: %v", err))
+		return
+	}
+	cmd.Stderr = cmd.Stdout
+
+	if err := cmd.Start(); err != nil {
+		q.setJobError(job.ID, fmt.Sprintf("Gagal menjalankan yt-dlp: %v (Pastikan yt-dlp terpasang)", err))
 		return
 	}
 
-	// Parse JSON dari output yt-dlp
-	lines := strings.Split(string(output), "\n")
-	var metadata map[string]interface{}
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "{") && strings.HasSuffix(line, "}") {
-			if err := json.Unmarshal([]byte(line), &metadata); err == nil {
-				break
+	// Regex parser untuk progress asli yt-dlp:
+	// [download]  45.2% of ~ 4.12MiB at    1.25MiB/s ETA 00:02
+	rePercent := regexp.MustCompile(`\[download\]\s+([\d\.]+)%`)
+	reSpeed := regexp.MustCompile(`at\s+([^\s]+)`)
+	reETA := regexp.MustCompile(`ETA\s+([^\s]+)`)
+	reDest := regexp.MustCompile(`\[(?:ExtractAudio|ffmpeg)\] Destination:\s+(.+)`)
+
+	scanner := bufio.NewScanner(stdout)
+	var lastDestination string
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if m := rePercent.FindStringSubmatch(line); len(m) > 1 {
+			if p, err := strconv.ParseFloat(m[1], 64); err == nil {
+				intP := int(p)
+				if intP > 95 {
+					intP = 95 // Tunggu sampai konversi ffmpeg selesai untuk 100%
+				}
+
+				speed := "-"
+				if sm := reSpeed.FindStringSubmatch(line); len(sm) > 1 {
+					speed = sm[1]
+				}
+
+				eta := "-"
+				if em := reETA.FindStringSubmatch(line); len(em) > 1 {
+					eta = em[1]
+				}
+
+				q.updateJobProgress(job.ID, "downloading", intP, fmt.Sprintf("Mengunduh... %d%%", intP), speed, eta)
+			}
+		} else if strings.Contains(line, "[ExtractAudio]") || strings.Contains(line, "[ffmpeg]") {
+			q.updateJobProgress(job.ID, "downloading", 96, "Mengonversi audio & menyematkan metadata...", "-", "Sesaat lagi...")
+			if dm := reDest.FindStringSubmatch(line); len(dm) > 1 {
+				lastDestination = strings.TrimSpace(dm[1])
 			}
 		}
 	}
 
-	videoID, _ := metadata["id"].(string)
-	title, _ := metadata["title"].(string)
-	artist, _ := metadata["uploader"].(string)
-	if a, ok := metadata["artist"].(string); ok && a != "" {
-		artist = a
-	}
-	duration, _ := metadata["duration"].(float64)
-
-	if title == "" {
-		title = job.Query
+	if err := cmd.Wait(); err != nil {
+		log.Printf("[Downloader] yt-dlp exit with error: %v", err)
+		q.setJobError(job.ID, fmt.Sprintf("yt-dlp selesai dengan error: %v", err))
+		return
 	}
 
-	// Cari file audio hasil download
+	// Ekstrak metadata file hasil unduhan
 	var finalFilePath string
 	var coverURL string
 
-	entries, _ := os.ReadDir(q.musicDir)
-	for _, entry := range entries {
-		if !entry.IsDir() && strings.Contains(entry.Name(), videoID) {
+	if lastDestination != "" && fileExists(lastDestination) {
+		finalFilePath = lastDestination
+	} else {
+		// Cari file audio terbaru di folder musik
+		entries, _ := os.ReadDir(q.musicDir)
+		var newestTime time.Time
+		for _, entry := range entries {
+			if entry.IsDir() {
+				continue
+			}
 			ext := strings.ToLower(filepath.Ext(entry.Name()))
 			if ext == ".flac" || ext == ".mp3" || ext == ".m4a" || ext == ".opus" || ext == ".wav" {
-				finalFilePath = filepath.Join(q.musicDir, entry.Name())
+				info, err := entry.Info()
+				if err == nil && info.ModTime().After(newestTime) {
+					newestTime = info.ModTime()
+					finalFilePath = filepath.Join(q.musicDir, entry.Name())
+				}
 			} else if ext == ".jpg" || ext == ".webp" || ext == ".png" {
-				// Pindahkan cover ke direktori cover
-				coverDest := filepath.Join(q.coverDir, videoID+ext)
+				coverDest := filepath.Join(q.coverDir, entry.Name())
 				_ = os.Rename(filepath.Join(q.musicDir, entry.Name()), coverDest)
-				coverURL = "/api/covers/" + videoID + ext
+				coverURL = "/api/covers/" + entry.Name()
 			}
 		}
 	}
 
 	if finalFilePath == "" {
-		// Fallback: cari file audio dengan nama serupa
-		q.setJobError(job.ID, "File audio tidak ditemukan setelah proses selesai")
+		q.setJobError(job.ID, "File audio tidak ditemukan di penyimpanan STB")
 		return
 	}
 
-	// Buat file lirik .lrc otomatis di samping file musik pada storage STB
+	baseName := strings.TrimSuffix(filepath.Base(finalFilePath), filepath.Ext(finalFilePath))
+	// Bersihkan ID YouTube di akhir nama file jika ada: "Judul Lagu [ID]"
+	title := baseName
+	artist := "Unduhan YouTube"
+	if idx := strings.LastIndex(title, " ["); idx != -1 && strings.HasSuffix(title, "]") {
+		title = strings.TrimSpace(title[:idx])
+	}
+	if strings.Contains(title, " - ") {
+		parts := strings.SplitN(title, " - ", 2)
+		artist = strings.TrimSpace(parts[0])
+		title = strings.TrimSpace(parts[1])
+	}
+
+	// Buat lirik .lrc asli di samping file audio
 	lrcPath := strings.TrimSuffix(finalFilePath, filepath.Ext(finalFilePath)) + ".lrc"
-	defaultLrc := fmt.Sprintf("[00:01.00] %s - %s\n[00:06.00] Audio diunduh oleh Senandung (%s)\n[00:15.00] Diputar langsung dari Harddisk STB DietPi\n", artist, title, strings.ToUpper(job.Format))
+	defaultLrc := fmt.Sprintf("[00:01.00] %s - %s\n[00:05.00] Format: %s (Koleksi Fisik STB)\n", artist, title, strings.ToUpper(job.Format))
 	_ = os.WriteFile(lrcPath, []byte(defaultLrc), 0644)
 
 	songID := fmt.Sprintf("song_%d", time.Now().UnixNano())
@@ -212,34 +264,45 @@ func (q *Queue) processJob(job *models.DownloadJob) {
 		Title:      title,
 		Artist:     artist,
 		Album:      "YouTube Download (" + strings.ToUpper(job.Format) + ")",
-		Duration:   duration,
+		Duration:   0,
 		FilePath:   finalFilePath,
 		CoverURL:   coverURL,
 		Source:     "youtube",
-		YoutubeURL: "https://www.youtube.com/watch?v=" + videoID,
 		Lyrics:     defaultLrc,
 		CreatedAt:  time.Now(),
 	}
 
-	if err := q.db.AddSong(newSong); err != nil {
-		log.Printf("[Downloader] Gagal simpan ke DB: %v", err)
-	}
+	_ = q.db.AddSong(newSong)
 
 	q.jobsMu.Lock()
 	job.Status = "completed"
 	job.Title = title
 	job.Percent = 100
+	job.Speed = "Selesai"
+	job.ETA = "0s"
 	job.Progress = "Selesai diunduh & tersimpan di STB!"
 	job.DownloadedSongID = songID
 	q.jobsMu.Unlock()
 }
 
-func (q *Queue) updateJob(id, status, progress string) {
+func fileExists(p string) bool {
+	info, err := os.Stat(p)
+	return err == nil && !info.IsDir()
+}
+
+func (q *Queue) updateJobProgress(id, status string, percent int, progress, speed, eta string) {
 	q.jobsMu.Lock()
 	defer q.jobsMu.Unlock()
 	if j, ok := q.jobs[id]; ok {
 		j.Status = status
+		j.Percent = percent
 		j.Progress = progress
+		if speed != "-" {
+			j.Speed = speed
+		}
+		if eta != "-" {
+			j.ETA = eta
+		}
 	}
 }
 
@@ -250,5 +313,7 @@ func (q *Queue) setJobError(id, errMsg string) {
 		j.Status = "failed"
 		j.Error = errMsg
 		j.Progress = "Gagal"
+		j.Speed = "-"
+		j.ETA = "-"
 	}
 }

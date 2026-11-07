@@ -436,6 +436,13 @@ if [ ! -s "${INSTALL_DIR}/senandung" ]; then
 fi
 echo -e "    ${GREEN}✔ Binary Senandung siap di ${INSTALL_DIR}/senandung${NC}"
 
+# Salin direktori web agar update tampilan langsung aktif
+if [ -d "${SCRIPT_DIR}/web" ]; then
+  echo -e "    * Menyinkronkan aset web PWA ke ${INSTALL_DIR}/web..."
+  mkdir -p "${INSTALL_DIR}/web"
+  cp -rf "${SCRIPT_DIR}/web/"* "${INSTALL_DIR}/web/"
+fi
+
 # 5. Konfigurasi Systemd Unit
 echo -e "${CYAN}[5/6] Menerapkan Systemd Service & Cgroups (${CONF_CPU_QUOTA} CPU, ${CONF_RAM_LIMIT} RAM)...${NC}"
 cat <<EOF > "$SYSTEMD_FILE"

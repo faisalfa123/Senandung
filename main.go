@@ -74,12 +74,25 @@ func main() {
 	mux := http.NewServeMux()
 	apiServer.RegisterRoutes(mux)
 
-	// Static Web PWA Assets (embedded via go:embed)
-	subFS, err := fs.Sub(webFS, "web")
-	if err != nil {
-		log.Fatalf("Gagal memuat embedded filesystem: %v", err)
+	// Static Web PWA Assets: Cek direktori web lokal di disk terlebih dahulu agar update file web langsung aktif seketika
+	var staticFS http.FileSystem
+	candidates := []string{"./web", "/opt/senandung/web", "web"}
+	for _, c := range candidates {
+		if fi, err := os.Stat(c); err == nil && fi.IsDir() {
+			staticFS = http.Dir(c)
+			log.Printf("[Senandung] Menggunakan file web langsung dari disk: %s", c)
+			break
+		}
 	}
-	mux.Handle("/", http.FileServer(http.FS(subFS)))
+	if staticFS == nil {
+		subFS, err := fs.Sub(webFS, "web")
+		if err != nil {
+			log.Fatalf("Gagal memuat embedded filesystem: %v", err)
+		}
+		staticFS = http.FS(subFS)
+		log.Printf("[Senandung] Menggunakan embedded web assets bawaan binary")
+	}
+	mux.Handle("/", http.FileServer(staticFS))
 
 	serverAddr := fmt.Sprintf("0.0.0.0:%d", *port)
 	server := &http.Server{

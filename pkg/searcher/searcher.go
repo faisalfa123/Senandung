@@ -18,8 +18,7 @@ type SearchResult struct {
 	Duration  string `json:"duration"`
 	Views     string `json:"views"`
 	Date      string `json:"date"`
-	ThumbText string `json:"thumbText"`
-	ThumbBg   string `json:"thumbBg"`
+	Thumbnail string `json:"thumbnail"`
 }
 
 // SearchYouTube mencari langsung data live dari YouTube tanpa API Key
@@ -97,8 +96,6 @@ func SearchYouTube(query string) ([]SearchResult, error) {
 		return nil, fmt.Errorf("konten section kosong")
 	}
 
-	colorPalette := []string{"#1d2b3a", "#2a1d3a", "#1d3a2a", "#3a2a1d", "#3a1d2b"}
-
 	for _, sc := range secContents {
 		scMap, ok := sc.(map[string]interface{})
 		if !ok {
@@ -157,7 +154,7 @@ func SearchYouTube(query string) ([]SearchResult, error) {
 				duration, _ = lenTxt["simpleText"].(string)
 			}
 			if duration == "" {
-				duration = "Music Track"
+				duration = "-"
 			}
 
 			// Views
@@ -166,7 +163,7 @@ func SearchYouTube(query string) ([]SearchResult, error) {
 				views, _ = viewTxt["simpleText"].(string)
 			}
 			if views == "" {
-				views = "Populer"
+				views = "-"
 			}
 
 			// Date
@@ -175,16 +172,11 @@ func SearchYouTube(query string) ([]SearchResult, error) {
 				date, _ = pubTxt["simpleText"].(string)
 			}
 			if date == "" {
-				date = "Tersedia"
+				date = "-"
 			}
 
-			// Thumbnail text abbreviation
-			thumbText := title
-			if len(thumbText) > 16 {
-				thumbText = thumbText[:16]
-			}
-
-			colorIndex := len(results) % len(colorPalette)
+			// Thumbnail YouTube asli (mqdefault / hqdefault)
+			thumbnail := fmt.Sprintf("https://i.ytimg.com/vi/%s/mqdefault.jpg", vidID)
 
 			results = append(results, SearchResult{
 				ID:        vidID,
@@ -193,15 +185,14 @@ func SearchYouTube(query string) ([]SearchResult, error) {
 				Duration:  duration,
 				Views:     views,
 				Date:      date,
-				ThumbText: thumbText,
-				ThumbBg:   colorPalette[colorIndex],
+				Thumbnail: thumbnail,
 			})
 
-			if len(results) >= 20 {
+			if len(results) >= 25 {
 				break
 			}
 		}
-		if len(results) >= 20 {
+		if len(results) >= 25 {
 			break
 		}
 	}

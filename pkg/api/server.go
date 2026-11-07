@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/faisalfa123/Senandung/pkg/db"
 	"github.com/faisalfa123/Senandung/pkg/downloader"
@@ -52,6 +53,9 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/download/status", s.handleDownloadStatus)
 	mux.HandleFunc("/api/scan", s.handleScan)
 
+	// Real Linux STB System Information
+	mux.HandleFunc("/api/sysinfo", s.handleSysInfo)
+
 	// WebSockets Audio Sync
 	mux.HandleFunc("/ws/sync", s.syncHub.HandleWebSocket)
 }
@@ -83,7 +87,7 @@ func (s *Server) handleSongByID(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(song)
 
-	case http.MethodPut: // Update lirik / metadata
+	case http.MethodPut:
 		var update struct {
 			Lyrics string `json:"lyrics"`
 		}
@@ -280,3 +284,39 @@ func (s *Server) handleSearchLive(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(results)
 }
 
+func (s *Server) handleSysInfo(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	type SysInfo struct {
+		TotalRAMMB  uint64  `json:"total_ram_mb"`
+		UsedRAMMB   uint64  `json:"used_ram_mb"`
+		FreeRAMMB   uint64  `json:"free_ram_mb"`
+		DiskTotalGB float64 `json:"disk_total_gb"`
+		DiskFreeGB  float64 `json:"disk_free_gb"`
+		DiskUsedGB  float64 `json:"disk_used_gb"`
+		DiskPath    string  `json:"disk_path"`
+	}
+
+	info := &SysInfo{DiskPath: s.musicDir}
+	var si syscall.Sysinfo_t
+	if err := syscall.Sysinfo(&si); err == nil {
+		info.TotalRAMMB = (uint64(si.Totalram) * uint64(si.Unit)) / (1024 * 1024)
+		info.FreeRAMMB = (uint64(si.Freeram) * uint64(si.Unit)) / (1024 * 1024)
+		info.UsedRAMMB = info.TotalRAMMB - info.FreeRAMMB
+	}
+
+	checkPath := s.musicDir
+	if _, err := os.Stat(checkPath); err != nil {
+		checkPath = "/"
+	}
+	var st syscall.Statfs_t
+	if err := syscall.Statfs(checkPath, &st); err == nil {
+		totalBytes := st.Blocks * uint64(st.Bsize)
+		freeBytes := st.Bavail * uint64(st.Bsize)
+		info.DiskTotalGB = float64(totalBytes) / (1024 * 1024 * 1024)
+		info.DiskFreeGB = float64(freeBytes) / (1024 * 1024 * 1024)
+		info.DiskUsedGB = info.DiskTotalGB - info.DiskFreeGB
+	}
+
+	_ = json.NewEncoder(w).Encode(info)
+}
