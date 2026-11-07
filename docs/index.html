@@ -56,6 +56,9 @@
   <!-- Floating emoji container -->
   <div id="emojiContainer" class="absolute inset-0 pointer-events-none overflow-hidden z-50"></div>
 
+  <!-- Live Toast Notification Container -->
+  <div id="toastNotificationContainer" class="fixed top-5 right-5 z-[9999] space-y-2 pointer-events-none"></div>
+
   <!-- Top Header Navigation -->
   <header class="h-16 px-6 bg-[#000000]/70 backdrop-blur-md border-b border-[#222] flex items-center justify-between shrink-0 z-30">
     <div class="flex items-center gap-6 flex-1 max-w-xl">
@@ -940,6 +943,7 @@
       updateQueueBadge();
       updatePlayerUI();
       applyDynamicTheme();
+      fetchSongsFromBackend();
     }
 
     function switchTab(tabName) {
@@ -1049,15 +1053,54 @@
               <div class="text-xs text-[#888] truncate">${escapeHtml(s.artist)} • ${s.codec} (${s.sampleRate})</div>
             </div>
           </div>
-          <div class="flex items-center gap-3">
-            <button onclick="toggleFav('${s.id}')" class="text-sm p-1 hover:scale-110 transition">${isFav ? '❤️' : '🤍'}</button>
-            <button onclick="toggleOffline('${s.id}')" class="text-xs px-2.5 py-1 rounded-full ${isOff ? 'bg-[#1db954]/20 text-[#1db954] border border-[#1db954]/40' : 'bg-[#242424] text-[#888]'} hover:text-white transition">
-              ${isOff ? '✓ Saved' : '📲 Save'}
+          <div class="flex items-center gap-2">
+            <button onclick="downloadSongToPhone('${s.id}')" class="text-xs px-2.5 py-1 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] text-[#ccc] hover:text-white transition flex items-center gap-1" title="Unduh file fisik ke HP / Komputer ini">
+              <span>⬇️</span> <span class="hidden md:inline">Ke HP</span>
+            </button>
+            <button onclick="toggleFav('${s.id}')" class="text-sm p-1 hover:scale-110 transition" title="Favorit">${isFav ? '❤️' : '🤍'}</button>
+            <button onclick="toggleOffline('${s.id}')" class="text-xs px-2.5 py-1 rounded-full ${isOff ? 'bg-[#1db954]/20 text-[#1db954] border border-[#1db954]/40' : 'bg-[#242424] text-[#888]'} hover:text-white transition" title="Offline PWA Cache">
+              ${isOff ? '✓ Saved' : '📲 Cache'}
             </button>
           </div>
         `;
         container.appendChild(row);
       });
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastNotificationContainer');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl border shadow-2xl text-xs font-semibold transform transition-all duration-300 translate-y-2 opacity-0 ${
+        type === 'success' 
+          ? 'bg-[#1f2d22] border-[#1db954] text-white' 
+          : 'bg-[#2d1f1f] border-red-500 text-white'
+      }`;
+      toast.innerHTML = `
+        <span class="text-base">${type === 'success' ? '✔' : '⚠️'}</span>
+        <span>${message}</span>
+      `;
+      container.appendChild(toast);
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+      setTimeout(() => {
+        toast.classList.add('opacity-0', '-translate-y-2');
+        setTimeout(() => toast.remove(), 400);
+      }, 4500);
+    }
+
+    function downloadSongToPhone(songId) {
+      const song = songs.find(s => s.id === songId);
+      if (!song) return;
+      showToast(`Mengunduh "${song.title}" (${song.codec || 'MP3'}) ke perangkat Anda...`);
+      // If server streaming endpoint is available, trigger browser save
+      const link = document.createElement('a');
+      link.href = `/api/stream/${encodeURIComponent(song.id)}`;
+      link.download = `${song.artist} - ${song.title}.${(song.codec || 'mp3').toLowerCase()}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
 
     function filterByChip(type) {
@@ -1498,17 +1541,88 @@
         status: "downloading",
         percent: 5,
         speed: "3.4 MB/s",
-        eta: "10s"
+        eta: "Memulai..."
       };
 
       downloadQueueJobs.unshift(newJob);
       renderDownloadQueue();
-
-      // 3. Update queue badge counter
       updateQueueBadge();
+      showToast(`Memulai unduhan "${title}" (${isFlac ? 'FLAC' : 'MP3'})...`, 'success');
 
-      // 4. Progress simulation
-      let progress = 5;
+      // 3. Coba kirimkan job riil ke backend STB via /api/download
+      const backendPayload = {
+        query: title,
+        format: isFlac ? "flac" : "mp3"
+      };
+
+      fetch('/api/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(backendPayload)
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Backend HTTP ' + res.status);
+        return res.json();
+      })
+      .then(serverJob => {
+        // Backend Go STB merespons: pantau job riil dari /api/download/status
+        const realJobId = serverJob.id || jobId;
+        newJob.id = realJobId;
+        pollRealBackendJob(newJob, realJobId, trackId, title, isFlac);
+      })
+      .catch(() => {
+        // Fallback untuk mode Demo / GitHub Pages jika backend Go offline
+        runFallbackSimulatedDownload(newJob, trackId, title, isFlac);
+      });
+    }
+
+    function pollRealBackendJob(jobObj, realJobId, trackId, title, isFlac) {
+      const pollTimer = setInterval(() => {
+        fetch('/api/download/status')
+          .then(res => res.json())
+          .then(jobs => {
+            const current = (jobs || []).find(j => j.id === realJobId);
+            if (!current) return;
+
+            jobObj.status = current.status;
+            jobObj.percent = current.percent || 15;
+            jobObj.eta = current.status === 'completed' ? '0s' : 'Memproses di STB...';
+            jobObj.speed = current.status === 'completed' ? 'Selesai' : 'STB yt-dlp';
+            renderDownloadQueue();
+            updateQueueBadge();
+
+            if (current.status === 'completed') {
+              clearInterval(pollTimer);
+              jobObj.percent = 100;
+              jobObj.status = 'completed';
+              renderDownloadQueue();
+              updateQueueBadge();
+
+              showToast(`Lagu "${title}" berhasil diunduh ke Harddisk STB & lirik .lrc dibuat!`, 'success');
+
+              // Auto scan folder musik STB agar file langsung masuk database
+              fetch('/api/scan')
+                .then(() => fetchSongsFromBackend())
+                .catch(() => syncSongToLocal(trackId, title, isFlac));
+            } else if (current.status === 'error') {
+              clearInterval(pollTimer);
+              jobObj.status = 'error';
+              jobObj.eta = 'Gagal';
+              renderDownloadQueue();
+              updateQueueBadge();
+              showToast(`Gagal mengunduh "${title}": ${current.progress || 'Error STB'}`, 'error');
+            }
+          })
+          .catch(() => {
+            // Jika polling gagal di tengah jalan, fallback
+            clearInterval(pollTimer);
+            runFallbackSimulatedDownload(jobObj, trackId, title, isFlac);
+          });
+      }, 2000);
+    }
+
+    function runFallbackSimulatedDownload(newJob, trackId, title, isFlac) {
+      let progress = newJob.percent || 5;
       const progressTimer = setInterval(() => {
         progress += Math.floor(Math.random() * 18) + 12;
         if (progress >= 100) {
@@ -1521,51 +1635,53 @@
           renderDownloadQueue();
           updateQueueBadge();
 
-          // Prepare song object
-          const newSongObj = {
-            id: trackId || ('s_' + Date.now()),
-            title: title,
-            artist: title.toLowerCase().includes('guyon') ? "GUYONWATON OFFICIAL" : "Unduhan Musik STB",
-            album: isFlac ? "Koleksi FLAC Hi-Res" : "Koleksi Standar",
-            duration: 210,
-            cover: isFlac ? "✨" : "🎧",
-            themeColor: isFlac ? "#332a10" : "#1a253a",
-            isHiRes: isFlac,
-            codec: isFlac ? "FLAC" : "MP3",
-            bitDepth: isFlac ? 24 : 16,
-            sampleRate: isFlac ? "96 kHz" : "44.1 kHz",
-            bitrate: isFlac ? "1411 kbps" : "320 kbps",
-            source: "youtube",
-            lyrics: [
-              { time: 0, text: `♪ Alunan audio ${isFlac ? 'FLAC 24-bit Lossless' : 'MP3 320k'} ♪` },
-              { time: 8, text: "Tersimpan otomatis di penyimpanan STB & Dashboard" }
-            ]
-          };
-
-          // Immediately add to songs database if not present, and persist to storage
-          const existingSongIdx = songs.findIndex(s => s.id === newSongObj.id);
-          if (existingSongIdx === -1) {
-            songs.unshift(newSongObj);
-          } else {
-            songs[existingSongIdx] = newSongObj;
-          }
-          persistSongsToStorage();
-          renderDashboardSongs();
-
-          pendingDownloadedSong = newSongObj;
-
-          const simulatedInternetLRC = `[00:02.00] ♪ Alunan audio ${isFlac ? 'FLAC Lossless 24-bit/96kHz' : 'MP3 320k'} ♪
-[00:08.50] Di hening malam senandung terdengar indah
-[00:16.00] Bersama irama jernih tanpa kompresi
-[00:25.00] Menemani setiap detik waktu bersantai...`;
-
-          openLyricsApproval(pendingDownloadedSong, simulatedInternetLRC);
+          showToast(`Lagu "${title}" berhasil disimpan ke koleksi!`, 'success');
+          syncSongToLocal(trackId, title, isFlac);
         } else {
           newJob.percent = progress;
           newJob.eta = Math.max(1, Math.round((100 - progress) / 10)) + 's';
           renderDownloadQueue();
         }
       }, 400);
+    }
+
+    function syncSongToLocal(trackId, title, isFlac) {
+      const newSongObj = {
+        id: trackId || ('s_' + Date.now()),
+        title: title,
+        artist: title.toLowerCase().includes('guyon') ? "GUYONWATON OFFICIAL" : "Unduhan Musik STB",
+        album: isFlac ? "Koleksi FLAC Hi-Res" : "Koleksi Standar",
+        duration: 210,
+        cover: isFlac ? "✨" : "🎧",
+        themeColor: isFlac ? "#332a10" : "#1a253a",
+        isHiRes: isFlac,
+        codec: isFlac ? "FLAC" : "MP3",
+        bitDepth: isFlac ? 24 : 16,
+        sampleRate: isFlac ? "96 kHz" : "44.1 kHz",
+        bitrate: isFlac ? "1411 kbps" : "320 kbps",
+        source: "youtube",
+        lyrics: [
+          { time: 0, text: `♪ Alunan audio ${isFlac ? 'FLAC 24-bit Lossless' : 'MP3 320k'} ♪` },
+          { time: 8, text: "Tersimpan otomatis di penyimpanan STB & Dashboard" }
+        ]
+      };
+
+      const existingSongIdx = songs.findIndex(s => s.id === newSongObj.id);
+      if (existingSongIdx === -1) {
+        songs.unshift(newSongObj);
+      } else {
+        songs[existingSongIdx] = newSongObj;
+      }
+      persistSongsToStorage();
+      renderDashboardSongs();
+
+      pendingDownloadedSong = newSongObj;
+      const simulatedInternetLRC = `[00:02.00] ♪ Alunan audio ${isFlac ? 'FLAC Lossless 24-bit/96kHz' : 'MP3 320k'} ♪
+[00:08.50] Di hening malam senandung terdengar indah
+[00:16.00] Bersama irama jernih tanpa kompresi
+[00:25.00] Menemani setiap detik waktu bersantai...`;
+
+      openLyricsApproval(pendingDownloadedSong, simulatedInternetLRC);
     }
 
     function openDownloadQueueModal() {
@@ -2149,8 +2265,80 @@
       }
     }
 
+    function fetchSongsFromBackend() {
+      fetch('/api/songs')
+        .then(res => {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        })
+        .then(serverSongs => {
+          if (Array.isArray(serverSongs) && serverSongs.length > 0) {
+            // Map server model to frontend song model
+            const mapped = serverSongs.map(s => {
+              const ext = (s.filePath || '').split('.').pop().toLowerCase();
+              const isFlac = ext === 'flac' || (s.album && s.album.includes('FLAC'));
+              let lyricsArr = [];
+              if (s.lyrics) {
+                const lines = s.lyrics.split('\n');
+                const regex = /\[(\d{2}):(\d{2})\.?(\d{2,3})?\](.*)/;
+                lines.forEach(l => {
+                  const m = l.match(regex);
+                  if (m) {
+                    lyricsArr.push({ time: parseInt(m[1]) * 60 + parseInt(m[2]), text: m[4].trim() });
+                  }
+                });
+              }
+              if (lyricsArr.length === 0) {
+                lyricsArr = [
+                  { time: 0, text: `♪ ${s.title} ♪` },
+                  { time: 6, text: `Diputar langsung dari storage STB` }
+                ];
+              }
+
+              return {
+                id: s.id,
+                title: s.title,
+                artist: s.artist || "Artis STB",
+                album: s.album || (isFlac ? "Koleksi FLAC Hi-Res" : "Koleksi Standar"),
+                duration: s.duration || 210,
+                cover: isFlac ? "✨" : "🎧",
+                themeColor: isFlac ? "#332a10" : "#1a253a",
+                isHiRes: isFlac,
+                codec: isFlac ? "FLAC" : "MP3",
+                bitDepth: isFlac ? 24 : 16,
+                sampleRate: isFlac ? "96 kHz" : "44.1 kHz",
+                bitrate: isFlac ? "1411 kbps" : "320 kbps",
+                source: s.source || "local",
+                lyrics: lyricsArr
+              };
+            });
+
+            songs = mapped;
+            persistSongsToStorage();
+            renderDashboardSongs();
+            updatePlayerUI();
+            showToast(`Koleksi STB tersinkron: ${songs.length} lagu aktif`, 'success');
+          }
+        })
+        .catch(() => {
+          // Tetap gunakan local songs jika standalone/demo
+        });
+    }
+
     function scanLocalSTB() {
-      alert('Pemindaian selesai: Seluruh folder musik STB telah disinkronkan.');
+      showToast('Memindai folder musik STB...', 'success');
+      fetch('/api/scan')
+        .then(res => {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.text();
+        })
+        .then(() => {
+          fetchSongsFromBackend();
+          showToast('Pemindaian selesai: Seluruh folder musik STB telah disinkronkan.', 'success');
+        })
+        .catch(() => {
+          showToast('Pemindaian lokal selesai (Mode Demo Browser).', 'success');
+        });
     }
 
     function handleSearch(q) {

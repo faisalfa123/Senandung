@@ -60,14 +60,21 @@ func NewQueue(database *db.DB, musicDir, coverDir string) *Queue {
 	return q
 }
 
-func (q *Queue) AddJob(query string) *models.DownloadJob {
+func (q *Queue) AddJob(query, format string) *models.DownloadJob {
 	q.jobsMu.Lock()
 	defer q.jobsMu.Unlock()
+
+	cleanFormat := strings.ToLower(strings.TrimSpace(format))
+	if cleanFormat != "flac" {
+		cleanFormat = "mp3"
+	}
 
 	job := &models.DownloadJob{
 		ID:       fmt.Sprintf("job_%d", time.Now().UnixNano()),
 		Query:    strings.TrimSpace(query),
+		Format:   cleanFormat,
 		Status:   "pending",
+		Percent:  0,
 		Progress: "Menunggu antrean...",
 	}
 	q.jobs[job.ID] = job
@@ -98,11 +105,19 @@ func (q *Queue) processJob(job *models.DownloadJob) {
 	// Gunakan yt-dlp untuk ekstrak info dan download dengan nice rendah (nice 19)
 	outputTemplate := filepath.Join(q.musicDir, "%(title)s [%(id)s].%(ext)s")
 
-	// Argumen yt-dlp: unduh bestaudio, ekstrak ke mp3 (128k untuk efisiensi STB), write-thumbnail
+	isFlac := job.Format == "flac"
+	audioFormat := "mp3"
+	audioQuality := "320K"
+	if isFlac {
+		audioFormat = "flac"
+		audioQuality = "0" // best quality lossless
+	}
+
+	// Argumen yt-dlp: unduh bestaudio, ekstrak ke flac atau mp3 320k, embed thumbnail & metadata
 	args := []string{
 		"-x",
-		"--audio-format", "mp3",
-		"--audio-quality", "128K",
+		"--audio-format", audioFormat,
+		"--audio-quality", audioQuality,
 		"--embed-thumbnail",
 		"--add-metadata",
 		"--write-thumbnail",
@@ -169,7 +184,7 @@ func (q *Queue) processJob(job *models.DownloadJob) {
 	for _, entry := range entries {
 		if !entry.IsDir() && strings.Contains(entry.Name(), videoID) {
 			ext := strings.ToLower(filepath.Ext(entry.Name()))
-			if ext == ".mp3" || ext == ".m4a" || ext == ".opus" {
+			if ext == ".flac" || ext == ".mp3" || ext == ".m4a" || ext == ".opus" || ext == ".wav" {
 				finalFilePath = filepath.Join(q.musicDir, entry.Name())
 			} else if ext == ".jpg" || ext == ".webp" || ext == ".png" {
 				// Pindahkan cover ke direktori cover
@@ -181,22 +196,28 @@ func (q *Queue) processJob(job *models.DownloadJob) {
 	}
 
 	if finalFilePath == "" {
-		// Fallback: cari file mp3 terbaru
+		// Fallback: cari file audio dengan nama serupa
 		q.setJobError(job.ID, "File audio tidak ditemukan setelah proses selesai")
 		return
 	}
+
+	// Buat file lirik .lrc otomatis di samping file musik pada storage STB
+	lrcPath := strings.TrimSuffix(finalFilePath, filepath.Ext(finalFilePath)) + ".lrc"
+	defaultLrc := fmt.Sprintf("[00:01.00] %s - %s\n[00:06.00] Audio diunduh oleh Senandung (%s)\n[00:15.00] Diputar langsung dari Harddisk STB DietPi\n", artist, title, strings.ToUpper(job.Format))
+	_ = os.WriteFile(lrcPath, []byte(defaultLrc), 0644)
 
 	songID := fmt.Sprintf("song_%d", time.Now().UnixNano())
 	newSong := &models.Song{
 		ID:         songID,
 		Title:      title,
 		Artist:     artist,
-		Album:      "YouTube Download",
+		Album:      "YouTube Download (" + strings.ToUpper(job.Format) + ")",
 		Duration:   duration,
 		FilePath:   finalFilePath,
 		CoverURL:   coverURL,
 		Source:     "youtube",
 		YoutubeURL: "https://www.youtube.com/watch?v=" + videoID,
+		Lyrics:     defaultLrc,
 		CreatedAt:  time.Now(),
 	}
 
@@ -207,7 +228,8 @@ func (q *Queue) processJob(job *models.DownloadJob) {
 	q.jobsMu.Lock()
 	job.Status = "completed"
 	job.Title = title
-	job.Progress = "Selesai diunduh!"
+	job.Percent = 100
+	job.Progress = "Selesai diunduh & tersimpan di STB!"
 	job.DownloadedSongID = songID
 	q.jobsMu.Unlock()
 }
