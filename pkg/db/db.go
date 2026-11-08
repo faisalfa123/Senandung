@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -131,6 +132,10 @@ func (d *DB) GetAllSongs() ([]models.Song, error) {
 			if _, err := os.Stat(s.FilePath); os.IsNotExist(err) {
 				continue
 			}
+		}
+		// Bersihkan akhiran [videoId] jika ada (cth [CTkdmwOYUpg])
+		if idx := strings.LastIndex(s.Title, " ["); idx != -1 && strings.HasSuffix(s.Title, "]") {
+			s.Title = strings.TrimSpace(s.Title[:idx])
 		}
 		songs = append(songs, s)
 	}
