@@ -27,38 +27,38 @@ type Client struct {
 }
 
 type RoomInfo struct {
-	ID          string       `json:"id"`
-	Listeners   int          `json:"listeners"`
-	IsPlaying   bool         `json:"is_playing"`
-	CurrentSong *models.Song `json:"current_song,omitempty"`
-	Members     []string     `json:"members"`
-	QueueCount  int          `json:"queue_count"`
+	ID          string         `json:"id"`
+	Listeners   int            `json:"listeners"`
+	IsPlaying   bool           `json:"is_playing"`
+	CurrentSong *models.Song   `json:"current_song,omitempty"`
+	Members     []string       `json:"members"`
+	Queue       []*models.Song `json:"queue,omitempty"`
+}
+
+type SavedRoomState struct {
+	RoomID      string         `json:"room_id"`
+	CurrentSong *models.Song   `json:"current_song,omitempty"`
+	PositionSec float64        `json:"position_sec"`
+	Queue       []*models.Song `json:"queue,omitempty"`
+	SavedAt     int64          `json:"saved_at"`
 }
 
 type Message struct {
-	Action          string        `json:"action"` // "join", "ping", "pong", "play", "pause", "seek", "track_change", "sync_state", "reaction", "room_list", "queue_add", "queue_remove", "queue_reorder", "queue_play", "queue_next", "restore_queue", "dismiss_recovery", "room_first_entry"
-	RoomID          string        `json:"room_id,omitempty"`
-	ClientTimeMs    int64         `json:"client_time_ms,omitempty"`
-	ServerTimeMs    int64         `json:"server_time_ms,omitempty"`
-	ScheduledAtMs   int64         `json:"scheduled_at_ms,omitempty"`
-	PositionSec     float64       `json:"position_sec,omitempty"`
-	IsPlaying       bool          `json:"is_playing,omitempty"`
-	Song            *models.Song  `json:"song,omitempty"`
-	Queue           []models.Song `json:"queue,omitempty"`
-	SavedSongsCount int           `json:"saved_songs_count,omitempty"`
-	TargetIndex     int           `json:"target_index,omitempty"`
-	IndexFrom       int           `json:"index_from,omitempty"`
-	IndexTo         int           `json:"index_to,omitempty"`
-	Listeners       int           `json:"listeners,omitempty"`
-	Members         []string      `json:"members,omitempty"`
-	Emoji           string        `json:"emoji,omitempty"`
-	Rooms           []RoomInfo    `json:"rooms,omitempty"`
-}
-
-type RoomSnapshot struct {
-	Queue       []models.Song
-	CurrentSong *models.Song
-	SavedAt     time.Time
+	Action       string          `json:"action"` // "join", "ping", "pong", "play", "pause", "seek", "track_change", "sync_state", "reaction", "room_list", "queue_add", "queue_remove", "queue_reorder", "queue_clear", "queue_next", "room_resume_prompt", "room_resume_confirm"
+	RoomID       string          `json:"room_id,omitempty"`
+	ClientTimeMs int64           `json:"client_time_ms,omitempty"`
+	ServerTimeMs int64           `json:"server_time_ms,omitempty"`
+	PositionSec  float64         `json:"position_sec,omitempty"`
+	IsPlaying    bool            `json:"is_playing,omitempty"`
+	Song         *models.Song    `json:"song,omitempty"`
+	Queue        []*models.Song  `json:"queue,omitempty"`
+	QueueIndex   int             `json:"queue_index,omitempty"`
+	SavedState   *SavedRoomState `json:"saved_state,omitempty"`
+	ResumeChoice bool            `json:"resume_choice,omitempty"`
+	Listeners    int             `json:"listeners,omitempty"`
+	Members      []string        `json:"members,omitempty"`
+	Emoji        string          `json:"emoji,omitempty"`
+	Rooms        []RoomInfo      `json:"rooms,omitempty"`
 }
 
 type Room struct {
@@ -68,23 +68,24 @@ type Room struct {
 	PositionSec  float64
 	LastUpdateMs int64
 	LeaderID     string
-	Queue        []models.Song
+	Queue        []*models.Song
 	Clients      map[*Client]bool
 	mu           sync.RWMutex
 }
 
 type Hub struct {
-	rooms      map[string]*Room
-	savedRooms map[string]*RoomSnapshot // Snapshot antrean saat room kosong
-	roomsMu    sync.RWMutex
-	register   chan *Client
-	unregister chan *Client
+	rooms        map[string]*Room
+	savedRooms   map[string]*SavedRoomState
+	roomsMu      sync.RWMutex
+	savedRoomsMu sync.RWMutex
+	register     chan *Client
+	unregister   chan *Client
 }
 
 func NewHub() *Hub {
 	return &Hub{
 		rooms:      make(map[string]*Room),
-		savedRooms: make(map[string]*RoomSnapshot),
+		savedRooms: make(map[string]*SavedRoomState),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 	}
@@ -115,62 +116,52 @@ func (h *Hub) Run() {
 		case client := <-h.register:
 			h.roomsMu.Lock()
 			room, exists := h.rooms[client.roomID]
-			isFirstUser := false
+			isNewRoom := !exists
 
-			if !exists {
-				isFirstUser = true
+			if isNewRoom {
 				room = &Room{
 					ID:           client.roomID,
 					Clients:      make(map[*Client]bool),
-					Queue:        make([]models.Song, 0),
 					LastUpdateMs: time.Now().UnixMilli(),
+					Queue:        make([]*models.Song, 0),
 				}
 				h.rooms[client.roomID] = room
-			} else {
-				room.mu.RLock()
-				if len(room.Clients) == 0 {
-					isFirstUser = true
-				}
-				room.mu.RUnlock()
 			}
 
 			room.mu.Lock()
+			wasEmpty := len(room.Clients) == 0
 			room.Clients[client] = true
 			if room.LeaderID == "" {
 				room.LeaderID = client.clientID
 			}
 			listenerCount := len(room.Clients)
 			room.mu.Unlock()
-
-			// Cek apakah ada snapshot riwayat playlist untuk pengguna pertama
-			var savedSnap *RoomSnapshot
-			if isFirstUser {
-				if snap, ok := h.savedRooms[client.roomID]; ok && len(snap.Queue) > 0 {
-					savedSnap = snap
-				}
-			}
 			h.roomsMu.Unlock()
 
-			// Broadcast status room ke semua listener
-			h.broadcastRoomState(client.roomID)
+			// Cek apakah ada saved session state untuk room ini saat pengguna pertama masuk
+			if wasEmpty {
+				h.savedRoomsMu.RLock()
+				saved, hasSaved := h.savedRooms[client.roomID]
+				h.savedRoomsMu.RUnlock()
 
-			// Kirim notifikasi pemulihan jika pengguna pertama masuk ke room kosong dengan snapshot
-			if savedSnap != nil {
-				promptMsg := Message{
-					Action:          "room_first_entry",
-					RoomID:          client.roomID,
-					SavedSongsCount: len(savedSnap.Queue),
-					ServerTimeMs:    time.Now().UnixMilli(),
-				}
-				if data, err := json.Marshal(promptMsg); err == nil {
+				if hasSaved && saved != nil && (saved.CurrentSong != nil || len(saved.Queue) > 0) {
+					// Kirim prompt dialog khusus ke klien ini untuk konfirmasi resume
+					promptMsg := Message{
+						Action:     "room_resume_prompt",
+						RoomID:     client.roomID,
+						SavedState: saved,
+					}
+					promptData, _ := json.Marshal(promptMsg)
 					select {
-					case client.send <- data:
+					case client.send <- promptData:
 					default:
 					}
 				}
 			}
 
-			log.Printf("[SyncHub] Klien %s (%s) bergabung ke room '%s' (Total listener: %d, First: %v)", client.clientID, client.deviceName, client.roomID, listenerCount, isFirstUser)
+			// Broadcast status room ke semua listener
+			h.broadcastRoomState(client.roomID)
+			log.Printf("[SyncHub] Klien %s bergabung ke room '%s' (Total listener: %d)", client.clientID, client.roomID, listenerCount)
 
 		case client := <-h.unregister:
 			h.roomsMu.Lock()
@@ -188,26 +179,32 @@ func (h *Hub) Run() {
 				clientCount := len(room.Clients)
 
 				if clientCount == 0 {
-					// Simpan snapshot playlist saat room ditinggalkan semua orang
-					if len(room.Queue) > 0 || room.CurrentSong != nil {
-						qCopy := make([]models.Song, len(room.Queue))
-						copy(qCopy, room.Queue)
-						h.savedRooms[client.roomID] = &RoomSnapshot{
-							Queue:       qCopy,
-							CurrentSong: room.CurrentSong,
-							SavedAt:     time.Now(),
-						}
-						log.Printf("[SyncHub] Room '%s' kosong. Snapshot %d lagu disimpan.", client.roomID, len(qCopy))
+					// Simpan sesi room sebelum ditutup agar bisa dilanjutkan kembali
+					now := time.Now().UnixMilli()
+					currentPos := room.PositionSec
+					if room.IsPlaying {
+						elapsed := float64(now-room.LastUpdateMs) / 1000.0
+						currentPos += elapsed
 					}
-					// Kosongkan playlist aktif di room
-					room.Queue = make([]models.Song, 0)
-					room.CurrentSong = nil
-					room.IsPlaying = false
-					room.PositionSec = 0
-				}
-				room.mu.Unlock()
 
-				if clientCount > 0 {
+					queueCopy := make([]*models.Song, len(room.Queue))
+					copy(queueCopy, room.Queue)
+
+					h.savedRoomsMu.Lock()
+					h.savedRooms[client.roomID] = &SavedRoomState{
+						RoomID:      client.roomID,
+						CurrentSong: room.CurrentSong,
+						PositionSec: currentPos,
+						Queue:       queueCopy,
+						SavedAt:     now,
+					}
+					h.savedRoomsMu.Unlock()
+
+					room.mu.Unlock()
+					delete(h.rooms, client.roomID)
+					log.Printf("[SyncHub] Room '%s' kosong. Sesi lagu & antrean disimpan untuk resume.", client.roomID)
+				} else {
+					room.mu.Unlock()
 					h.broadcastRoomState(client.roomID)
 				}
 			}
@@ -244,8 +241,8 @@ func (h *Hub) broadcastRoomState(roomID string) {
 		members = append(members, name)
 	}
 
-	qCopy := make([]models.Song, len(room.Queue))
-	copy(qCopy, room.Queue)
+	queueCopy := make([]*models.Song, len(room.Queue))
+	copy(queueCopy, room.Queue)
 
 	msg := Message{
 		Action:       "sync_state",
@@ -254,9 +251,9 @@ func (h *Hub) broadcastRoomState(roomID string) {
 		IsPlaying:    room.IsPlaying,
 		PositionSec:  currentPos,
 		ServerTimeMs: now,
-		Queue:        qCopy,
 		Listeners:    len(room.Clients),
 		Members:      members,
+		Queue:        queueCopy,
 	}
 	data, _ := json.Marshal(msg)
 
@@ -284,13 +281,16 @@ func (h *Hub) HandleGetRooms(w http.ResponseWriter, r *http.Request) {
 			}
 			members = append(members, name)
 		}
+		queueCopy := make([]*models.Song, len(room.Queue))
+		copy(queueCopy, room.Queue)
+
 		result = append(result, RoomInfo{
 			ID:          room.ID,
 			Listeners:   len(room.Clients),
 			IsPlaying:   room.IsPlaying,
 			CurrentSong: room.CurrentSong,
 			Members:     members,
-			QueueCount:  len(room.Queue),
+			Queue:       queueCopy,
 		})
 		room.mu.RUnlock()
 	}
@@ -362,12 +362,12 @@ func (c *Client) readPump() {
 				ClientTimeMs: msg.ClientTimeMs,
 				ServerTimeMs: now,
 			}
-			if data, err := json.Marshal(reply); err == nil {
-				c.send <- data
-			}
+			data, _ := json.Marshal(reply)
+			c.send <- data
 			continue
 		}
 
+		// Aksi kontrol pemutaran & Antrean Room
 		c.hub.roomsMu.RLock()
 		room, exists := c.hub.rooms[c.roomID]
 		c.hub.roomsMu.RUnlock()
@@ -393,85 +393,65 @@ func (c *Client) readPump() {
 			room.PositionSec = 0
 			room.IsPlaying = true
 			room.LastUpdateMs = now
-			msg.ScheduledAtMs = now + 300
 
-		// Antrean Kolaboratif Ruang Party (Bebas Penuh)
+		// Antrean Room (Room Up Next Queue)
 		case "queue_add":
 			if msg.Song != nil {
+				room.Queue = append(room.Queue, msg.Song)
+				// Jika saat ini room belum memutar lagu, langsung mainkan lagu ini
 				if room.CurrentSong == nil {
 					room.CurrentSong = msg.Song
 					room.PositionSec = 0
 					room.IsPlaying = true
 					room.LastUpdateMs = now
-					msg.ScheduledAtMs = now + 300
-				} else {
-					room.Queue = append(room.Queue, *msg.Song)
+					// Hapus dari antrean pertama
+					if len(room.Queue) > 0 {
+						room.Queue = room.Queue[1:]
+					}
 				}
 			}
-
 		case "queue_remove":
-			if msg.TargetIndex >= 0 && msg.TargetIndex < len(room.Queue) {
-				room.Queue = append(room.Queue[:msg.TargetIndex], room.Queue[msg.TargetIndex+1:]...)
+			if msg.QueueIndex >= 0 && msg.QueueIndex < len(room.Queue) {
+				room.Queue = append(room.Queue[:msg.QueueIndex], room.Queue[msg.QueueIndex+1:]...)
 			}
-
-		case "queue_reorder":
-			if msg.IndexFrom >= 0 && msg.IndexFrom < len(room.Queue) &&
-				msg.IndexTo >= 0 && msg.IndexTo < len(room.Queue) && msg.IndexFrom != msg.IndexTo {
-				item := room.Queue[msg.IndexFrom]
-				room.Queue = append(room.Queue[:msg.IndexFrom], room.Queue[msg.IndexFrom+1:]...)
-				if msg.IndexTo >= len(room.Queue) {
-					room.Queue = append(room.Queue, item)
-				} else {
-					room.Queue = append(room.Queue[:msg.IndexTo], append([]models.Song{item}, room.Queue[msg.IndexTo:]...)...)
-				}
-			}
-
-		case "queue_play":
-			if msg.TargetIndex >= 0 && msg.TargetIndex < len(room.Queue) {
-				selected := room.Queue[msg.TargetIndex]
-				room.Queue = append(room.Queue[:msg.TargetIndex], room.Queue[msg.TargetIndex+1:]...)
-				room.CurrentSong = &selected
-				room.PositionSec = 0
-				room.IsPlaying = true
-				room.LastUpdateMs = now
-				msg.ScheduledAtMs = now + 300
-			}
-
+		case "queue_clear":
+			room.Queue = make([]*models.Song, 0)
 		case "queue_next":
+			// Lagu saat ini selesai, putar lagu berikutnya dari antrean jika ada
 			if len(room.Queue) > 0 {
 				nextSong := room.Queue[0]
 				room.Queue = room.Queue[1:]
-				room.CurrentSong = &nextSong
+				room.CurrentSong = nextSong
 				room.PositionSec = 0
 				room.IsPlaying = true
 				room.LastUpdateMs = now
-				msg.ScheduledAtMs = now + 300
 			} else {
-				room.CurrentSong = nil
 				room.IsPlaying = false
 				room.PositionSec = 0
+				room.LastUpdateMs = now
 			}
 
-		case "restore_queue":
-			c.hub.roomsMu.RLock()
-			snap, hasSnap := c.hub.savedRooms[c.roomID]
-			c.hub.roomsMu.RUnlock()
-			if hasSnap && snap != nil && len(snap.Queue) > 0 {
-				room.Queue = make([]models.Song, len(snap.Queue))
-				copy(room.Queue, snap.Queue)
-				if room.CurrentSong == nil && snap.CurrentSong != nil {
-					room.CurrentSong = snap.CurrentSong
+		// Resume session confirmation
+		case "room_resume_confirm":
+			c.hub.savedRoomsMu.Lock()
+			saved, hasSaved := c.hub.savedRooms[c.roomID]
+			if hasSaved && saved != nil {
+				if msg.ResumeChoice {
+					// Pulihkan lagu, posisi, dan antrean sebelumnya
+					room.CurrentSong = saved.CurrentSong
+					room.PositionSec = saved.PositionSec
+					room.Queue = saved.Queue
+					room.IsPlaying = true
+					room.LastUpdateMs = now
+					log.Printf("[SyncHub] Room '%s' dipulihkan ke lagu '%s' pada posisi %.1f detik.", c.roomID, saved.CurrentSong.Title, saved.PositionSec)
 				}
-				log.Printf("[SyncHub] Room '%s' berhasil dipulihkan: %d lagu.", c.roomID, len(room.Queue))
+				// Hapus saved state setelah keputusan diambil
+				delete(c.hub.savedRooms, c.roomID)
 			}
-
-		case "dismiss_recovery":
-			c.hub.roomsMu.Lock()
-			delete(c.hub.savedRooms, c.roomID)
-			c.hub.roomsMu.Unlock()
-			log.Printf("[SyncHub] Room '%s' snapshot dibersihkan (Mulai Kosong).", c.roomID)
+			c.hub.savedRoomsMu.Unlock()
 
 		case "reaction":
+			// Teruskan reaksi emoji ke klien lain di room
 			reply := Message{
 				Action: "reaction",
 				RoomID: c.roomID,
@@ -491,6 +471,7 @@ func (c *Client) readPump() {
 		}
 		room.mu.Unlock()
 
+		// Broadcast state terupdate ke semua listener di room
 		c.hub.broadcastRoomState(c.roomID)
 	}
 }
