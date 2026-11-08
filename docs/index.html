@@ -2,14 +2,21 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Senandung - Hi-Res Lossless & Spotify Self-Hosted</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#121212">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Senandung">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
     :root {
       --spotify-green: #1db954;
       --spotify-green-hover: #1ed760;
       --gold-hi-res: #ffd700;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
     .custom-scroll::-webkit-scrollbar {
       width: 6px;
@@ -160,7 +167,7 @@
     </aside>
 
     <!-- Main Content Dynamic Panels -->
-    <main class="flex-1 overflow-y-auto custom-scroll p-4 sm:p-8 bg-gradient-to-b from-[#1e1e1e] to-[#121212]">
+    <main class="flex-1 overflow-y-auto custom-scroll p-4 sm:p-8 pb-36 md:pb-8 bg-gradient-to-b from-[#1e1e1e] to-[#121212]">
       
       <!-- ================= 1. TAB: DASHBOARD ================= -->
       <section id="view-dashboard" class="tab-view space-y-6">
@@ -420,11 +427,73 @@
     </main>
   </div>
 
-  <!-- Bottom Player Bar with Smart Bitrate Inspector & Quality Switcher -->
-  <footer class="h-24 bg-[#181818]/95 backdrop-blur-xl border-t border-[#282828] px-4 sm:px-6 flex items-center justify-between z-40 shrink-0">
+  <!-- iOS Safari Autoplay Unlock Floating Pill (Shown only if browser blocks autoplay during Party Sync) -->
+  <div id="iosAutoplayPrompt" class="fixed top-20 left-1/2 -translate-x-1/2 z-[999] hidden">
+    <button onclick="unlockIosPartyAudio()" class="bg-[#1db954] hover:bg-[#1ed760] text-black font-extrabold text-xs px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2 animate-bounce border-2 border-white">
+      <span>🔊</span>
+      <span>Ketuk untuk Sinkron Suara Party</span>
+    </button>
+  </div>
+
+  <!-- ================= MOBILE FLOATING MINI-PLAYER (Visible on <md) ================= -->
+  <div id="mobileMiniPlayer" class="md:hidden fixed bottom-[60px] left-2 right-2 z-40 bg-[#1f1f1f]/95 backdrop-blur-xl border border-[#333] rounded-2xl p-2 shadow-2xl flex items-center justify-between" style="padding-bottom: max(8px, env(safe-area-inset-bottom));">
+    <div onclick="openFullscreenPlayer()" class="flex items-center gap-3 overflow-hidden flex-1 cursor-pointer">
+      <div id="mPlayerThumb" class="w-11 h-11 rounded-xl bg-[#282828] flex items-center justify-center text-xl shrink-0 shadow">
+        🎵
+      </div>
+      <div class="overflow-hidden flex-1 pr-2">
+        <div class="flex items-center gap-1.5">
+          <div id="mPlayerTitle" class="text-xs font-bold truncate text-white">Belum Memutar</div>
+          <span id="mPlayerHiResBadge" class="hidden"></span>
+        </div>
+        <div id="mPlayerArtist" class="text-[11px] text-[#aaa] truncate">Pilih lagu dari daftar</div>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-1 shrink-0">
+      <button onclick="toggleFavCurrent()" id="mBtnFav" class="p-2 text-sm text-[#aaa] hover:text-white transition">🤍</button>
+      <button onclick="togglePlay()" id="mBtnPlay" class="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center font-bold text-sm shadow-lg hover:scale-105 active:scale-95 transition">
+        ▶️
+      </button>
+      <button onclick="nextSong()" class="p-2 text-sm text-[#ddd] hover:text-white transition">⏭️</button>
+    </div>
+    
+    <!-- Mini Player Progress Line at very bottom of card -->
+    <div class="absolute left-2 right-2 bottom-0.5 h-[2px] bg-white/10 rounded-full overflow-hidden">
+      <div id="mPlayerProgressBar" class="h-full bg-[#1db954] w-0 transition-all"></div>
+    </div>
+  </div>
+
+  <!-- ================= MOBILE BOTTOM NAVIGATION (Visible on <md) ================= -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#000000]/95 backdrop-blur-xl border-t border-[#222] flex items-center justify-around py-1.5 text-[10px] font-medium" style="padding-bottom: max(6px, env(safe-area-inset-bottom));">
+    <button onclick="switchTab('dashboard')" id="mNav-dashboard" class="mNav-btn flex flex-col items-center gap-0.5 text-white py-1">
+      <span class="text-lg">🏠</span>
+      <span>Home</span>
+    </button>
+    <button onclick="switchTab('ytsearch')" id="mNav-ytsearch" class="mNav-btn flex flex-col items-center gap-0.5 text-[#888] hover:text-white py-1">
+      <span class="text-lg">🎵</span>
+      <span>Unduh</span>
+    </button>
+    <button onclick="switchTab('karaoke')" id="mNav-karaoke" class="mNav-btn flex flex-col items-center gap-0.5 text-[#888] hover:text-white py-1">
+      <span class="text-lg">🎤</span>
+      <span>Karaoke</span>
+    </button>
+    <button onclick="switchTab('party')" id="mNav-party" class="mNav-btn flex flex-col items-center gap-0.5 text-[#888] hover:text-white py-1 relative">
+      <span class="text-lg">📻</span>
+      <span>Party</span>
+      <span id="mPartyActiveDot" class="hidden absolute top-1 right-2 w-2 h-2 rounded-full bg-[#1db954] animate-pulse"></span>
+    </button>
+    <button onclick="switchTab('playlists')" id="mNav-playlists" class="mNav-btn flex flex-col items-center gap-0.5 text-[#888] hover:text-white py-1">
+      <span class="text-lg">📂</span>
+      <span>Koleksi</span>
+    </button>
+  </nav>
+
+  <!-- ================= DESKTOP BOTTOM PLAYER BAR (Visible on >=md) ================= -->
+  <footer class="hidden md:flex h-24 bg-[#181818]/95 backdrop-blur-xl border-t border-[#282828] px-6 items-center justify-between z-40 shrink-0">
     
     <!-- Left: Track Cover, Hi-Res Badge & Quality Details -->
-    <div class="flex items-center gap-3.5 w-1/3 min-w-[200px]">
+    <div class="flex items-center gap-3.5 w-1/3 min-w-[220px]">
       <div id="playerThumb" class="w-14 h-14 rounded-lg bg-[#282828] flex items-center justify-center text-2xl shrink-0 shadow-md">
         🎵
       </div>
@@ -446,12 +515,12 @@
           </div>
         </div>
       </div>
-      <button onclick="toggleFavCurrent()" id="btnFavCurrent" class="text-sm ml-1 hover:scale-110 transition hidden sm:inline">🤍</button>
+      <button onclick="toggleFavCurrent()" id="btnFavCurrent" class="text-sm ml-1 hover:scale-110 transition">🤍</button>
     </div>
 
     <!-- Center: Playback Controls & Progress -->
     <div class="flex flex-col items-center w-1/3 max-w-xl">
-      <div class="flex items-center gap-4 sm:gap-5 mb-1.5">
+      <div class="flex items-center gap-5 mb-1.5">
         <button onclick="toggleShuffle()" id="btnShuffle" class="text-xs text-[#888] hover:text-white transition">🔀</button>
         <button onclick="prevSong()" class="text-sm text-[#ddd] hover:text-white transition">⏮️</button>
         <button onclick="togglePlay()" id="btnPlay" class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center font-bold text-sm hover:scale-105 transition shadow-lg">
@@ -471,7 +540,7 @@
     </div>
 
     <!-- Right: Quality Switcher, Karaoke, Speed, EQ, Offline -->
-    <div class="flex items-center justify-end gap-2 sm:gap-3 w-1/3">
+    <div class="flex items-center justify-end gap-3 w-1/3">
       <!-- Quality Switcher: Standar 128kbps vs Hi-Res Lossless FLAC -->
       <button onclick="toggleAudioQuality()" id="btnQualityToggle" class="badge-hires-gold px-2 py-1 rounded text-[10px] font-black cursor-pointer hover:scale-105 transition" title="Ganti Kualitas Audio">
         ✨ HI-RES FLAC
@@ -484,12 +553,74 @@
       <button onclick="openModal('eqModal')" class="text-sm p-1.5 hover:text-[#1db954] transition" title="Equalizer 5-Band">🎚️</button>
       <button onclick="saveCurrentOffline()" class="text-sm p-1.5 hover:text-[#1db954] transition" title="Download ke HP (Offline PWA)">📲</button>
       
-      <div class="hidden lg:flex items-center gap-1.5 ml-1">
+      <div class="flex items-center gap-1.5 ml-1">
         <span class="text-xs">🔊</span>
         <input type="range" min="0" max="1" step="0.05" value="0.8" oninput="changeVolume(this.value)" class="w-14 accent-[#1db954] cursor-pointer">
       </div>
     </div>
   </footer>
+
+  <!-- ================= SPOTIFY FULLSCREEN NOW PLAYING DRAWER (Mobile) ================= -->
+  <div id="fullscreenPlayerDrawer" class="fixed inset-0 z-50 bg-[#121212] flex flex-col justify-between p-6 transition-all duration-300 translate-y-full opacity-0 pointer-events-none" style="padding-top: max(24px, env(safe-area-inset-top)); padding-bottom: max(24px, env(safe-area-inset-bottom));">
+    <!-- Top Bar -->
+    <div class="flex items-center justify-between">
+      <button onclick="closeFullscreenPlayer()" class="text-2xl text-white/80 hover:text-white p-2">⌄</button>
+      <div class="text-center">
+        <div class="text-[10px] uppercase font-bold tracking-widest text-[#888]">Memutar Dari</div>
+        <div id="fsRoomHeader" class="text-xs font-bold text-white">Koleksi Senandung</div>
+      </div>
+      <button onclick="togglePlaybackMode()" class="text-sm p-2 text-white/80 hover:text-white">📻</button>
+    </div>
+
+    <!-- Album Art / Large Display -->
+    <div class="my-auto flex flex-col items-center">
+      <div id="fsArtwork" class="w-64 h-64 sm:w-72 sm:h-72 rounded-2xl bg-gradient-to-br from-[#282828] to-[#181818] border border-[#333] shadow-2xl flex items-center justify-center text-7xl mb-6">
+        🎵
+      </div>
+      <div class="w-full flex items-center justify-between px-2">
+        <div class="overflow-hidden flex-1 mr-4">
+          <div id="fsTitle" class="text-xl font-extrabold text-white truncate">Belum Memutar</div>
+          <div id="fsArtist" class="text-sm text-[#aaa] font-medium truncate mt-0.5">Pilih lagu dari koleksi</div>
+        </div>
+        <button onclick="toggleFavCurrent()" id="fsBtnFav" class="text-2xl text-white/80 hover:scale-110 transition">🤍</button>
+      </div>
+    </div>
+
+    <!-- Scrubber & Controls -->
+    <div class="space-y-4 w-full max-w-md mx-auto">
+      <!-- Progress Bar -->
+      <div class="space-y-1.5">
+        <div onclick="seekProgress(event)" id="fsProgressContainer" class="h-2 bg-[#333] rounded-full cursor-pointer relative overflow-hidden">
+          <div id="fsProgressBar" class="h-full bg-white rounded-full w-0 transition-all"></div>
+        </div>
+        <div class="flex justify-between text-xs text-[#888] font-mono">
+          <span id="fsTxtCurrent">0:00</span>
+          <span id="fsTxtDuration">0:00</span>
+        </div>
+      </div>
+
+      <!-- Playback Controls -->
+      <div class="flex items-center justify-between px-4">
+        <button onclick="toggleShuffle()" id="fsBtnShuffle" class="text-lg text-[#888] hover:text-white transition">🔀</button>
+        <button onclick="prevSong()" class="text-2xl text-white hover:scale-110 transition">⏮️</button>
+        <button onclick="togglePlay()" id="fsBtnPlay" class="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center font-bold text-2xl shadow-2xl hover:scale-105 active:scale-95 transition">
+          ▶️
+        </button>
+        <button onclick="nextSong()" class="text-2xl text-white hover:scale-110 transition">⏭️</button>
+        <button onclick="toggleRepeat()" id="fsBtnRepeat" class="text-lg text-[#888] hover:text-white transition">🔁</button>
+      </div>
+
+      <!-- Bottom Quick Actions: Lyrics & Audio Switcher -->
+      <div class="flex items-center justify-between pt-2 border-t border-[#222] text-xs">
+        <button onclick="closeFullscreenPlayer(); switchTab('karaoke');" class="text-[#1db954] hover:underline flex items-center gap-1.5 font-semibold">
+          <span>🎤</span> Lirik Karaoke
+        </button>
+        <button onclick="toggleAudioQuality()" id="fsBtnQuality" class="badge-hires-gold px-2.5 py-1 rounded text-[10px] font-black">
+          ✨ HI-RES FLAC
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- ================= MODALS & DIALOGS ================= -->
 
@@ -819,6 +950,10 @@
         b.classList.remove('bg-[#282828]', 'text-white');
         b.classList.add('text-[#b3b3b3]');
       });
+      document.querySelectorAll('.mNav-btn').forEach(b => {
+        b.classList.remove('text-white');
+        b.classList.add('text-[#888]');
+      });
 
       const target = document.getElementById('view-' + tabName);
       if (target) target.classList.remove('hidden');
@@ -827,6 +962,12 @@
       if (btn) {
         btn.classList.add('bg-[#282828]', 'text-white');
         btn.classList.remove('text-[#b3b3b3]');
+      }
+
+      const mBtn = document.getElementById('mNav-' + tabName);
+      if (mBtn) {
+        mBtn.classList.add('text-white');
+        mBtn.classList.remove('text-[#888]');
       }
 
       if (tabName === 'karaoke') {
@@ -1538,7 +1679,7 @@
     }
 
     // Playback Logic: Real HTML5 Streaming dari Storage STB (/api/stream/{id})
-    function playSongAt(idx) {
+    function playSongAt(idx, fromPartySync = false) {
       if (idx < 0 || idx >= songs.length) return;
       currentSongIndex = idx;
       const s = songs[currentSongIndex];
@@ -1549,10 +1690,13 @@
       realAudio.playbackRate = playbackSpeed;
       realAudio.play().then(() => {
         isPlaying = true;
+        hideIosPrompt();
         updatePlayerUI();
       }).catch(err => {
         console.warn('Gagal memutar audio stream:', err);
-        showToast('Memutar: ' + s.title, 'success');
+        if (fromPartySync) {
+          showIosPrompt();
+        }
       });
 
       updatePlayerUI();
@@ -1560,10 +1704,24 @@
       renderDashboardSongs();
       renderKaraokeLyrics();
 
-      if (isPartyMode) sendReaction('🎵');
+      if (isPartyMode && !fromPartySync) {
+        sendPartyAction('track_change', {
+          song: {
+            id: s.id,
+            title: s.title,
+            artist: s.artist,
+            album: s.album,
+            duration: s.duration,
+            isHiRes: s.isHiRes,
+            codec: s.codec
+          },
+          position_sec: 0
+        });
+        sendReaction('🎵');
+      }
     }
 
-    function togglePlay() {
+    function togglePlay(fromPartySync = false) {
       if (currentSongIndex === -1 && songs.length > 0) {
         playSongAt(0);
         return;
@@ -1571,12 +1729,22 @@
       if (realAudio.paused) {
         realAudio.play().then(() => {
           isPlaying = true;
+          hideIosPrompt();
           updatePlayerUI();
-        }).catch(e => console.warn(e));
+          if (isPartyMode && !fromPartySync) {
+            sendPartyAction('play', { position_sec: realAudio.currentTime || 0 });
+          }
+        }).catch(e => {
+          console.warn(e);
+          if (fromPartySync) showIosPrompt();
+        });
       } else {
         realAudio.pause();
         isPlaying = false;
         updatePlayerUI();
+        if (isPartyMode && !fromPartySync) {
+          sendPartyAction('pause', { position_sec: realAudio.currentTime || 0 });
+        }
       }
     }
 
@@ -1588,10 +1756,20 @@
 
       const bar = document.getElementById('progressBar');
       if (bar) bar.style.width = pct + '%';
+      const mBar = document.getElementById('mPlayerProgressBar');
+      if (mBar) mBar.style.width = pct + '%';
+      const fsBar = document.getElementById('fsProgressBar');
+      if (fsBar) fsBar.style.width = pct + '%';
+
       const curTxt = document.getElementById('txtCurrentTime');
       if (curTxt) curTxt.innerText = formatTime(currentTime);
       const durTxt = document.getElementById('txtDuration');
       if (durTxt) durTxt.innerText = formatTime(dur);
+
+      const fsCur = document.getElementById('fsTxtCurrent');
+      if (fsCur) fsCur.innerText = formatTime(currentTime);
+      const fsDur = document.getElementById('fsTxtDuration');
+      if (fsDur) fsDur.innerText = formatTime(dur);
 
       ['syncBar1', 'syncBar2', 'syncBar3'].forEach(id => {
         const el = document.getElementById(id);
@@ -1601,17 +1779,37 @@
 
     function updatePlayerUI() {
       if (currentSongIndex < 0 || !songs[currentSongIndex]) {
+        // Desktop
         document.getElementById('playerTitle').innerText = "Belum Memutar";
         document.getElementById('playerArtist').innerText = "Pilih lagu dari daftar";
         document.getElementById('btnPlay').innerText = "▶️";
+        // Mobile Mini Player
+        const mTitle = document.getElementById('mPlayerTitle');
+        if (mTitle) mTitle.innerText = "Belum Memutar";
+        const mArtist = document.getElementById('mPlayerArtist');
+        if (mArtist) mArtist.innerText = "Pilih lagu dari koleksi";
+        const mBtnPlay = document.getElementById('mBtnPlay');
+        if (mBtnPlay) mBtnPlay.innerText = "▶️";
+        // Fullscreen Drawer
+        const fsTitle = document.getElementById('fsTitle');
+        if (fsTitle) fsTitle.innerText = "Belum Memutar";
+        const fsArtist = document.getElementById('fsArtist');
+        if (fsArtist) fsArtist.innerText = "Pilih lagu dari koleksi";
+        const fsBtnPlay = document.getElementById('fsBtnPlay');
+        if (fsBtnPlay) fsBtnPlay.innerText = "▶️";
         return;
       }
       const s = songs[currentSongIndex];
+      const isAudPlaying = !realAudio.paused && realAudio.currentTime > 0;
+      const playIcon = isAudPlaying ? '⏸️' : '▶️';
+      const isFav = favorites.has(s.id);
+
+      // 1. Desktop Bar
       document.getElementById('playerTitle').innerText = s.title;
       document.getElementById('playerArtist').innerText = s.artist;
       document.getElementById('playerThumb').innerText = s.cover || "🎵";
-      document.getElementById('btnPlay').innerText = !realAudio.paused ? '⏸️' : '▶️';
-      document.getElementById('btnFavCurrent').innerText = favorites.has(s.id) ? '❤️' : '🤍';
+      document.getElementById('btnPlay').innerText = playIcon;
+      document.getElementById('btnFavCurrent').innerText = isFav ? '❤️' : '🤍';
       
       const hiResBadge = document.getElementById('playerHiResBadge');
       if (s.isHiRes) {
@@ -1622,6 +1820,39 @@
         hiResBadge.classList.add('hidden');
         document.getElementById('playerBitrateInspector').innerText = `${s.codec || 'MP3'} • ${s.sampleRate || '44.1 kHz'}`;
       }
+
+      // 2. Mobile Mini Player
+      const mTitle = document.getElementById('mPlayerTitle');
+      if (mTitle) mTitle.innerText = s.title;
+      const mArtist = document.getElementById('mPlayerArtist');
+      if (mArtist) mArtist.innerText = s.artist;
+      const mThumb = document.getElementById('mPlayerThumb');
+      if (mThumb) mThumb.innerText = s.cover || "🎵";
+      const mBtnPlay = document.getElementById('mBtnPlay');
+      if (mBtnPlay) mBtnPlay.innerText = playIcon;
+      const mBtnFav = document.getElementById('mBtnFav');
+      if (mBtnFav) mBtnFav.innerText = isFav ? '❤️' : '🤍';
+      const mHiRes = document.getElementById('mPlayerHiResBadge');
+      if (mHiRes) {
+        if (s.isHiRes) {
+          mHiRes.innerHTML = `<span class="badge-hires-gold text-[8px] font-black px-1 rounded">HI-RES</span>`;
+          mHiRes.classList.remove('hidden');
+        } else {
+          mHiRes.classList.add('hidden');
+        }
+      }
+
+      // 3. Fullscreen Drawer
+      const fsTitle = document.getElementById('fsTitle');
+      if (fsTitle) fsTitle.innerText = s.title;
+      const fsArtist = document.getElementById('fsArtist');
+      if (fsArtist) fsArtist.innerText = s.artist;
+      const fsThumb = document.getElementById('fsArtwork');
+      if (fsThumb) fsThumb.innerText = s.cover || "🎵";
+      const fsBtnPlay = document.getElementById('fsBtnPlay');
+      if (fsBtnPlay) fsBtnPlay.innerText = playIcon;
+      const fsBtnFav = document.getElementById('fsBtnFav');
+      if (fsBtnFav) fsBtnFav.innerText = isFav ? '❤️' : '🤍';
 
       document.getElementById('karaokeMainTitle').innerText = s.title;
       document.getElementById('karaokeMainArtist').innerText = s.artist;
@@ -1642,13 +1873,19 @@
 
     function seekProgress(e) {
       if (currentSongIndex < 0 || !songs[currentSongIndex]) return;
-      const rect = document.getElementById('progressContainer').getBoundingClientRect();
+      const targetContainer = e.currentTarget || document.getElementById('progressContainer');
+      const rect = targetContainer.getBoundingClientRect();
       const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
       const dur = realAudio.duration && !isNaN(realAudio.duration) ? realAudio.duration : (songs[currentSongIndex].duration || 0);
-      realAudio.currentTime = pos * dur;
-      currentTime = Math.floor(realAudio.currentTime);
+      const targetSec = pos * dur;
+      realAudio.currentTime = targetSec;
+      currentTime = Math.floor(targetSec);
       updateProgressUI();
       syncKaraokeScroll();
+
+      if (isPartyMode) {
+        sendPartyAction('seek', { position_sec: targetSec });
+      }
     }
 
     // Quality Switcher Button
@@ -1922,6 +2159,187 @@
       return `${m < 10 ? '0' : ''}${m}:${sec < 10 ? '0' : ''}${sec}.00`;
     }
 
+    // ================= REAL-TIME WEBSOCKET PARTY SYNC ENGINE (SPOTIFY JAM) =================
+    let partyWs = null;
+    let clientId = 'client_' + Math.random().toString(36).substring(2, 9);
+    let serverClockOffset = 0; // ms difference: serverTime - clientTime
+    let pingInterval = null;
+
+    function initPartyWebSocket() {
+      if (partyWs) {
+        try { partyWs.close(); } catch (e) {}
+      }
+
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${location.host}/ws/sync?room=${encodeURIComponent(currentPartyRoom)}&client_id=${encodeURIComponent(clientId)}`;
+      console.log('[PartySync] Menghubungkan ke WebSocket room:', currentPartyRoom);
+
+      try {
+        partyWs = new WebSocket(wsUrl);
+      } catch (err) {
+        console.warn('[PartySync] Gagal membuat WebSocket:', err);
+        return;
+      }
+
+      partyWs.onopen = () => {
+        console.log('[PartySync] Terhubung ke room:', currentPartyRoom);
+        sendPartyAction('ping', { client_time_ms: Date.now() });
+
+        if (pingInterval) clearInterval(pingInterval);
+        pingInterval = setInterval(() => {
+          if (partyWs && partyWs.readyState === WebSocket.OPEN) {
+            sendPartyAction('ping', { client_time_ms: Date.now() });
+          }
+        }, 5000);
+      };
+
+      partyWs.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          handlePartyServerMessage(msg);
+        } catch (e) {
+          console.error('[PartySync] Parse error:', e);
+        }
+      };
+
+      partyWs.onclose = () => {
+        console.warn('[PartySync] Koneksi terputus. Menghubungkan ulang dalam 3 detik...');
+        if (pingInterval) clearInterval(pingInterval);
+        if (isPartyMode) {
+          setTimeout(() => {
+            if (isPartyMode) initPartyWebSocket();
+          }, 3000);
+        }
+      };
+
+      partyWs.onerror = (err) => {
+        console.warn('[PartySync] WebSocket error:', err);
+      };
+    }
+
+    function sendPartyAction(action, payload = {}) {
+      if (!isPartyMode) return;
+      if (!partyWs || partyWs.readyState !== WebSocket.OPEN) {
+        initPartyWebSocket();
+        return;
+      }
+      const data = {
+        action: action,
+        room_id: currentPartyRoom,
+        ...payload
+      };
+      partyWs.send(JSON.stringify(data));
+    }
+
+    function handlePartyServerMessage(msg) {
+      if (msg.action === 'pong') {
+        const now = Date.now();
+        const rtt = now - msg.client_time_ms;
+        serverClockOffset = msg.server_time_ms - (msg.client_time_ms + rtt / 2);
+        return;
+      }
+
+      if (msg.action === 'sync_state') {
+        if (!isPartyMode) return;
+        handlePartyStateSync(msg);
+        return;
+      }
+
+      if (msg.action === 'reaction' && msg.emoji) {
+        sendReaction(msg.emoji, true);
+        return;
+      }
+    }
+
+    function handlePartyStateSync(msg) {
+      if (!msg.song) return;
+
+      // 1. Cek apakah lagunya berbeda dengan lagu lokal saat ini
+      const isDifferentSong = currentSongIndex < 0 || !songs[currentSongIndex] || songs[currentSongIndex].id !== msg.song.id;
+      
+      if (isDifferentSong) {
+        let foundIdx = songs.findIndex(s => s.id === msg.song.id);
+        if (foundIdx === -1) {
+          // Tambahkan sementara ke array songs
+          songs.unshift(msg.song);
+          foundIdx = 0;
+        }
+        playSongAt(foundIdx, true);
+      }
+
+      // 2. Hitung posisi target dengan kompensasi server time
+      const now = Date.now();
+      const serverNow = now + serverClockOffset;
+      let targetPos = msg.position_sec || 0;
+      if (msg.is_playing && msg.server_time_ms) {
+        const elapsed = (serverNow - msg.server_time_ms) / 1000.0;
+        targetPos += Math.max(0, elapsed);
+      }
+
+      // Koreksi drift jika perbedaan lebih dari 0.35 detik
+      if (Math.abs(realAudio.currentTime - targetPos) > 0.35) {
+        realAudio.currentTime = targetPos;
+      }
+
+      // Sinkronkan status Play / Pause
+      if (msg.is_playing && realAudio.paused) {
+        realAudio.play().then(() => {
+          isPlaying = true;
+          hideIosPrompt();
+          updatePlayerUI();
+        }).catch(err => {
+          console.warn('[PartySync] Autoplay diblokir oleh browser (Safari iOS):', err);
+          showIosPrompt();
+        });
+      } else if (!msg.is_playing && !realAudio.paused) {
+        realAudio.pause();
+        isPlaying = false;
+        updatePlayerUI();
+      }
+
+      // Update jumlah pendengar aktif di UI
+      const listenersCountEl = document.getElementById('activeListenersCount');
+      if (listenersCountEl && msg.listeners) {
+        listenersCountEl.innerText = `${msg.listeners} Perangkat Terhubung`;
+      }
+    }
+
+    // iOS Safari Autoplay helper
+    function showIosPrompt() {
+      const p = document.getElementById('iosAutoplayPrompt');
+      if (p) p.classList.remove('hidden');
+    }
+
+    function hideIosPrompt() {
+      const p = document.getElementById('iosAutoplayPrompt');
+      if (p) p.classList.add('hidden');
+    }
+
+    function unlockIosPartyAudio() {
+      hideIosPrompt();
+      realAudio.play().then(() => {
+        isPlaying = true;
+        updatePlayerUI();
+        showToast('Suara tersinkronkan dengan Party Room!', 'success');
+      }).catch(e => console.error(e));
+    }
+
+    // Spotify Fullscreen Now Playing Drawer (Mobile)
+    function openFullscreenPlayer() {
+      const drawer = document.getElementById('fullscreenPlayerDrawer');
+      if (!drawer) return;
+      drawer.classList.remove('translate-y-full', 'opacity-0', 'pointer-events-none');
+      drawer.classList.add('translate-y-0', 'opacity-100');
+      document.getElementById('fsRoomHeader').innerText = isPartyMode ? `📻 Party: ${currentPartyRoom}` : 'Koleksi Senandung';
+    }
+
+    function closeFullscreenPlayer() {
+      const drawer = document.getElementById('fullscreenPlayerDrawer');
+      if (!drawer) return;
+      drawer.classList.add('translate-y-full', 'opacity-0', 'pointer-events-none');
+      drawer.classList.remove('translate-y-0', 'opacity-100');
+    }
+
     // Toggle Solo vs Party Mode
     function togglePlaybackMode() {
       isPartyMode = !isPartyMode;
@@ -1930,32 +2348,49 @@
       const footerIcon = document.getElementById('footerModeIcon');
       const footerText = document.getElementById('footerModeText');
       const partySwitchBtn = document.getElementById('btnPartySwitch');
+      const mPartyDot = document.getElementById('mPartyActiveDot');
 
       if (isPartyMode) {
         headerPill.className = "bg-[#1db954] text-black px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow";
         txtHeader.innerText = `📻 Party: ${currentPartyRoom}`;
         footerIcon.innerText = "📻";
         footerText.innerText = `Party (${currentPartyRoom})`;
-        partySwitchBtn.innerHTML = "<span>📻 Mode Party Aktif</span>";
-        partySwitchBtn.className = "px-4 py-2 rounded-full font-bold text-xs flex items-center gap-2 bg-[#1db954] text-black hover:scale-105 transition shadow";
-        alert(`Beralih ke MODE STREAMING BARENG (PARTY)!\nSeluruh HP di "${currentPartyRoom}" kini mendengar audio bersamaan.`);
+        if (partySwitchBtn) {
+          partySwitchBtn.innerHTML = "<span>📻 Mode Party Aktif</span>";
+          partySwitchBtn.className = "px-4 py-2 rounded-full font-bold text-xs flex items-center gap-2 bg-[#1db954] text-black hover:scale-105 transition shadow";
+        }
+        if (mPartyDot) mPartyDot.classList.remove('hidden');
+
+        initPartyWebSocket();
+        showToast(`Mode Party Aktif! Sinkron dengan room "${currentPartyRoom}"`, 'success');
       } else {
         headerPill.className = "bg-[#1db954]/20 border border-[#1db954]/40 px-3 py-1 rounded-full text-xs text-[#1db954] font-semibold flex items-center gap-1.5";
         txtHeader.innerText = "🎧 Mode Solo";
         footerIcon.innerText = "🎧";
         footerText.innerText = "Solo";
-        partySwitchBtn.innerHTML = "<span>🎧 Mode Solo (Pribadi)</span>";
-        partySwitchBtn.className = "px-4 py-2 rounded-full font-bold text-xs flex items-center gap-2 bg-[#282828] text-white hover:bg-[#333] transition border border-[#444]";
-        alert("Beralih ke MODE DENGAR SENDIRI (SOLO).\nAudio hanya diputar di ponsel Anda.");
+        if (partySwitchBtn) {
+          partySwitchBtn.innerHTML = "<span>🎧 Mode Solo (Pribadi)</span>";
+          partySwitchBtn.className = "px-4 py-2 rounded-full font-bold text-xs flex items-center gap-2 bg-[#282828] text-white hover:bg-[#333] transition border border-[#444]";
+        }
+        if (mPartyDot) mPartyDot.classList.add('hidden');
+
+        if (partyWs) {
+          try { partyWs.close(); } catch(e) {}
+          partyWs = null;
+        }
+        hideIosPrompt();
+        showToast("Beralih ke Mode Solo (Pribadi)", 'success');
       }
     }
 
     function changePartyRoom(roomName) {
       currentPartyRoom = roomName;
-      document.getElementById('activePartyRoomTitle').innerText = roomName;
+      const titleEl = document.getElementById('activePartyRoomTitle');
+      if (titleEl) titleEl.innerText = roomName;
       if (isPartyMode) {
         document.getElementById('txtHeaderMode').innerText = `📻 Party: ${roomName}`;
         document.getElementById('footerModeText').innerText = `Party (${roomName})`;
+        initPartyWebSocket();
       }
     }
 
@@ -2044,15 +2479,19 @@
       document.getElementById('selectedPlaylistView').classList.add('hidden');
     }
 
-    function sendReaction(emoji) {
+    function sendReaction(emoji, fromPartySync = false) {
       const container = document.getElementById('emojiContainer');
       const el = document.createElement('div');
       el.className = 'floating-emoji';
       el.innerText = emoji;
-      el.style.left = (35 + Math.random() * 30) + '%';
+      el.style.left = (30 + Math.random() * 40) + '%';
       el.style.bottom = '120px';
       container.appendChild(el);
       setTimeout(() => el.remove(), 2000);
+
+      if (isPartyMode && !fromPartySync) {
+        sendPartyAction('reaction', { emoji: emoji });
+      }
     }
 
     function toggleFav(id) {

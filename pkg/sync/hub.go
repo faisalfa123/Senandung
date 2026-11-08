@@ -34,6 +34,7 @@ type Message struct {
 	IsPlaying    bool         `json:"is_playing,omitempty"`
 	Song         *models.Song `json:"song,omitempty"`
 	Listeners    int          `json:"listeners,omitempty"`
+	Emoji        string       `json:"emoji,omitempty"`
 }
 
 type Room struct {
@@ -63,8 +64,27 @@ func NewHub() *Hub {
 }
 
 func (h *Hub) Run() {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
+		case <-ticker.C:
+			h.roomsMu.RLock()
+			var activeRooms []string
+			for id, room := range h.rooms {
+				room.mu.RLock()
+				if room.IsPlaying && len(room.Clients) > 0 {
+					activeRooms = append(activeRooms, id)
+				}
+				room.mu.RUnlock()
+			}
+			h.roomsMu.RUnlock()
+
+			for _, id := range activeRooms {
+				h.broadcastRoomState(id)
+			}
+
 		case client := <-h.register:
 			h.roomsMu.Lock()
 			room, exists := h.rooms[client.roomID]
@@ -241,6 +261,24 @@ func (c *Client) readPump() {
 			room.PositionSec = 0
 			room.IsPlaying = true
 			room.LastUpdateMs = now
+		case "reaction":
+			// Teruskan reaksi emoji ke klien lain di room
+			reply := Message{
+				Action: "reaction",
+				RoomID: c.roomID,
+				Emoji:  msg.Emoji,
+			}
+			data, _ := json.Marshal(reply)
+			for other := range room.Clients {
+				if other != c {
+					select {
+					case other.send <- data:
+					default:
+					}
+				}
+			}
+			room.mu.Unlock()
+			continue
 		}
 		room.mu.Unlock()
 
