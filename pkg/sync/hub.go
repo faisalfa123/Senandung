@@ -18,15 +18,24 @@ var upgrader = websocket.Upgrader{
 }
 
 type Client struct {
-	hub      *Hub
-	conn     *websocket.Conn
-	send     chan []byte
-	roomID   string
-	clientID string
+	hub        *Hub
+	conn       *websocket.Conn
+	send       chan []byte
+	roomID     string
+	clientID   string
+	deviceName string
+}
+
+type RoomInfo struct {
+	ID          string       `json:"id"`
+	Listeners   int          `json:"listeners"`
+	IsPlaying   bool         `json:"is_playing"`
+	CurrentSong *models.Song `json:"current_song,omitempty"`
+	Members     []string     `json:"members"`
 }
 
 type Message struct {
-	Action       string       `json:"action"` // "join", "ping", "pong", "play", "pause", "seek", "track_change", "sync_state"
+	Action       string       `json:"action"` // "join", "ping", "pong", "play", "pause", "seek", "track_change", "sync_state", "reaction", "room_list"
 	RoomID       string       `json:"room_id,omitempty"`
 	ClientTimeMs int64        `json:"client_time_ms,omitempty"`
 	ServerTimeMs int64        `json:"server_time_ms,omitempty"`
@@ -34,7 +43,9 @@ type Message struct {
 	IsPlaying    bool         `json:"is_playing,omitempty"`
 	Song         *models.Song `json:"song,omitempty"`
 	Listeners    int          `json:"listeners,omitempty"`
+	Members      []string     `json:"members,omitempty"`
 	Emoji        string       `json:"emoji,omitempty"`
+	Rooms        []RoomInfo   `json:"rooms,omitempty"`
 }
 
 type Room struct {
@@ -155,6 +166,15 @@ func (h *Hub) broadcastRoomState(roomID string) {
 		currentPos += elapsed
 	}
 
+	var members []string
+	for c := range room.Clients {
+		name := c.deviceName
+		if name == "" {
+			name = c.clientID
+		}
+		members = append(members, name)
+	}
+
 	msg := Message{
 		Action:       "sync_state",
 		RoomID:       room.ID,
@@ -163,6 +183,7 @@ func (h *Hub) broadcastRoomState(roomID string) {
 		PositionSec:  currentPos,
 		ServerTimeMs: now,
 		Listeners:    len(room.Clients),
+		Members:      members,
 	}
 	data, _ := json.Marshal(msg)
 
@@ -174,6 +195,38 @@ func (h *Hub) broadcastRoomState(roomID string) {
 	}
 }
 
+func (h *Hub) HandleGetRooms(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	h.roomsMu.RLock()
+	defer h.roomsMu.RUnlock()
+
+	var result []RoomInfo
+	for _, room := range h.rooms {
+		room.mu.RLock()
+		var members []string
+		for c := range room.Clients {
+			name := c.deviceName
+			if name == "" {
+				name = c.clientID
+			}
+			members = append(members, name)
+		}
+		result = append(result, RoomInfo{
+			ID:          room.ID,
+			Listeners:   len(room.Clients),
+			IsPlaying:   room.IsPlaying,
+			CurrentSong: room.CurrentSong,
+			Members:     members,
+		})
+		room.mu.RUnlock()
+	}
+
+	if result == nil {
+		result = []RoomInfo{}
+	}
+	_ = json.NewEncoder(w).Encode(result)
+}
+
 func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -183,19 +236,24 @@ func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	roomID := r.URL.Query().Get("room")
 	if roomID == "" {
-		roomID = "main_hall" // Room default untuk seluruh keluarga
+		roomID = "Ruang Tamu" // Room default
 	}
 	clientID := r.URL.Query().Get("client_id")
 	if clientID == "" {
 		clientID = "guest_" + time.Now().Format("150405")
 	}
+	deviceName := r.URL.Query().Get("device_name")
+	if deviceName == "" {
+		deviceName = clientID
+	}
 
 	client := &Client{
-		hub:      h,
-		conn:     conn,
-		send:     make(chan []byte, 256),
-		roomID:   roomID,
-		clientID: clientID,
+		hub:        h,
+		conn:       conn,
+		send:       make(chan []byte, 256),
+		roomID:     roomID,
+		clientID:   clientID,
+		deviceName: deviceName,
 	}
 
 	h.register <- client

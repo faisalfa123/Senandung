@@ -57,7 +57,8 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	// Real Linux STB System Information
 	mux.HandleFunc("/api/sysinfo", s.handleSysInfo)
 
-	// WebSockets Audio Sync
+	// WebSockets Audio Sync & Multi-Room Party API
+	mux.HandleFunc("/api/rooms", s.syncHub.HandleGetRooms)
 	mux.HandleFunc("/ws/sync", s.syncHub.HandleWebSocket)
 }
 
