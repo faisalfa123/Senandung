@@ -85,8 +85,28 @@ func (d *DB) AddSong(s *models.Song) error {
 	if s.CreatedAt.IsZero() {
 		s.CreatedAt = time.Now()
 	}
+	// Deduplikasi berdasarkan FilePath fisik agar tidak ada 2 entri untuk 1 file yang sama
+	if s.FilePath != "" {
+		for existingID, existingSong := range d.state.Songs {
+			if existingSong.FilePath == s.FilePath && existingID != s.ID {
+				delete(d.state.Songs, existingID)
+			}
+		}
+	}
 	d.state.Songs[s.ID] = *s
 	return d.saveLocked()
+}
+
+func (d *DB) HasFilePath(filePath string) bool {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
+	for _, s := range d.state.Songs {
+		if s.FilePath == filePath {
+			return true
+		}
+	}
+	return false
 }
 
 func (d *DB) GetSong(id string) (*models.Song, error) {

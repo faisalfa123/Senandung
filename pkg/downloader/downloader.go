@@ -61,6 +61,10 @@ func NewQueue(database *db.DB, musicDir, coverDir string) *Queue {
 }
 
 func (q *Queue) AddJob(query, format string) *models.DownloadJob {
+	return q.AddJobWithTitle(query, query, format)
+}
+
+func (q *Queue) AddJobWithTitle(query, displayTitle, format string) *models.DownloadJob {
 	q.jobsMu.Lock()
 	defer q.jobsMu.Unlock()
 
@@ -72,6 +76,7 @@ func (q *Queue) AddJob(query, format string) *models.DownloadJob {
 	job := &models.DownloadJob{
 		ID:       fmt.Sprintf("job_%d", time.Now().UnixNano()),
 		Query:    strings.TrimSpace(query),
+		Title:    strings.TrimSpace(displayTitle),
 		Format:   cleanFormat,
 		Status:   "pending",
 		Percent:  0,
@@ -115,17 +120,16 @@ func (q *Queue) processJob(job *models.DownloadJob) {
 	}
 
 	// Gunakan yt-dlp dengan output unbuffered newline agar progress bisa diparse secara live
+	// Hindari --embed-thumbnail yang bisa gagal pada beberapa versi ffmpeg tanpa atomicparsley
 	args := []string{
 		"-x",
 		"--audio-format", audioFormat,
 		"--audio-quality", audioQuality,
-		"--embed-thumbnail",
 		"--add-metadata",
-		"--write-thumbnail",
-		"--convert-thumbnails", "jpg",
 		"--output", outputTemplate,
 		"--newline",
 		"--no-playlist",
+		"--no-warnings",
 	}
 
 	target := job.Query
@@ -156,7 +160,7 @@ func (q *Queue) processJob(job *models.DownloadJob) {
 	cmd.Stderr = cmd.Stdout
 
 	if err := cmd.Start(); err != nil {
-		q.setJobError(job.ID, fmt.Sprintf("Gagal menjalankan yt-dlp: %v (Pastikan yt-dlp terpasang)", err))
+		q.setJobError(job.ID, fmt.Sprintf("Gagal menjalankan yt-dlp: %v (Pastikan yt-dlp & ffmpeg terpasang)", err))
 		return
 	}
 
@@ -165,13 +169,17 @@ func (q *Queue) processJob(job *models.DownloadJob) {
 	rePercent := regexp.MustCompile(`\[download\]\s+([\d\.]+)%`)
 	reSpeed := regexp.MustCompile(`at\s+([^\s]+)`)
 	reETA := regexp.MustCompile(`ETA\s+([^\s]+)`)
-	reDest := regexp.MustCompile(`\[(?:ExtractAudio|ffmpeg)\] Destination:\s+(.+)`)
+	reDest := regexp.MustCompile(`\[(?:ExtractAudio|ffmpeg|download)\] Destination:\s+(.+)`)
 
 	scanner := bufio.NewScanner(stdout)
 	var lastDestination string
+	var lastErrLine string
 
 	for scanner.Scan() {
 		line := scanner.Text()
+		if strings.Contains(line, "ERROR:") {
+			lastErrLine = strings.TrimSpace(line)
+		}
 
 		if m := rePercent.FindStringSubmatch(line); len(m) > 1 {
 			if p, err := strconv.ParseFloat(m[1], 64); err == nil {
@@ -197,12 +205,18 @@ func (q *Queue) processJob(job *models.DownloadJob) {
 			if dm := reDest.FindStringSubmatch(line); len(dm) > 1 {
 				lastDestination = strings.TrimSpace(dm[1])
 			}
+		} else if dm := reDest.FindStringSubmatch(line); len(dm) > 1 {
+			lastDestination = strings.TrimSpace(dm[1])
 		}
 	}
 
 	if err := cmd.Wait(); err != nil {
-		log.Printf("[Downloader] yt-dlp exit with error: %v", err)
-		q.setJobError(job.ID, fmt.Sprintf("yt-dlp selesai dengan error: %v", err))
+		log.Printf("[Downloader] yt-dlp exit with error: %v (%s)", err, lastErrLine)
+		errDetail := fmt.Sprintf("yt-dlp gagal: %v", err)
+		if lastErrLine != "" {
+			errDetail = lastErrLine
+		}
+		q.setJobError(job.ID, errDetail)
 		return
 	}
 

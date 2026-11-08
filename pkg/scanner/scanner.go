@@ -38,14 +38,24 @@ func (s *Scanner) ScanFolder() (int, error) {
 		ext := strings.ToLower(filepath.Ext(path))
 		switch ext {
 		case ".mp3", ".flac", ".ogg", ".m4a", ".wav", ".opus":
+			// Lewati jika file fisik ini sudah terdaftar di database
+			if s.db.HasFilePath(path) {
+				return nil
+			}
+
 			// Ekstrak nama artis dan judul dari nama file jika belum ada di database
 			fileName := strings.TrimSuffix(filepath.Base(path), ext)
 			title := fileName
-			artist := "Artis Lokal"
+			artist := "Koleksi STB"
+
+			// Bersihkan akhiran [videoId] jika ada dari yt-dlp
+			if idx := strings.LastIndex(title, " ["); idx != -1 && strings.HasSuffix(title, "]") {
+				title = strings.TrimSpace(title[:idx])
+			}
 
 			// Cek format umum: "Artis - Judul"
-			if strings.Contains(fileName, " - ") {
-				parts := strings.SplitN(fileName, " - ", 2)
+			if strings.Contains(title, " - ") {
+				parts := strings.SplitN(title, " - ", 2)
 				artist = strings.TrimSpace(parts[0])
 				title = strings.TrimSpace(parts[1])
 			}
@@ -58,12 +68,13 @@ func (s *Scanner) ScanFolder() (int, error) {
 			}
 
 			songID := fmt.Sprintf("local_%d_%d", info.Size(), info.ModTime().Unix())
+			album := "Penyimpanan STB (" + strings.ToUpper(strings.TrimPrefix(ext, ".")) + ")"
 			song := &models.Song{
 				ID:        songID,
 				Title:     title,
 				Artist:    artist,
-				Album:     "Penyimpanan STB",
-				Duration:  180, // Default estimasi durasi jika metadata belum terbaca
+				Album:     album,
+				Duration:  0,
 				FilePath:  path,
 				Source:    "local",
 				Lyrics:    lyricsContent,

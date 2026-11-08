@@ -835,9 +835,10 @@
     }
 
     function applyDynamicTheme() {
-      const song = songs[currentSongIndex];
-      const color = song.themeColor || '#1a2a1a';
-      document.getElementById('appBody').style.background = `linear-gradient(180deg, ${color} 0%, #121212 500px)`;
+      const song = (currentSongIndex >= 0 && songs[currentSongIndex]) ? songs[currentSongIndex] : null;
+      const color = (song && song.themeColor) ? song.themeColor : '#1a2a1a';
+      const body = document.getElementById('appBody');
+      if (body) body.style.background = `linear-gradient(180deg, ${color} 0%, #121212 500px)`;
     }
 
     function renderFeaturedRecentCards() {
@@ -1173,12 +1174,55 @@
 
       musicSearchResults.forEach(item => {
         const isDownloaded = downloadedTrackIds.has(item.id);
+        const activeJob = downloadQueueJobs.find(j => j.trackId === item.id && (j.status === 'downloading' || j.status === 'pending'));
 
         const card = document.createElement('div');
         card.className = "bg-[#181818] hover:bg-[#202020] border border-[#262626] rounded-2xl p-2.5 sm:p-3 flex items-center gap-3.5 transition group shadow-sm";
         
         // Thumbnail riil YouTube atau fallback
         const thumbUrl = item.thumbnail || `https://i.ytimg.com/vi/${item.id}/mqdefault.jpg`;
+        const safeTitle = escapeHtml(item.title).replace(/'/g, "\\'");
+
+        let rightButtonsHtml = '';
+        if (activeJob) {
+          rightButtonsHtml = `
+            <button onclick="openDownloadQueueModal()" 
+                    class="h-8 px-3 rounded-full bg-[#3ea6ff]/15 hover:bg-[#3ea6ff]/25 border border-[#3ea6ff]/50 flex items-center gap-1.5 text-[#3ea6ff] font-bold text-xs shadow-sm transition animate-pulse"
+                    title="Sedang diunduh ke STB. Klik untuk melihat progress antrean">
+              <span>⏳</span>
+              <span class="text-[10px] font-semibold">Mengunduh ${activeJob.percent || 0}%</span>
+            </button>
+          `;
+        } else if (isDownloaded) {
+          rightButtonsHtml = `
+            <button onclick="handleTrackAction('${item.id}', '${safeTitle}', true)" 
+                    class="h-8 px-3 rounded-full bg-[#1db954] hover:bg-[#1ed760] flex items-center gap-1.5 text-black font-extrabold text-xs shadow-md transition hover:scale-105 active:scale-95" 
+                    title="Putar lagu sekarang dari penyimpanan STB">
+              <span>▶</span>
+              <span class="text-[10px]">Putar Sekarang</span>
+            </button>
+            <span class="h-8 px-2.5 rounded-full bg-[#1db954]/15 border border-[#1db954]/40 flex items-center gap-1 text-[#1db954] font-bold text-[10px]" title="Tersimpan di Server STB">
+              <span>✓</span> <span class="hidden sm:inline">Tersimpan</span>
+            </span>
+            <button onclick="openFormatPickerForTrack('${item.id}', '${safeTitle}')"
+                    class="w-8 h-8 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] flex items-center justify-center text-[#aaa] hover:text-white transition shadow text-xs"
+                    title="Unduh ulang dengan format audio lain">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+              </svg>
+            </button>
+          `;
+        } else {
+          rightButtonsHtml = `
+            <button onclick="handleTrackAction('${item.id}', '${safeTitle}', false)" 
+                    class="w-8 h-8 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] flex items-center justify-center text-white/90 hover:text-white transition shadow hover:scale-105 active:scale-95" 
+                    title="Unduh Musik ke Server STB">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+              </svg>
+            </button>
+          `;
+        }
 
         card.innerHTML = `
           <!-- Thumbnail Asli 16:9 dengan durasi -->
@@ -1204,30 +1248,8 @@
           </div>
 
           <!-- Right Action: Interactive Download / Play Button -->
-          <div class="shrink-0 flex items-center gap-1">
-            ${
-              isDownloaded
-                ? `<button onclick="handleTrackAction('${item.id}', '${escapeHtml(item.title).replace(/'/g, "\\'")}', true)" 
-                           class="h-8 px-2.5 rounded-full bg-[#1db954]/15 hover:bg-[#1db954]/25 border border-[#1db954] flex items-center gap-1.5 text-[#1db954] hover:text-[#1ed760] font-bold text-xs shadow-sm transition hover:scale-105 active:scale-95" 
-                           title="Lagu sudah ada di Dashboard. Klik untuk langsung memutar atau unduh ulang format lain">
-                     <span>✓</span>
-                     <span class="text-[10px] hidden sm:inline font-semibold">Tersimpan</span>
-                   </button>
-                   <button onclick="openFormatPickerForTrack('${item.id}', '${escapeHtml(item.title).replace(/'/g, "\\'")}')"
-                           class="w-8 h-8 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] flex items-center justify-center text-[#aaa] hover:text-white transition shadow text-xs"
-                           title="Unduh ulang dengan format audio lain">
-                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-                     </svg>
-                   </button>`
-                : `<button onclick="handleTrackAction('${item.id}', '${escapeHtml(item.title).replace(/'/g, "\\'")}', false)" 
-                           class="w-8 h-8 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] flex items-center justify-center text-white/90 hover:text-white transition shadow hover:scale-105 active:scale-95" 
-                           title="Unduh Musik">
-                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-                     </svg>
-                   </button>`
-            }
+          <div class="shrink-0 flex items-center gap-1.5">
+            ${rightButtonsHtml}
           </div>
         `;
         container.appendChild(card);
@@ -1278,14 +1300,40 @@
     // Handle Track Action (Play if already saved, or prompt download)
     function handleTrackAction(trackId, title, isDownloaded) {
       if (isDownloaded) {
-        // Find existing song in database
-        const existingIdx = songs.findIndex(s => s.id === trackId || s.title.toLowerCase().includes(title.toLowerCase().slice(0, 15)));
+        const cleanTarget = title.toLowerCase().slice(0, 15);
+        const existingIdx = songs.findIndex(s =>
+          s.id === trackId ||
+          (s.title && s.title.toLowerCase().includes(cleanTarget)) ||
+          (cleanTarget.includes((s.title || '').toLowerCase().slice(0, 10)))
+        );
         if (existingIdx !== -1) {
-          switchTab('dashboard');
           playSongAt(existingIdx);
-          alert(`Memutar "${songs[existingIdx].title}" (${songs[existingIdx].codec}) dari koleksi Dashboard!`);
+          showToast(`Memutar "${songs[existingIdx].title}" (${songs[existingIdx].codec})`, 'success');
           return;
         }
+        // Jika belum tersinkron di array songs lokal, fetch ulang dari server lalu putar
+        fetch('/api/songs')
+          .then(r => r.json())
+          .then(serverSongs => {
+            if (Array.isArray(serverSongs) && serverSongs.length > 0) {
+              fetchSongsFromBackend();
+              setTimeout(() => {
+                const idx = songs.findIndex(s => s.title && s.title.toLowerCase().includes(cleanTarget));
+                if (idx !== -1) {
+                  playSongAt(idx);
+                } else if (songs.length > 0) {
+                  playSongAt(0);
+                }
+              }, 300);
+            } else {
+              // Ternyata file fisik belum ada di server, hapus status palsu & mulai unduh riil
+              downloadedTrackIds.delete(trackId);
+              persistDownloadedIdsToStorage();
+              renderMusicSearchCards();
+              handleTrackDownloadClick(trackId, title);
+            }
+          });
+        return;
       }
       // If not downloaded yet or user wants download
       handleTrackDownloadClick(trackId, title);
@@ -1327,32 +1375,34 @@
     }
 
     function executeDownloadForTrack(trackId, title, format) {
-      // 1. Mark as downloaded/queued (turns icon into green checkmark)
-      downloadedTrackIds.add(trackId);
-      persistDownloadedIdsToStorage();
-      renderMusicSearchCards();
-
-      // 2. Add to download queue
       const isFlac = format.toLowerCase() === 'flac';
       const jobId = 'job_' + Date.now();
       const newJob = {
         id: jobId,
+        trackId: trackId,
         title: title,
         format: isFlac ? "FLAC 24-bit Lossless" : "MP3 320k",
         status: "downloading",
-        percent: 5,
-        speed: "3.4 MB/s",
-        eta: "Memulai..."
+        percent: 2,
+        speed: "-",
+        eta: "Menghubungkan ke STB...",
+        downloadedSongId: ""
       };
 
       downloadQueueJobs.unshift(newJob);
+      renderMusicSearchCards();
       renderDownloadQueue();
       updateQueueBadge();
-      showToast(`Memulai unduhan "${title}" (${isFlac ? 'FLAC' : 'MP3'})...`, 'success');
 
-      // 3. Coba kirimkan job riil ke backend STB via /api/download
+      // Buka langsung panel Antrean Download sesuai preferensi pengguna
+      openDownloadQueueModal();
+      showToast(`Memulai unduhan "${title}" (${isFlac ? 'FLAC' : 'MP3'}) ke Server STB...`, 'success');
+
+      // Kirimkan job riil ke backend STB via /api/download dengan VideoID asli
       const backendPayload = {
         query: title,
+        video_id: trackId,
+        title: title,
         format: isFlac ? "flac" : "mp3"
       };
 
@@ -1366,14 +1416,14 @@
         return res.json();
       })
       .then(serverJob => {
-        // Backend Go STB merespons: pantau job riil dari /api/download/status
         const realJobId = serverJob.id || jobId;
         newJob.id = realJobId;
         pollRealBackendJob(newJob, realJobId, trackId, title, isFlac);
       })
       .catch(err => {
         newJob.status = 'failed';
-        newJob.eta = 'Error';
+        newJob.eta = 'Gagal: ' + err.message;
+        renderMusicSearchCards();
         renderDownloadQueue();
         updateQueueBadge();
         showToast(`Gagal memulai unduhan di STB: ${err.message}`, 'error');
@@ -1392,6 +1442,12 @@
             jobObj.percent = current.percent || 0;
             jobObj.eta = current.eta || '-';
             jobObj.speed = current.speed || '-';
+            jobObj.progress = current.progress || '';
+            jobObj.error = current.error || '';
+            if (current.downloadedSongId) {
+              jobObj.downloadedSongId = current.downloadedSongId;
+            }
+            renderMusicSearchCards();
             renderDownloadQueue();
             updateQueueBadge();
 
@@ -1401,30 +1457,35 @@
               jobObj.status = 'completed';
               jobObj.eta = '0s';
               jobObj.speed = 'Selesai';
+
+              // Tandai sebagai Tersimpan HANYA SETELAH selesai 100% di server STB!
+              downloadedTrackIds.add(trackId);
+              persistDownloadedIdsToStorage();
+
+              renderMusicSearchCards();
               renderDownloadQueue();
               updateQueueBadge();
 
-              showToast(`Lagu "${title}" berhasil diunduh ke Harddisk STB & lirik .lrc dibuat!`, 'success');
+              showToast(`✔ Lagu "${title}" selesai diunduh ke Server STB!`, 'success');
 
-              // Auto scan folder musik STB agar file fisik langsung masuk database SQLite STB
-              fetch('/api/scan')
-                .then(() => fetchSongsFromBackend());
+              // Sinkronkan daftar lagu dari backend STB agar langsung masuk ke Dashboard
+              fetchSongsFromBackend();
             } else if (current.status === 'failed' || current.status === 'error') {
               clearInterval(pollTimer);
               jobObj.status = 'failed';
               jobObj.eta = 'Gagal';
               jobObj.speed = '-';
+              renderMusicSearchCards();
               renderDownloadQueue();
               updateQueueBadge();
-              showToast(`Gagal mengunduh "${title}": ${current.error || current.progress || 'Error STB'}`, 'error');
+              showToast(`Gagal mengunduh "${title}": ${current.error || current.progress || 'Pastikan yt-dlp & ffmpeg terpasang di STB'}`, 'error');
             }
           })
           .catch(() => {
-            // Jika koneksi putus saat polling
-            jobObj.eta = 'Koneksi terputus...';
+            jobObj.eta = 'Menghubungkan ulang...';
             renderDownloadQueue();
           });
-      }, 1500);
+      }, 1200);
     }
 
 
@@ -1629,18 +1690,18 @@
 
     function renderDownloadQueue() {
       const container = document.getElementById('downloadQueueListContainer');
-      const badge = document.getElementById('queueBadgeCount');
+      const badge = document.getElementById('queueBadgeCountModal');
       if (!container) return;
 
       container.innerHTML = '';
       const activeJobs = downloadQueueJobs.filter(j => j.status === 'downloading' || j.status === 'pending');
-      badge.innerText = `${activeJobs.length} Aktif`;
+      if (badge) badge.innerText = `${activeJobs.length} Antrean Aktif`;
 
       if (downloadQueueJobs.length === 0) {
         container.innerHTML = `
           <div class="text-center py-8 text-[#777] text-xs">
             <div class="text-2xl mb-1">☕</div>
-            Tidak ada antrean download saat ini.<br>Cari lagu di sebelah kiri untuk menambah antrean.
+            Tidak ada antrean download saat ini.<br>Cari lagu di menu Unduh Musik untuk menambah antrean.
           </div>
         `;
         return;
@@ -1649,36 +1710,46 @@
       downloadQueueJobs.forEach(job => {
         const item = document.createElement('div');
         item.className = 'bg-[#1e1e1e] border border-[#2d2d2d] rounded-xl p-3 space-y-2 text-xs transition';
-        
+        const safeTitle = escapeHtml(job.title || '').replace(/'/g, "\\'");
+
         let statusBadge = '';
         if (job.status === 'downloading') {
-          statusBadge = `<span class="text-[#1db954] font-bold text-[10px] animate-pulse">⏳ Mengunduh (${job.percent}%)</span>`;
+          statusBadge = `<span class="text-[#1db954] font-bold text-[10px] animate-pulse">⏳ Mengunduh (${job.percent || 0}%)</span>`;
         } else if (job.status === 'completed') {
-          statusBadge = `<span class="text-[#1db954] font-bold text-[10px]">✔ Selesai</span>`;
+          statusBadge = `
+            <button onclick="handleTrackAction('${job.trackId || job.downloadedSongId || ''}', '${safeTitle}', true)"
+                    class="bg-[#1db954] hover:bg-[#1ed760] text-black font-extrabold text-[10px] px-2.5 py-1 rounded-full transition shadow">
+              ▶ Putar Sekarang
+            </button>
+            <span class="text-[#1db954] font-bold text-[10px]">✔ Selesai</span>
+          `;
         } else if (job.status === 'failed') {
           statusBadge = `<span class="text-red-400 font-bold text-[10px]">✕ Gagal</span>`;
         } else {
           statusBadge = `<span class="text-[#ffd700] font-bold text-[10px]">Menunggu Antrean</span>`;
         }
 
+        const errLine = job.error ? `<div class="text-[10px] text-red-400 bg-red-950/40 border border-red-800/40 rounded px-2 py-1 mt-1">${escapeHtml(job.error)}</div>` : '';
+
         item.innerHTML = `
           <div class="flex justify-between items-start gap-2">
-            <div class="truncate">
-              <div class="font-bold text-white truncate text-xs">${escapeHtml(job.title)}</div>
-              <div class="text-[10px] text-[#888] flex items-center gap-2 mt-0.5">
-                <span class="text-[#ffd700] font-semibold">${job.format}</span>
-                <span>• Speed: ${job.speed || 'N/A'}</span>
-                <span>• ETA: ${job.eta || '-'}</span>
+            <div class="truncate flex-1">
+              <div class="font-bold text-white truncate text-xs">${escapeHtml(job.title || job.query || 'Lagu')}</div>
+              <div class="text-[10px] text-[#888] flex items-center gap-2 mt-0.5 flex-wrap">
+                <span class="text-[#ffd700] font-semibold">${escapeHtml(job.format || 'MP3')}</span>
+                <span>• Speed: ${escapeHtml(job.speed || '-')}</span>
+                <span>• ETA: ${escapeHtml(job.eta || '-')}</span>
               </div>
+              ${errLine}
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
               ${statusBadge}
-              <button onclick="cancelDownloadJob('${job.id}')" class="text-[#666] hover:text-white text-xs px-1" title="Batalkan">✕</button>
+              <button onclick="cancelDownloadJob('${job.id}')" class="text-[#666] hover:text-white text-xs px-1" title="Hapus dari daftar">✕</button>
             </div>
           </div>
           <!-- Progress Bar -->
           <div class="h-1.5 bg-[#2a2a2a] rounded-full overflow-hidden">
-            <div class="h-full bg-gradient-to-r from-[#1db954] to-[#1ed760] transition-all duration-300" style="width: ${job.percent}%;"></div>
+            <div class="h-full bg-gradient-to-r from-[#1db954] to-[#1ed760] transition-all duration-300" style="width: ${job.percent || 0}%;"></div>
           </div>
         `;
         container.appendChild(item);
@@ -1688,11 +1759,13 @@
     function cancelDownloadJob(id) {
       downloadQueueJobs = downloadQueueJobs.filter(j => j.id !== id);
       renderDownloadQueue();
+      updateQueueBadge();
     }
 
     function clearCompletedJobs() {
       downloadQueueJobs = downloadQueueJobs.filter(j => j.status === 'downloading' || j.status === 'pending');
       renderDownloadQueue();
+      updateQueueBadge();
     }
 
     function openLyricsApproval(song, lrcText) {
@@ -2067,6 +2140,14 @@
 
             songs = mapped;
             persistSongsToStorage();
+
+            // Jika di server STB belum ada lagu sama sekali, bersihkan status 'Tersimpan' semu
+            if (songs.length === 0 && downloadQueueJobs.length === 0) {
+              downloadedTrackIds.clear();
+              persistDownloadedIdsToStorage();
+              renderMusicSearchCards();
+            }
+
             renderDashboardSongs();
             updatePlayerUI();
             if (songs.length > 0) {
