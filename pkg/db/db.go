@@ -1,94 +1,102 @@
 package db
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 
 	"github.com/faisalfa123/Senandung/pkg/models"
-	_ "github.com/mattn/go-sqlite3"
 )
 
-type DB struct {
-	db *sql.DB
-	mu sync.RWMutex
+type dbState struct {
+	Songs     map[string]models.Song     `json:"songs"`
+	Playlists map[string]models.Playlist `json:"playlists"`
+	Favorites map[string]time.Time       `json:"favorites"`
 }
 
+type DB struct {
+	filePath string
+	state    dbState
+	mu       sync.RWMutex
+}
+
+// InitDB menginisialisasi penyimpanan database berbasis JSON murni (Pure Go, 0% CGO, 100% kompatibel cross-compile aarch64/armv7l/x86_64)
 func InitDB(dataDir string) (*DB, error) {
-	dbPath := filepath.Join(dataDir, "senandung.db")
-	conn, err := sql.Open("sqlite3", dbPath+"?_busy_timeout=5000&_journal_mode=WAL")
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		return nil, fmt.Errorf("gagal membuat direktori data: %w", err)
+	}
+
+	dbPath := filepath.Join(dataDir, "senandung_store.json")
+	d := &DB{
+		filePath: dbPath,
+		state: dbState{
+			Songs:     make(map[string]models.Song),
+			Playlists: make(map[string]models.Playlist),
+			Favorites: make(map[string]time.Time),
+		},
+	}
+
+	// Muat data jika file sudah ada
+	if raw, err := os.ReadFile(dbPath); err == nil && len(raw) > 0 {
+		_ = json.Unmarshal(raw, &d.state)
+		if d.state.Songs == nil {
+			d.state.Songs = make(map[string]models.Song)
+		}
+		if d.state.Playlists == nil {
+			d.state.Playlists = make(map[string]models.Playlist)
+		}
+		if d.state.Favorites == nil {
+			d.state.Favorites = make(map[string]time.Time)
+		}
+	} else {
+		_ = d.saveLocked()
+	}
+
+	return d, nil
+}
+
+func (d *DB) saveLocked() error {
+	raw, err := json.MarshalIndent(d.state, "", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("failed to open sqlite database: %w", err)
+		return err
 	}
-
-	// Buat skema tabel jika belum ada
-	schema := `
-	CREATE TABLE IF NOT EXISTS songs (
-		id TEXT PRIMARY KEY,
-		title TEXT NOT NULL,
-		artist TEXT,
-		album TEXT,
-		duration REAL,
-		file_path TEXT NOT NULL,
-		cover_url TEXT,
-		source TEXT,
-		youtube_url TEXT,
-		lyrics TEXT,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);
-
-	CREATE TABLE IF NOT EXISTS playlists (
-		id TEXT PRIMARY KEY,
-		name TEXT NOT NULL,
-		song_ids TEXT DEFAULT '[]',
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);
-
-	CREATE TABLE IF NOT EXISTS favorites (
-		song_id TEXT PRIMARY KEY,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);
-	`
-	if _, err := conn.Exec(schema); err != nil {
-		return nil, fmt.Errorf("failed to create schema: %w", err)
+	tmpPath := d.filePath + ".tmp"
+	if err := os.WriteFile(tmpPath, raw, 0644); err != nil {
+		return err
 	}
-
-	return &DB{db: conn}, nil
+	return os.Rename(tmpPath, d.filePath)
 }
 
 func (d *DB) Close() error {
-	return d.db.Close()
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.saveLocked()
 }
 
 func (d *DB) AddSong(s *models.Song) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	query := `INSERT OR REPLACE INTO songs 
-		(id, title, artist, album, duration, file_path, cover_url, source, youtube_url, lyrics, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	_, err := d.db.Exec(query, s.ID, s.Title, s.Artist, s.Album, s.Duration, s.FilePath, s.CoverURL, s.Source, s.YoutubeURL, s.Lyrics, s.CreatedAt)
-	return err
+	if s.CreatedAt.IsZero() {
+		s.CreatedAt = time.Now()
+	}
+	d.state.Songs[s.ID] = *s
+	return d.saveLocked()
 }
 
 func (d *DB) GetSong(id string) (*models.Song, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
-	var s models.Song
-	query := `SELECT id, title, artist, album, duration, file_path, cover_url, source, youtube_url, lyrics, created_at 
-		FROM songs WHERE id = ?`
-	row := d.db.QueryRow(query, id)
-	var createdAtStr string
-	err := row.Scan(&s.ID, &s.Title, &s.Artist, &s.Album, &s.Duration, &s.FilePath, &s.CoverURL, &s.Source, &s.YoutubeURL, &s.Lyrics, &createdAtStr)
-	if err != nil {
-		return nil, err
+	s, ok := d.state.Songs[id]
+	if !ok {
+		return nil, fmt.Errorf("song not found: %s", id)
 	}
-	s.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAtStr)
 	return &s, nil
 }
 
@@ -96,23 +104,21 @@ func (d *DB) GetAllSongs() ([]models.Song, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
-	query := `SELECT id, title, artist, album, duration, file_path, cover_url, source, youtube_url, lyrics, created_at 
-		FROM songs ORDER BY created_at DESC`
-	rows, err := d.db.Query(query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	songs := []models.Song{}
-	for rows.Next() {
-		var s models.Song
-		var createdAtStr string
-		if err := rows.Scan(&s.ID, &s.Title, &s.Artist, &s.Album, &s.Duration, &s.FilePath, &s.CoverURL, &s.Source, &s.YoutubeURL, &s.Lyrics, &createdAtStr); err == nil {
-			s.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAtStr)
-			songs = append(songs, s)
+	songs := make([]models.Song, 0, len(d.state.Songs))
+	for _, s := range d.state.Songs {
+		// Verifikasi file fisik benar-benar ada di disk
+		if s.FilePath != "" {
+			if _, err := os.Stat(s.FilePath); os.IsNotExist(err) {
+				continue
+			}
 		}
+		songs = append(songs, s)
 	}
+
+	sort.Slice(songs, func(i, j int) bool {
+		return songs[i].CreatedAt.After(songs[j].CreatedAt)
+	})
+
 	return songs, nil
 }
 
@@ -120,41 +126,32 @@ func (d *DB) DeleteSong(id string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	_, err := d.db.Exec(`DELETE FROM songs WHERE id = ?`, id)
-	_, _ = d.db.Exec(`DELETE FROM favorites WHERE song_id = ?`, id)
-	return err
+	delete(d.state.Songs, id)
+	delete(d.state.Favorites, id)
+	return d.saveLocked()
 }
 
 func (d *DB) ToggleFavorite(songID string) (bool, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	var exists int
-	_ = d.db.QueryRow(`SELECT 1 FROM favorites WHERE song_id = ?`, songID).Scan(&exists)
-	if exists == 1 {
-		_, err := d.db.Exec(`DELETE FROM favorites WHERE song_id = ?`, songID)
-		return false, err
+	if _, exists := d.state.Favorites[songID]; exists {
+		delete(d.state.Favorites, songID)
+		_ = d.saveLocked()
+		return false, nil
 	}
-	_, err := d.db.Exec(`INSERT INTO favorites (song_id) VALUES (?)`, songID)
-	return true, err
+	d.state.Favorites[songID] = time.Now()
+	_ = d.saveLocked()
+	return true, nil
 }
 
 func (d *DB) GetFavorites() ([]string, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
-	rows, err := d.db.Query(`SELECT song_id FROM favorites ORDER BY created_at DESC`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var favs []string
-	for rows.Next() {
-		var sid string
-		if err := rows.Scan(&sid); err == nil {
-			favs = append(favs, sid)
-		}
+	favs := make([]string, 0, len(d.state.Favorites))
+	for sid := range d.state.Favorites {
+		favs = append(favs, sid)
 	}
 	return favs, nil
 }
@@ -163,37 +160,28 @@ func (d *DB) CreatePlaylist(name string) (*models.Playlist, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	p := &models.Playlist{
+	p := models.Playlist{
 		ID:        fmt.Sprintf("pl_%d", time.Now().UnixNano()),
 		Name:      name,
 		SongIDs:   []string{},
 		CreatedAt: time.Now(),
 	}
-	_, err := d.db.Exec(`INSERT INTO playlists (id, name, song_ids, created_at) VALUES (?, ?, '[]', ?)`, p.ID, p.Name, p.CreatedAt)
-	return p, err
+	d.state.Playlists[p.ID] = p
+	_ = d.saveLocked()
+	return &p, nil
 }
 
 func (d *DB) GetPlaylists() ([]models.Playlist, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
-	rows, err := d.db.Query(`SELECT id, name, song_ids, created_at FROM playlists ORDER BY created_at DESC`)
-	if err != nil {
-		return nil, err
+	playlists := make([]models.Playlist, 0, len(d.state.Playlists))
+	for _, p := range d.state.Playlists {
+		playlists = append(playlists, p)
 	}
-	defer rows.Close()
-
-	var playlists []models.Playlist
-	for rows.Next() {
-		var p models.Playlist
-		var songIDsJSON string
-		var createdAtStr string
-		if err := rows.Scan(&p.ID, &p.Name, &songIDsJSON, &createdAtStr); err == nil {
-			_ = json.Unmarshal([]byte(songIDsJSON), &p.SongIDs)
-			p.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAtStr)
-			playlists = append(playlists, p)
-		}
-	}
+	sort.Slice(playlists, func(i, j int) bool {
+		return playlists[i].CreatedAt.After(playlists[j].CreatedAt)
+	})
 	return playlists, nil
 }
 
@@ -201,27 +189,31 @@ func (d *DB) UpdatePlaylistSongs(playlistID string, songIDs []string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	data, err := json.Marshal(songIDs)
-	if err != nil {
-		return err
+	if p, ok := d.state.Playlists[playlistID]; ok {
+		p.SongIDs = songIDs
+		d.state.Playlists[playlistID] = p
+		return d.saveLocked()
 	}
-	_, err = d.db.Exec(`UPDATE playlists SET song_ids = ? WHERE id = ?`, string(data), playlistID)
-	return err
+	return fmt.Errorf("playlist not found")
 }
 
 func (d *DB) DeletePlaylist(playlistID string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	_, err := d.db.Exec(`DELETE FROM playlists WHERE id = ?`, playlistID)
-	return err
+	delete(d.state.Playlists, playlistID)
+	return d.saveLocked()
 }
 
 func (d *DB) UpdateLyrics(songID, lyrics string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	log.Printf("[DB] Updating lyrics for song %s (len: %d)", songID, len(lyrics))
-	_, err := d.db.Exec(`UPDATE songs SET lyrics = ? WHERE id = ?`, lyrics, songID)
-	return err
+	if s, ok := d.state.Songs[songID]; ok {
+		log.Printf("[DB] Updating lyrics for song %s (len: %d)", songID, len(lyrics))
+		s.Lyrics = lyrics
+		d.state.Songs[songID] = s
+		return d.saveLocked()
+	}
+	return fmt.Errorf("song not found")
 }
