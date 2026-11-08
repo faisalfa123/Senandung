@@ -684,11 +684,21 @@
 
   <!-- JavaScript Audio Engine & Hi-Res Logic -->
   <script>
-    // Automatic Migration: Purge old mock storage data from earlier versions
+    // Automatic Migration: Purge old mock storage data & stale Service Workers from earlier versions
     try {
       localStorage.removeItem('senandung_songs_db');
       localStorage.removeItem('senandung_search_history');
       localStorage.removeItem('senandung_downloaded_ids');
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(r => r.unregister());
+        });
+      }
+      if ('caches' in window) {
+        caches.keys().then(keys => {
+          keys.forEach(k => caches.delete(k));
+        });
+      }
     } catch (e) {}
 
     const STORAGE_SONGS_KEY = 'senandung_v2_real_songs';

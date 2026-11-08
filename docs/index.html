@@ -684,8 +684,25 @@
 
   <!-- JavaScript Audio Engine & Hi-Res Logic -->
   <script>
-    const STORAGE_SONGS_KEY = 'senandung_songs_db';
-    const STORAGE_DOWNLOADED_IDS = 'senandung_downloaded_ids';
+    // Automatic Migration: Purge old mock storage data & stale Service Workers from earlier versions
+    try {
+      localStorage.removeItem('senandung_songs_db');
+      localStorage.removeItem('senandung_search_history');
+      localStorage.removeItem('senandung_downloaded_ids');
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(r => r.unregister());
+        });
+      }
+      if ('caches' in window) {
+        caches.keys().then(keys => {
+          keys.forEach(k => caches.delete(k));
+        });
+      }
+    } catch (e) {}
+
+    const STORAGE_SONGS_KEY = 'senandung_v2_real_songs';
+    const STORAGE_DOWNLOADED_IDS = 'senandung_v2_downloaded_ids';
 
     function getInitialSongs() {
       try {
@@ -700,7 +717,7 @@
       return [];
     }
 
-    // Song Database: 100% Riil dari STB
+    // Song Database: 100% Riil dari STB (Kosong jika belum ada file musik)
     let songs = getInitialSongs();
 
     function persistSongsToStorage() {
@@ -873,7 +890,18 @@
       if (activeFilter === 'offline') list = songs.filter(s => offlineSongs.has(s.id));
 
       if (list.length === 0) {
-        container.innerHTML = '<div class="text-xs text-[#888] py-8 text-center">Tidak ada lagu yang cocok dengan filter ini.</div>';
+        container.innerHTML = `
+          <div class="py-12 text-center text-[#888] space-y-3 bg-[#181818]/60 border border-[#262626] rounded-2xl p-6">
+            <div class="text-4xl">🎵</div>
+            <div class="text-sm font-semibold text-white">Belum Ada Lagu di Penyimpanan STB</div>
+            <p class="text-xs text-[#777] max-w-sm mx-auto leading-relaxed">
+              Koleksi musik fisik masih kosong. Gunakan tab <strong>Unduh Musik</strong> untuk mencari dan mengunduh lagu favorit Anda langsung dari YouTube ke STB.
+            </p>
+            <button onclick="switchTab('ytsearch')" class="mt-2 bg-[#1db954] hover:bg-[#1ed760] text-black font-bold text-xs px-4 py-2 rounded-full transition shadow">
+              Cari & Unduh Musik Sekarang
+            </button>
+          </div>
+        `;
         return;
       }
 
@@ -966,15 +994,15 @@
     }
 
     // Search History Storage Key
-    const SEARCH_HISTORY_KEY = 'senandung_search_history';
+    const SEARCH_HISTORY_KEY = 'senandung_v2_search_history';
     const FORMAT_PREF_KEY = 'senandung_format_preference_30d';
 
     function getSearchHistory() {
       try {
         const raw = localStorage.getItem(SEARCH_HISTORY_KEY);
-        return raw ? JSON.parse(raw) : ["guyon waton", "wirang guyonwaton", "klebus guyonwaton", "tulus interaksi", "sebatas teman"];
+        return raw ? JSON.parse(raw) : [];
       } catch (e) {
-        return ["guyon waton", "wirang guyonwaton", "klebus guyonwaton"];
+        return [];
       }
     }
 
@@ -1127,9 +1155,6 @@
 
     // Track state synced with storage and songs database
 
-    // Hasil Pencarian Musik: Murni Live dari YouTube Backend STB
-    let musicSearchResults = [];
-
     function renderMusicSearchCards() {
       const container = document.getElementById('musicCardsContainer');
       if (!container) return;
@@ -1184,42 +1209,6 @@
               isDownloaded
                 ? `<button onclick="handleTrackAction('${item.id}', '${escapeHtml(item.title).replace(/'/g, "\\'")}', true)" 
                            class="h-8 px-2.5 rounded-full bg-[#1db954]/15 hover:bg-[#1db954]/25 border border-[#1db954] flex items-center gap-1.5 text-[#1db954] hover:text-[#1ed760] font-bold text-xs shadow-sm transition hover:scale-105 active:scale-95" 
-                           title="Lagu sudah ada di Dashboard. Klik untuk langsung memutar atau unduh format lain">
-                     <span>✓</span>
-                     <span class="text-[10px] hidden sm:inline font-semibold">Tersimpan</span>
-                   </button>
-                   <button onclick="openFormatPickerForTrack('${item.id}', '${escapeHtml(item.title).replace(/'/g, "\\'")}')"
-                           class="w-8 h-8 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] flex items-center justify-center text-[#aaa] hover:text-white transition shadow text-xs"
-                           title="Unduh ulang dengan format audio lain">
-                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-                     </svg>
-                   </button>`
-                : `<button onclick="handleTrackAction('${item.id}', '${escapeHtml(item.title).replace(/'/g, "\\'")}', false)" 
-                           class="w-8 h-8 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] flex items-center justify-center text-white/90 hover:text-white transition shadow hover:scale-105 active:scale-95" 
-                           title="Unduh Musik">
-                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-                     </svg>
-                   </button>`
-            }
-          </div>
-        `;
-        container.appendChild(card);
-      });
-    }
-            <!-- Line 3: Views and Upload date -->
-            <p class="text-[10px] sm:text-[11px] text-[#717171] truncate mt-0.5">
-              ${escapeHtml(item.views)} • ${escapeHtml(item.date)}
-            </p>
-          </div>
-
-          <!-- Right Action: Interactive Download / Play Button -->
-          <div class="shrink-0 flex items-center gap-1">
-            ${
-              isDownloaded
-                ? `<button onclick="handleTrackAction('${item.id}', '${escapeHtml(item.title).replace(/'/g, "\\'")}', true)" 
-                           class="h-8 px-2.5 rounded-full bg-[#1db954]/15 hover:bg-[#1db954]/25 border border-[#1db954] flex items-center gap-1.5 text-[#1db954] hover:text-[#1ed760] font-bold text-xs shadow-sm transition hover:scale-105 active:scale-95" 
                            title="Lagu sudah ada di Dashboard. Klik untuk langsung memutar atau unduh ulang format lain">
                      <span>✓</span>
                      <span class="text-[10px] hidden sm:inline font-semibold">Tersimpan</span>
@@ -1251,11 +1240,7 @@
       saveSearchHistory(q);
 
       const headerCard = document.getElementById('channelHeaderCard');
-      if (q.toLowerCase().includes('guyon')) {
-        headerCard.classList.remove('hidden');
-      } else {
-        headerCard.classList.add('hidden');
-      }
+      if (headerCard) headerCard.classList.add('hidden');
 
       const container = document.getElementById('musicCardsContainer');
       if (container) {
@@ -1442,44 +1427,6 @@
       }, 1500);
     }
 
-    function syncSongToLocal(trackId, title, isFlac) {
-      const newSongObj = {
-        id: trackId || ('s_' + Date.now()),
-        title: title,
-        artist: title.toLowerCase().includes('guyon') ? "GUYONWATON OFFICIAL" : "Unduhan Musik STB",
-        album: isFlac ? "Koleksi FLAC Hi-Res" : "Koleksi Standar",
-        duration: 210,
-        cover: isFlac ? "✨" : "🎧",
-        themeColor: isFlac ? "#332a10" : "#1a253a",
-        isHiRes: isFlac,
-        codec: isFlac ? "FLAC" : "MP3",
-        bitDepth: isFlac ? 24 : 16,
-        sampleRate: isFlac ? "96 kHz" : "44.1 kHz",
-        bitrate: isFlac ? "1411 kbps" : "320 kbps",
-        source: "youtube",
-        lyrics: [
-          { time: 0, text: `♪ Alunan audio ${isFlac ? 'FLAC 24-bit Lossless' : 'MP3 320k'} ♪` },
-          { time: 8, text: "Tersimpan otomatis di penyimpanan STB & Dashboard" }
-        ]
-      };
-
-      const existingSongIdx = songs.findIndex(s => s.id === newSongObj.id);
-      if (existingSongIdx === -1) {
-        songs.unshift(newSongObj);
-      } else {
-        songs[existingSongIdx] = newSongObj;
-      }
-      persistSongsToStorage();
-      renderDashboardSongs();
-
-      pendingDownloadedSong = newSongObj;
-      const simulatedInternetLRC = `[00:02.00] ♪ Alunan audio ${isFlac ? 'FLAC Lossless 24-bit/96kHz' : 'MP3 320k'} ♪
-[00:08.50] Di hening malam senandung terdengar indah
-[00:16.00] Bersama irama jernih tanpa kompresi
-[00:25.00] Menemani setiap detik waktu bersantai...`;
-
-      openLyricsApproval(pendingDownloadedSong, simulatedInternetLRC);
-    }
 
     function openDownloadQueueModal() {
       renderDownloadQueue();
@@ -1669,10 +1616,6 @@
         alert("Beralih ke KUALITAS STANDAR: Hemat RAM / Bandwidth 320 kbps.");
       }
       updatePlayerUI();
-      if (isPlaying) {
-        stopSynthMelody();
-        startSynthMelody();
-      }
     }
 
     // Save All Offline
@@ -1682,10 +1625,7 @@
       alert(`Berhasil! Seluruh koleksi (${songs.length} lagu) telah disimpan ke Cache PWA ponsel untuk pemutaran offline.`);
     }
 
-    // Live Download Queue Manager
-    let downloadQueueJobs = [
-      { id: "job_101", title: "Tulus - Interaksi (Acoustic)", format: "FLAC", status: "downloading", percent: 45, speed: "2.4 MB/s", eta: "8s" }
-    ];
+    // Live Download Queue Manager (Real STB Downloader Jobs)
 
     function renderDownloadQueue() {
       const container = document.getElementById('downloadQueueListContainer');
@@ -2072,9 +2012,8 @@
       const idx = speeds.indexOf(playbackSpeed);
       playbackSpeed = speeds[(idx + 1) % speeds.length];
       document.getElementById('btnSpeed').innerText = playbackSpeed.toFixed(2).replace('.00', '.0') + 'x';
-      if (isPlaying) {
-        stopSynthMelody();
-        startSynthMelody();
+      if (realAudio) {
+        realAudio.playbackRate = playbackSpeed;
       }
     }
 
@@ -2085,7 +2024,7 @@
           return res.json();
         })
         .then(serverSongs => {
-          if (Array.isArray(serverSongs) && serverSongs.length > 0) {
+          if (Array.isArray(serverSongs)) {
             // Map server model to frontend song model
             const mapped = serverSongs.map(s => {
               const ext = (s.filePath || '').split('.').pop().toLowerCase();
@@ -2130,7 +2069,9 @@
             persistSongsToStorage();
             renderDashboardSongs();
             updatePlayerUI();
-            showToast(`Koleksi STB tersinkron: ${songs.length} lagu aktif`, 'success');
+            if (songs.length > 0) {
+              showToast(`Koleksi STB tersinkron: ${songs.length} lagu aktif`, 'success');
+            }
           }
         })
         .catch(() => {

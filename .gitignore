@@ -1,7 +1,7 @@
 # Binary
-senandung
-senandung-*
+/senandung
 dist/
+!bin/senandung-linux-*
 
 # Data runtime & database
 data/
