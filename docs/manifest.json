@@ -1,11 +1,11 @@
 {
-  "name": "Senandung",
+  "name": "Senandung - Musik Bersama & Offline",
   "short_name": "Senandung",
-  "description": "Ultra-Lightweight Spotify-like PWA with Multi-Device Audio Sync for DietPi / STB HG680P & Odroid C2",
+  "description": "Pemutar Musik Hi-Res Lossless & Multi-Device Ultra-Sync Nusantara untuk DietPi, STB HG680P & Odroid C2",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#121212",
-  "theme_color": "#1db954",
+  "background_color": "#062e2b",
+  "theme_color": "#0d9488",
   "icons": [
     {
       "src": "/icons/icon-192.png",

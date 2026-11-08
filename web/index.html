@@ -3,18 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Senandung - Hi-Res Lossless & Spotify Self-Hosted</title>
+  <title>Senandung - Musik Bersama & Offline</title>
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#121212">
+  <meta name="theme-color" content="#0d9488">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Senandung">
+  <link rel="icon" type="image/svg+xml" href="/icons/logo.svg">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
     :root {
-      --spotify-green: #1db954;
-      --spotify-green-hover: #1ed760;
+      --spotify-green: #14b8a6;
+      --spotify-green-hover: #2dd4bf;
       --gold-hi-res: #ffd700;
       --sat: env(safe-area-inset-top, 0px);
       --sab: env(safe-area-inset-bottom, 0px);
@@ -87,11 +88,9 @@
   <!-- Top Header Navigation -->
   <header class="app-header px-4 sm:px-6 bg-[#000000]/80 backdrop-blur-md border-b border-[#222] flex items-center justify-between shrink-0 z-30">
     <div class="flex items-center gap-3 sm:gap-6 flex-1 max-w-xl">
-      <div onclick="switchTab('dashboard')" class="flex items-center gap-2 text-[#1db954] text-xl font-bold tracking-tight cursor-pointer">
-        <svg class="w-7 h-7 sm:w-8 sm:h-8 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.563.387-.857.207-2.35-1.434-5.308-1.758-8.793-.963-.335.077-.67-.133-.746-.468-.077-.334.132-.67.467-.746 3.808-.87 7.076-.506 9.722 1.113.294.18.386.563.207.857zm1.226-2.724c-.226.367-.709.482-1.075.257-2.69-1.653-6.79-2.131-9.97-1.165-.413.125-.85-.108-.975-.521-.125-.413.108-.85.521-.975 3.633-1.102 8.147-.568 11.242 1.33.366.225.481.708.257 1.074zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71c-.494.15-1.016-.129-1.166-.623-.149-.495.13-1.016.624-1.166 3.532-1.073 9.404-.866 13.115 1.338.445.264.59.838.327 1.282-.264.444-.838.59-1.282.327z"/>
-        </svg>
-        <span class="text-white hidden sm:inline">Senandung</span>
+      <div onclick="switchTab('dashboard')" class="flex items-center gap-2.5 text-[#14b8a6] text-xl font-bold tracking-tight cursor-pointer">
+        <img src="/icons/logo.svg" alt="Senandung" class="w-8 h-8 rounded-lg shadow-md shrink-0">
+        <span class="text-white hidden sm:inline font-bold">Senandung</span>
       </div>
 
       <div class="relative w-full max-w-sm hidden sm:block">
@@ -392,17 +391,17 @@
         </div>
 
         <!-- Current Active Room Panel -->
-        <div id="activePartyRoomCard" class="bg-gradient-to-r from-[#182a1c] to-[#181818] p-5 rounded-2xl border border-[#1db954]/40 space-y-4 shadow-lg">
+        <div id="activePartyRoomCard" class="bg-gradient-to-r from-[#0d3430] to-[#121c1a] p-5 rounded-2xl border border-[#14b8a6]/40 space-y-4 shadow-xl">
           <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
-              <div class="text-[11px] font-bold text-[#1db954] uppercase tracking-wider flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-[#1db954] animate-pulse"></span>
+              <div class="text-[11px] font-bold text-[#2dd4bf] uppercase tracking-wider flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-[#2dd4bf] animate-pulse"></span>
                 <span>Room Anda Saat Ini:</span>
               </div>
               <div class="text-2xl font-black text-white flex items-center gap-2.5 mt-0.5">
                 <span id="activePartyRoomTitle">Ruang Tamu</span>
-                <span id="partySyncStatusBadge" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#1db954]/20 text-[#1db954] border border-[#1db954]/40">
-                  Sinkronisasi Aktif
+                <span id="partySyncStatusBadge" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#14b8a6]/20 text-[#2dd4bf] border border-[#14b8a6]/40">
+                  Ultra-Sync &lt; 60ms Aktif
                 </span>
               </div>
               <div id="partyCurrentSongPlaying" class="text-xs text-[#aaa] mt-1">
@@ -410,10 +409,12 @@
               </div>
             </div>
 
-            <!-- Quick Room Selector -->
-            <div class="flex items-center gap-2 w-full sm:w-auto">
-              <span class="text-xs text-[#888] shrink-0">Pindah:</span>
-              <select id="partyRoomSelect" onchange="changePartyRoom(this.value)" class="flex-1 sm:flex-none bg-[#242424] text-white border border-[#3a3a3a] text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#1db954]">
+            <!-- Quick Room Selector & Add Song Action -->
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <button onclick="openModal('addPartySongModal')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#14b8a6] text-[#042f2e] hover:bg-[#2dd4bf] transition flex items-center gap-1 shadow">
+                <span>➕</span> Tambah Lagu ke Antrean
+              </button>
+              <select id="partyRoomSelect" onchange="changePartyRoom(this.value)" class="bg-[#1c2927] text-white border border-[#2d4441] text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#14b8a6]">
                 <option value="Ruang Tamu">🛋️ Ruang Tamu</option>
                 <option value="Kamar Tidur">🛏️ Kamar Tidur</option>
                 <option value="Dapur & Teras">☕ Dapur & Teras</option>
@@ -422,27 +423,52 @@
             </div>
           </div>
 
-          <!-- Active Members Joined In This Room -->
-          <div class="border-t border-[#2a382d] pt-3 space-y-2">
+          <!-- Active Members Joined In This Room & Realtime Latency -->
+          <div class="border-t border-[#1e3b36] pt-3 space-y-2">
             <div class="flex items-center justify-between text-xs">
               <span class="font-bold text-white flex items-center gap-1.5">
-                <span>👥</span> Anggota yang Online di Room Ini:
+                <span>👥</span> Anggota di Room Ini:
               </span>
-              <span id="activeListenersCount" class="text-[11px] text-[#1db954] font-mono">1 Perangkat Terhubung</span>
+              <div class="flex items-center gap-2">
+                <span id="partySyncPillBadge" class="text-[10px] font-mono bg-[#042f2e] text-[#2dd4bf] border border-[#14b8a6]/40 px-2 py-0.5 rounded-full">
+                  RTT: ~0ms • Locked
+                </span>
+                <span id="activeListenersCount" class="text-[11px] text-[#2dd4bf] font-mono">1 Perangkat Terhubung</span>
+              </div>
             </div>
             <!-- Member Chips Container -->
             <div id="partyMembersList" class="flex flex-wrap gap-2 pt-1">
-              <div class="bg-[#242424] border border-[#333] px-3 py-1 rounded-full text-xs text-white flex items-center gap-1.5">
-                <span class="w-1.5 h-1.5 rounded-full bg-[#1db954]"></span>
+              <div class="bg-[#1c2927] border border-[#2d4441] px-3 py-1 rounded-full text-xs text-white flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#14b8a6]"></span>
                 <span id="txtMyDeviceName">Perangkat Anda</span>
               </div>
             </div>
           </div>
 
+          <!-- Collaborative Room Playlist Queue (Daftar Antrean Lagu Bersama) -->
+          <div class="border-t border-[#1e3b36] pt-3 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-sm">📜</span>
+                <h4 class="font-bold text-sm text-white">Antrean Lagu Room (Playlist Bersama)</h4>
+                <span id="partyQueueBadgeCount" class="text-[10px] bg-[#14b8a6]/20 text-[#2dd4bf] font-mono px-2 py-0.5 rounded-full border border-[#14b8a6]/30">0 lagu</span>
+              </div>
+              <span class="text-[11px] text-[#888]">Bebas: Siapa saja bisa menambah, memutar, atau menghapus</span>
+            </div>
+
+            <!-- Queue Items List Container -->
+            <div id="partyQueueListContainer" class="space-y-1.5 max-h-56 overflow-y-auto custom-scroll pr-1">
+              <!-- Rendered via JS -->
+              <div class="p-3 text-center text-xs text-[#888] bg-[#141e1c] rounded-xl border border-[#233532]">
+                Antrean room saat ini kosong. Klik "+ Tambah Lagu ke Antrean" di atas untuk menambahkan musik!
+              </div>
+            </div>
+          </div>
+
           <!-- Send Reactions To Room -->
-          <div class="border-t border-[#2a382d] pt-3 flex flex-wrap items-center justify-between gap-3">
+          <div class="border-t border-[#1e3b36] pt-3 flex flex-wrap items-center justify-between gap-3">
             <span class="text-xs text-[#aaa]">Kirim Reaksi ke Teman di Room Ini:</span>
-            <div class="flex items-center gap-2 bg-[#242424] px-3 py-1.5 rounded-full border border-[#333]">
+            <div class="flex items-center gap-2 bg-[#1c2927] px-3 py-1.5 rounded-full border border-[#2d4441]">
               <button onclick="sendReaction('❤️')" class="hover:scale-125 transition text-lg px-1">❤️</button>
               <button onclick="sendReaction('🔥')" class="hover:scale-125 transition text-lg px-1">🔥</button>
               <button onclick="sendReaction('👏')" class="hover:scale-125 transition text-lg px-1">👏</button>
@@ -858,27 +884,47 @@
     </div>
   </div>
 
-  <!-- Modal: Buat Room Party Baru -->
-  <div id="createRoomModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-[#242424] border border-[#333] rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
-      <div class="flex justify-between items-center">
-        <h3 class="font-bold text-base flex items-center gap-2 text-white">
-          <span>📻</span> Buat Room Party Baru
-        </h3>
-        <button onclick="closeModal('createRoomModal')" class="text-sm text-[#888] hover:text-white">✕</button>
+  <!-- Modal: Pemulihan Playlist Saat Masuk Room Kosong (Recovery Reminder) -->
+  <div id="roomRecoveryModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-[#182321] border border-[#14b8a6]/40 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl border-t-4 border-t-[#14b8a6]">
+      <div class="flex items-center gap-3">
+        <span class="text-3xl">📻✨</span>
+        <div>
+          <h3 class="font-extrabold text-base text-white">Selamat Datang di Ruang Party!</h3>
+          <span class="text-[11px] text-[#2dd4bf] font-semibold">Anda adalah pengguna pertama di room ini</span>
+        </div>
       </div>
-      <p class="text-xs text-[#aaa]">
-        Beri nama ruangan Anda (misal: "Kamar Depan", "Teras Kafe", "Sesi Nongkrong"). Musik di room ini berputar independen dan bisa didengarkan bersama teman yang bergabung ke room yang sama.
+      <p class="text-xs text-[#d1d5db] leading-relaxed">
+        Terdeteksi riwayat antrean playlist sebelumnya (<strong id="recoverySongCount" class="text-[#2dd4bf] font-mono text-sm">0</strong> lagu).
       </p>
-      <div>
-        <label class="text-[11px] font-bold text-[#888] uppercase tracking-wider block mb-1">Nama Room</label>
-        <input type="text" id="newRoomNameInput" placeholder="Contoh: Sesi Santai Malam" 
-               class="w-full bg-[#181818] border border-[#3a3a3a] rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#1db954]"
-               onkeydown="if(event.key==='Enter') executeCreateRoom()">
+      <p class="text-xs text-[#94a3b8]">
+        Apakah Anda ingin memulihkan antrean lagu terakhir agar bisa langsung didengarkan bersama, atau ingin memulai dari playlist kosong?
+      </p>
+      <div class="flex justify-end gap-2.5 pt-2">
+        <button onclick="dismissRoomRecovery()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-[#243330] hover:bg-[#2d423e] text-[#ccc]">✨ Mulai dari Kosong</button>
+        <button onclick="acceptRoomRecovery()" class="px-5 py-2 rounded-xl text-xs font-bold bg-[#14b8a6] text-[#042f2e] hover:bg-[#2dd4bf] transition shadow-lg flex items-center gap-1.5">
+          <span>🔄</span> Pulihkan Playlist
+        </button>
       </div>
-      <div class="flex justify-end gap-2 pt-2">
-        <button onclick="closeModal('createRoomModal')" class="px-4 py-2 rounded-lg text-xs font-semibold bg-[#333] hover:bg-[#444] text-white">Batal</button>
-        <button onclick="executeCreateRoom()" class="px-5 py-2 rounded-lg text-xs font-bold bg-[#1db954] text-black hover:bg-[#1ed760] transition shadow">Buat & Masuk Room</button>
+    </div>
+  </div>
+
+  <!-- Modal: Pilih Lagu untuk Ditambahkan ke Antrean Party -->
+  <div id="addPartySongModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-[#182321] border border-[#233532] rounded-2xl p-5 w-full max-w-lg space-y-4 shadow-2xl max-h-[85vh] flex flex-col">
+      <div class="flex justify-between items-center border-b border-[#243633] pb-3">
+        <h3 class="font-bold text-base text-white flex items-center gap-2">
+          <span>➕</span> Tambah Lagu ke Antrean Party
+        </h3>
+        <button onclick="closeModal('addPartySongModal')" class="text-sm text-[#888] hover:text-white">✕</button>
+      </div>
+      <input type="text" id="partySongFilterInput" oninput="filterPartySelectableSongs(this.value)" placeholder="Cari judul lagu atau nama artis..."
+             class="w-full bg-[#111918] border border-[#2d4441] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#14b8a6]">
+      <div id="partySelectableSongsList" class="flex-1 overflow-y-auto custom-scroll space-y-1.5 max-h-72 pr-1">
+        <!-- Rendered via JS -->
+      </div>
+      <div class="flex justify-end pt-2 border-t border-[#243633]">
+        <button onclick="closeModal('addPartySongModal')" class="px-4 py-1.5 rounded-lg text-xs bg-[#243330] text-[#ccc] hover:text-white">Tutup</button>
       </div>
     </div>
   </div>
@@ -984,7 +1030,11 @@
     });
 
     realAudio.addEventListener('ended', () => {
-      nextSong();
+      if (isPartyMode && currentRoomQueue.length > 0) {
+        playNextPartyQueue();
+      } else {
+        nextSong();
+      }
     });
 
     realAudio.addEventListener('play', () => {
@@ -1147,11 +1197,14 @@
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <button onclick="downloadSongToPhone('${s.id}')" class="text-xs px-2.5 py-1 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] text-[#ccc] hover:text-white transition flex items-center gap-1" title="Unduh file fisik ke HP / Komputer ini">
+            <button onclick="addSongToPartyQueue('${s.id}')" class="text-xs px-2.5 py-1 rounded-full bg-[#134e4a] hover:bg-[#0d9488] border border-[#2dd4bf]/40 text-[#2dd4bf] hover:text-white transition flex items-center gap-1 font-bold" title="Tambah ke Antrean Ruang Party">
+              <span>➕</span> <span class="hidden sm:inline">Party</span>
+            </button>
+            <button onclick="downloadSongToPhone('${s.id}')" class="text-xs px-2.5 py-1 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#14b8a6] text-[#ccc] hover:text-white transition flex items-center gap-1" title="Unduh file fisik ke HP / Komputer ini">
               <span>⬇️</span> <span class="hidden md:inline">Ke HP</span>
             </button>
             <button onclick="toggleFav('${s.id}')" class="text-sm p-1 hover:scale-110 transition" title="Favorit">${isFav ? '❤️' : '🤍'}</button>
-            <button onclick="toggleOffline('${s.id}')" class="text-xs px-2.5 py-1 rounded-full ${isOff ? 'bg-[#1db954]/20 text-[#1db954] border border-[#1db954]/40' : 'bg-[#242424] text-[#888]'} hover:text-white transition" title="Offline PWA Cache">
+            <button onclick="toggleOffline('${s.id}')" class="text-xs px-2.5 py-1 rounded-full ${isOff ? 'bg-[#14b8a6]/20 text-[#2dd4bf] border border-[#14b8a6]/40' : 'bg-[#242424] text-[#888]'} hover:text-white transition" title="Offline PWA Cache">
               ${isOff ? '✓ Saved' : '📲 Cache'}
             </button>
           </div>
@@ -2250,8 +2303,75 @@
 
     let myDeviceName = getDeviceDisplayName();
     let serverClockOffset = 0; // ms difference: serverTime - clientTime
+    let serverRTT = 0;
+    let ntpBurstSamples = [];
+    let isNtpBursting = false;
     let pingInterval = null;
     let activeRoomsData = [];
+    let currentRoomQueue = [];
+    let lastServerSyncState = null;
+    let scheduledPlayTimer = null;
+
+    // Phase-Locked Loop (PLL) Micro-Slewing Engine (<60ms target)
+    let pllInterval = null;
+
+    function startPLLSyncEngine() {
+      if (pllInterval) clearInterval(pllInterval);
+      pllInterval = setInterval(() => {
+        if (!isPartyMode || realAudio.paused || !lastServerSyncState || !lastServerSyncState.is_playing) {
+          if (realAudio.playbackRate !== playbackSpeed) {
+            realAudio.playbackRate = playbackSpeed;
+          }
+          return;
+        }
+
+        const now = Date.now();
+        const serverNow = now + serverClockOffset;
+        const elapsedSinceUpdate = Math.max(0, (serverNow - lastServerSyncState.server_time_ms) / 1000.0);
+        const expectedServerPos = (lastServerSyncState.position_sec || 0) + elapsedSinceUpdate;
+        const driftSec = realAudio.currentTime - expectedServerPos;
+        const driftMs = Math.round(driftSec * 1000);
+
+        // Update live latency pill badge
+        const pillBadge = document.getElementById('partySyncPillBadge');
+        if (pillBadge) {
+          const absMs = Math.abs(driftMs);
+          if (absMs <= 35) {
+            pillBadge.innerText = `RTT: ${Math.round(serverRTT)}ms • Locked (${absMs}ms)`;
+            pillBadge.className = "text-[10px] font-mono bg-[#042f2e] text-[#2dd4bf] border border-[#2dd4bf]/60 px-2 py-0.5 rounded-full font-bold";
+          } else if (absMs <= 75) {
+            pillBadge.innerText = `RTT: ${Math.round(serverRTT)}ms • Selaras (${absMs}ms)`;
+            pillBadge.className = "text-[10px] font-mono bg-[#042f2e] text-[#14b8a6] border border-[#14b8a6]/40 px-2 py-0.5 rounded-full font-bold";
+          } else {
+            pillBadge.innerText = `RTT: ${Math.round(serverRTT)}ms • Drift: ${driftMs}ms`;
+            pillBadge.className = "text-[10px] font-mono bg-[#2f2704] text-[#facc15] border border-[#facc15]/40 px-2 py-0.5 rounded-full font-bold";
+          }
+        }
+
+        // Micro-slewing PLL tanpa glitch audio
+        // 1. Sinkron sempurna (< 25ms)
+        if (Math.abs(driftSec) < 0.025) {
+          if (realAudio.playbackRate !== playbackSpeed) {
+            realAudio.playbackRate = playbackSpeed;
+          }
+        }
+        // 2. Haluskan drift (25ms - 250ms) dengan penyesuaian laju 1.5% pitch-neutral
+        else if (Math.abs(driftSec) <= 0.250) {
+          if (driftSec > 0) {
+            // Lokal terlalu cepat, pelankan 1.5%
+            realAudio.playbackRate = Math.max(0.95, playbackSpeed * 0.985);
+          } else {
+            // Lokal tertinggal, percepat 1.5%
+            realAudio.playbackRate = Math.min(1.05, playbackSpeed * 1.015);
+          }
+        }
+        // 3. Drift besar (> 250ms), hard seek
+        else {
+          realAudio.currentTime = expectedServerPos;
+          realAudio.playbackRate = playbackSpeed;
+        }
+      }, 350);
+    }
 
     function initPartyWebSocket() {
       if (partyWs) {
@@ -2271,15 +2391,16 @@
 
       partyWs.onopen = () => {
         console.log('[PartySync] Terhubung ke room:', currentPartyRoom);
-        sendPartyAction('ping', { client_time_ms: Date.now() });
+        startNTPBurst();
 
         if (pingInterval) clearInterval(pingInterval);
         pingInterval = setInterval(() => {
           if (partyWs && partyWs.readyState === WebSocket.OPEN) {
-            sendPartyAction('ping', { client_time_ms: Date.now() });
+            startNTPBurst();
           }
-        }, 5000);
+        }, 12000);
 
+        startPLLSyncEngine();
         refreshActiveRoomsList();
       };
 
@@ -2307,6 +2428,30 @@
       };
     }
 
+    // Mengirim 6x burst ping cepat (interval 60ms) untuk menyaring network jitter
+    function startNTPBurst() {
+      if (!partyWs || partyWs.readyState !== WebSocket.OPEN || isNtpBursting) return;
+      isNtpBursting = true;
+      ntpBurstSamples = [];
+      let sent = 0;
+      const totalPings = 6;
+
+      const sendOnePing = () => {
+        if (!partyWs || partyWs.readyState !== WebSocket.OPEN || sent >= totalPings) {
+          isNtpBursting = false;
+          return;
+        }
+        sendPartyAction('ping', { client_time_ms: Date.now() });
+        sent++;
+        if (sent < totalPings) {
+          setTimeout(sendOnePing, 60);
+        } else {
+          isNtpBursting = false;
+        }
+      };
+      sendOnePing();
+    }
+
     function sendPartyAction(action, payload = {}) {
       if (!isPartyMode) return;
       if (!partyWs || partyWs.readyState !== WebSocket.OPEN) {
@@ -2325,7 +2470,27 @@
       if (msg.action === 'pong') {
         const now = Date.now();
         const rtt = now - msg.client_time_ms;
-        serverClockOffset = msg.server_time_ms - (msg.client_time_ms + rtt / 2);
+        const estServerNow = msg.server_time_ms + (rtt / 2);
+        const offset = estServerNow - now;
+
+        ntpBurstSamples.push({ offset, rtt });
+
+        // Filter Lowest-RTT (ambil sampel terbaik)
+        if (ntpBurstSamples.length >= 3) {
+          const sorted = [...ntpBurstSamples].sort((a, b) => a.rtt - b.rtt);
+          const best = sorted.slice(0, 3);
+          serverClockOffset = best.reduce((sum, s) => sum + s.offset, 0) / best.length;
+          serverRTT = best[0].rtt;
+        }
+        return;
+      }
+
+      if (msg.action === 'room_first_entry') {
+        if (msg.saved_songs_count > 0) {
+          const countEl = document.getElementById('recoverySongCount');
+          if (countEl) countEl.innerText = msg.saved_songs_count;
+          openModal('roomRecoveryModal');
+        }
         return;
       }
 
@@ -2342,6 +2507,10 @@
     }
 
     function handlePartyStateSync(msg) {
+      lastServerSyncState = msg;
+      currentRoomQueue = msg.queue || [];
+      renderPartyQueueUI();
+
       // Update UI Room Info
       const activeTitle = document.getElementById('activePartyRoomTitle');
       if (activeTitle) activeTitle.innerText = msg.room_id || currentPartyRoom;
@@ -2354,7 +2523,14 @@
       // Render Active Members Online in This Room
       renderPartyMembers(msg.members || []);
 
-      if (!msg.song) return;
+      if (!msg.song) {
+        if (!realAudio.paused) {
+          realAudio.pause();
+          isPlaying = false;
+          updatePlayerUI();
+        }
+        return;
+      }
 
       // 1. Cek apakah lagunya berbeda dengan lagu lokal saat ini
       const isDifferentSong = currentSongIndex < 0 || !songs[currentSongIndex] || songs[currentSongIndex].id !== msg.song.id;
@@ -2377,25 +2553,36 @@
         targetPos += Math.max(0, elapsed);
       }
 
-      // Koreksi drift jika perbedaan lebih dari 0.35 detik
-      if (Math.abs(realAudio.currentTime - targetPos) > 0.35) {
-        realAudio.currentTime = targetPos;
-      }
-
-      // Sinkronkan status Play / Pause
-      if (msg.is_playing && realAudio.paused) {
-        realAudio.play().then(() => {
-          isPlaying = true;
-          hideIosPrompt();
+      // Scheduled future playback handling (now + 300ms)
+      if (msg.scheduled_at_ms && msg.scheduled_at_ms > serverNow) {
+        const waitMs = msg.scheduled_at_ms - serverNow;
+        if (scheduledPlayTimer) clearTimeout(scheduledPlayTimer);
+        scheduledPlayTimer = setTimeout(() => {
+          realAudio.currentTime = msg.position_sec || 0;
+          realAudio.play().then(() => {
+            isPlaying = true;
+            hideIosPrompt();
+            updatePlayerUI();
+          }).catch(err => showIosPrompt());
+        }, waitMs);
+      } else {
+        // Sinkronkan status Play / Pause
+        if (msg.is_playing && realAudio.paused) {
+          realAudio.currentTime = targetPos;
+          realAudio.play().then(() => {
+            isPlaying = true;
+            hideIosPrompt();
+            updatePlayerUI();
+          }).catch(err => {
+            console.warn('[PartySync] Autoplay diblokir oleh browser:', err);
+            showIosPrompt();
+          });
+        } else if (!msg.is_playing && !realAudio.paused) {
+          realAudio.pause();
+          realAudio.currentTime = targetPos;
+          isPlaying = false;
           updatePlayerUI();
-        }).catch(err => {
-          console.warn('[PartySync] Autoplay diblokir oleh browser (Safari iOS):', err);
-          showIosPrompt();
-        });
-      } else if (!msg.is_playing && !realAudio.paused) {
-        realAudio.pause();
-        isPlaying = false;
-        updatePlayerUI();
+        }
       }
 
       // Update jumlah pendengar aktif di UI
@@ -2403,6 +2590,128 @@
       if (listenersCountEl) {
         listenersCountEl.innerText = `${msg.listeners || 1} Perangkat Terhubung`;
       }
+    }
+
+    // --- Collaborative Party Queue Controller ---
+    function renderPartyQueueUI() {
+      const container = document.getElementById('partyQueueListContainer');
+      const badge = document.getElementById('partyQueueBadgeCount');
+      if (badge) badge.innerText = `${currentRoomQueue.length} lagu`;
+      if (!container) return;
+
+      if (currentRoomQueue.length === 0) {
+        container.innerHTML = `
+          <div class="p-3 text-center text-xs text-[#888] bg-[#141e1c] rounded-xl border border-[#233532]">
+            Antrean room saat ini kosong. Klik "+ Tambah Lagu ke Antrean" di atas untuk menambahkan musik!
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+      currentRoomQueue.forEach((song, idx) => {
+        const item = document.createElement('div');
+        item.className = "flex items-center justify-between p-2.5 rounded-xl bg-[#141e1c] hover:bg-[#1a2724] border border-[#233532] text-xs transition";
+        item.innerHTML = `
+          <div class="flex items-center gap-2.5 overflow-hidden flex-1 mr-2">
+            <span class="font-mono font-bold text-[#2dd4bf] w-5 text-center">${idx + 1}</span>
+            <div class="w-8 h-8 rounded bg-[#1f3330] flex items-center justify-center text-sm shrink-0">
+              ${song.cover || '🎵'}
+            </div>
+            <div class="truncate">
+              <div class="font-bold text-white truncate">${escapeHtml(song.title)}</div>
+              <div class="text-[10px] text-[#888] truncate">${escapeHtml(song.artist || 'Artis Lokal')}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            ${idx > 0 ? `<button onclick="reorderPartyQueue(${idx}, ${idx - 1})" class="p-1 hover:text-white text-[#888]" title="Naikkan">⬆️</button>` : ''}
+            ${idx < currentRoomQueue.length - 1 ? `<button onclick="reorderPartyQueue(${idx}, ${idx + 1})" class="p-1 hover:text-white text-[#888]" title="Turunkan">⬇️</button>` : ''}
+            <button onclick="playQueueItemNow(${idx})" class="p-1 text-[#2dd4bf] hover:scale-110 font-bold" title="Putar Sekarang">▶️</button>
+            <button onclick="removePartyQueueItem(${idx})" class="p-1 text-red-400 hover:text-red-300" title="Hapus dari antrean">🗑️</button>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function addSongToPartyQueue(songId) {
+      const song = songs.find(s => s.id === songId);
+      if (!song) return;
+
+      if (!isPartyMode) {
+        togglePlaybackMode();
+      }
+
+      sendPartyAction('queue_add', { song: song });
+      showToast(`"${song.title}" ditambahkan ke antrean Party!`, 'success');
+    }
+
+    function removePartyQueueItem(index) {
+      sendPartyAction('queue_remove', { target_index: index });
+    }
+
+    function reorderPartyQueue(fromIdx, toIdx) {
+      sendPartyAction('queue_reorder', { index_from: fromIdx, index_to: toIdx });
+    }
+
+    function playQueueItemNow(index) {
+      sendPartyAction('queue_play', { target_index: index });
+    }
+
+    function playNextPartyQueue() {
+      sendPartyAction('queue_next');
+    }
+
+    // Modal Add Song to Party Queue list filter
+    function filterPartySelectableSongs(query) {
+      const q = (query || '').toLowerCase().trim();
+      const list = songs.filter(s => s.title.toLowerCase().includes(q) || (s.artist && s.artist.toLowerCase().includes(q)));
+      renderPartySelectableSongsList(list);
+    }
+
+    function renderPartySelectableSongsList(list = songs) {
+      const container = document.getElementById('partySelectableSongsList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="p-4 text-center text-xs text-[#888]">Tidak ada lagu yang cocok.</div>`;
+        return;
+      }
+
+      list.forEach(s => {
+        const row = document.createElement('div');
+        row.className = "flex items-center justify-between p-2 rounded-xl bg-[#141e1c] hover:bg-[#1a2724] border border-[#233532] text-xs transition";
+        row.innerHTML = `
+          <div class="flex items-center gap-2.5 overflow-hidden flex-1 mr-2">
+            <div class="w-8 h-8 rounded bg-[#1f3330] flex items-center justify-center text-sm shrink-0">
+              ${s.cover || '🎵'}
+            </div>
+            <div class="truncate">
+              <div class="font-bold text-white truncate">${escapeHtml(s.title)}</div>
+              <div class="text-[10px] text-[#888] truncate">${escapeHtml(s.artist)}</div>
+            </div>
+          </div>
+          <button onclick="addSongToPartyQueue('${s.id}'); closeModal('addPartySongModal');" 
+                  class="px-3 py-1 rounded-lg text-xs font-bold bg-[#14b8a6] text-[#042f2e] hover:bg-[#2dd4bf] transition shrink-0">
+            + Antrean
+          </button>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    // Recovery Actions
+    function acceptRoomRecovery() {
+      sendPartyAction('restore_queue');
+      closeModal('roomRecoveryModal');
+      showToast('Playlist sebelumnya berhasil dipulihkan!', 'success');
+    }
+
+    function dismissRoomRecovery() {
+      sendPartyAction('dismiss_recovery');
+      closeModal('roomRecoveryModal');
+      showToast('Memulai Ruang Party dari playlist kosong', 'success');
     }
 
     function renderPartyMembers(members) {
