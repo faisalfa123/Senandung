@@ -272,6 +272,25 @@ func (q *Queue) processJob(job *models.DownloadJob) {
 	defaultLrc := fmt.Sprintf("[00:01.00] %s - %s\n[00:05.00] Format: %s (Koleksi Fisik STB)\n", artist, title, strings.ToUpper(job.Format))
 	_ = os.WriteFile(lrcPath, []byte(defaultLrc), 0644)
 
+	// Jika coverURL lokal tidak ada, gunakan URL thumbnail YouTube asli
+	if coverURL == "" {
+		targetQuery := job.Query
+		if len(targetQuery) == 11 && !strings.Contains(targetQuery, " ") {
+			coverURL = fmt.Sprintf("https://i.ytimg.com/vi/%s/hqdefault.jpg", targetQuery)
+		} else if strings.Contains(job.Query, "watch?v=") {
+			parts := strings.Split(job.Query, "watch?v=")
+			if len(parts) > 1 {
+				vID := strings.Split(parts[1], "&")[0]
+				coverURL = fmt.Sprintf("https://i.ytimg.com/vi/%s/hqdefault.jpg", vID)
+			}
+		} else if idx := strings.LastIndex(baseName, " ["); idx != -1 && strings.HasSuffix(baseName, "]") {
+			vID := baseName[idx+2 : len(baseName)-1]
+			if len(vID) == 11 {
+				coverURL = fmt.Sprintf("https://i.ytimg.com/vi/%s/hqdefault.jpg", vID)
+			}
+		}
+	}
+
 	songID := fmt.Sprintf("song_%d", time.Now().UnixNano())
 	newSong := &models.Song{
 		ID:         songID,

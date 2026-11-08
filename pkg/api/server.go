@@ -2,11 +2,13 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/faisalfa123/Senandung/pkg/db"
 	"github.com/faisalfa123/Senandung/pkg/downloader"
@@ -48,8 +50,9 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/playlists", s.handlePlaylists)
 	mux.HandleFunc("/api/playlists/", s.handlePlaylistByID)
 
-	// Downloader & Scanner
+	// Downloader, Lyrics & Scanner
 	mux.HandleFunc("/api/search", s.handleSearchLive)
+	mux.HandleFunc("/api/lyrics", s.handleLyrics)
 	mux.HandleFunc("/api/download", s.handleDownload)
 	mux.HandleFunc("/api/download/status", s.handleDownloadStatus)
 	mux.HandleFunc("/api/scan", s.handleScan)
@@ -304,6 +307,94 @@ func (s *Server) handleSearchLive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = json.NewEncoder(w).Encode(results)
+}
+
+func (s *Server) handleLyrics(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	title := strings.TrimSpace(r.URL.Query().Get("title"))
+	artist := strings.TrimSpace(r.URL.Query().Get("artist"))
+
+	// Bersihkan title dari format bracket yt-dlp [videoId] atau (Official Video)
+	cleanTitle := title
+	if idx := strings.Index(cleanTitle, " ["); idx != -1 {
+		cleanTitle = strings.TrimSpace(cleanTitle[:idx])
+	}
+	for _, suffix := range []string{"(Official Music Video)", "(Official Video)", "(Lyrics)", "(Lirik)", "[Official Audio]", "(Audio)"} {
+		cleanTitle = strings.ReplaceAll(cleanTitle, suffix, "")
+	}
+	cleanTitle = strings.TrimSpace(cleanTitle)
+
+	type LyricsResponse struct {
+		Found        bool   `json:"found"`
+		SyncedLyrics string `json:"synced_lyrics"`
+		PlainLyrics  string `json:"plain_lyrics"`
+		TrackName    string `json:"track_name,omitempty"`
+		ArtistName   string `json:"artist_name,omitempty"`
+	}
+
+	if cleanTitle == "" {
+		_ = json.NewEncoder(w).Encode(LyricsResponse{Found: false})
+		return
+	}
+
+	// 1. Coba exact match di LRCLIB API
+	client := &http.Client{Timeout: 6 * time.Second}
+	reqURL := fmt.Sprintf("https://lrclib.net/api/get?track_name=%s&artist_name=%s",
+		strings.ReplaceAll(cleanTitle, " ", "+"),
+		strings.ReplaceAll(artist, " ", "+"),
+	)
+	if artist == "" || artist == "Koleksi STB" || artist == "Artis Lokal" {
+		reqURL = fmt.Sprintf("https://lrclib.net/api/search?q=%s", strings.ReplaceAll(cleanTitle, " ", "+"))
+	}
+
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, reqURL, nil)
+	if err != nil {
+		_ = json.NewEncoder(w).Encode(LyricsResponse{Found: false})
+		return
+	}
+	req.Header.Set("User-Agent", "Senandung-HiRes-Player/2.0")
+
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		_ = json.NewEncoder(w).Encode(LyricsResponse{Found: false})
+		return
+	}
+	defer resp.Body.Close()
+
+	var rawData interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&rawData); err != nil {
+		_ = json.NewEncoder(w).Encode(LyricsResponse{Found: false})
+		return
+	}
+
+	// Parsing hasil LRCLIB (baik single object maupun array search)
+	var syncedLyrics, plainLyrics, trackName, artistName string
+	if obj, ok := rawData.(map[string]interface{}); ok {
+		syncedLyrics, _ = obj["syncedLyrics"].(string)
+		plainLyrics, _ = obj["plainLyrics"].(string)
+		trackName, _ = obj["trackName"].(string)
+		artistName, _ = obj["artistName"].(string)
+	} else if arr, ok := rawData.([]interface{}); ok && len(arr) > 0 {
+		if first, ok := arr[0].(map[string]interface{}); ok {
+			syncedLyrics, _ = first["syncedLyrics"].(string)
+			plainLyrics, _ = first["plainLyrics"].(string)
+			trackName, _ = first["trackName"].(string)
+			artistName, _ = first["artistName"].(string)
+		}
+	}
+
+	if syncedLyrics == "" && plainLyrics == "" {
+		_ = json.NewEncoder(w).Encode(LyricsResponse{Found: false})
+		return
+	}
+
+	_ = json.NewEncoder(w).Encode(LyricsResponse{
+		Found:        true,
+		SyncedLyrics: syncedLyrics,
+		PlainLyrics:  plainLyrics,
+		TrackName:    trackName,
+		ArtistName:   artistName,
+	})
 }
 
 func (s *Server) handleSysInfo(w http.ResponseWriter, r *http.Request) {
