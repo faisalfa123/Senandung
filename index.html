@@ -1153,34 +1153,82 @@
     </div>
   </div>
 
-  <!-- Modal: Tambah Lagu ke Antrean Room Party -->
-  <div id="addSongToRoomModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-[#242424] border border-[#333] rounded-2xl p-5 w-full max-w-lg space-y-4 shadow-2xl flex flex-col max-h-[85vh]">
-      <div class="flex justify-between items-center border-b border-[#333] pb-3">
-        <div class="flex items-center gap-2">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          <h3 class="font-bold text-sm text-white">Tambah Lagu ke Antrean Room</h3>
+  <!-- Modal: Tambahkan Lagu ke Playlist (Solo Mode) -->
+  <div id="addToPlaylistModal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-[#181818] border border-white/10 rounded-3xl p-5 sm:p-6 w-full max-w-md space-y-4 shadow-2xl flex flex-col">
+      <div class="flex justify-between items-center border-b border-white/10 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-[#1db954]/20 border border-[#1db954]/40 flex items-center justify-center text-[#1db954]">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white">Tambahkan ke Playlist</h3>
+            <p id="addToPlaylistSongTitle" class="text-[11px] text-[#888] truncate max-w-xs">Pilih playlist tujuan</p>
+          </div>
+        </div>
+        <button onclick="closeModal('addToPlaylistModal')" class="text-sm text-[#888] hover:text-white px-2 py-1">✕</button>
+      </div>
+
+      <div id="targetPlaylistOptionsList" class="space-y-2 max-h-64 overflow-y-auto custom-scroll pr-1">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-white/10 text-xs">
+        <button onclick="openModal('createPlaylistModal'); closeModal('addToPlaylistModal');" class="text-[#1db954] hover:underline font-semibold flex items-center gap-1">
+          + Buat Playlist Baru
+        </button>
+        <button onclick="closeModal('addToPlaylistModal')" class="px-4 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.12] text-white">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Tambah Lagu ke Antrean Room Party (Multiple Choice) -->
+  <div id="addSongToRoomModal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-[#181818] border border-white/10 rounded-3xl p-5 sm:p-6 w-full max-w-lg space-y-4 shadow-2xl flex flex-col max-h-[85vh]">
+      <div class="flex justify-between items-center border-b border-white/10 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-[#1db954]/20 border border-[#1db954]/40 flex items-center justify-center text-[#1db954]">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white">Tambah Lagu ke Antrean Room</h3>
+            <p class="text-[11px] text-[#888]">Pilih beberapa lagu sekaligus (Multi-Pilih)</p>
+          </div>
         </div>
         <button onclick="closeModal('addSongToRoomModal')" class="text-sm text-[#888] hover:text-white px-2 py-1">✕</button>
       </div>
 
-      <div class="relative">
-        <input type="text" id="addRoomSearchInput" oninput="filterAddRoomSongs(this.value)" placeholder="Cari lagu dari koleksi..." 
-               class="w-full bg-[#181818] border border-[#383838] rounded-xl px-3.5 py-2 text-xs text-white placeholder-[#777] focus:outline-none focus:border-[#ffd700]">
-        <span class="absolute right-3 top-2.5 text-[#777] pointer-events-none"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg></span>
+      <div class="flex items-center gap-2">
+        <div class="relative flex-1">
+          <input type="text" id="addRoomSearchInput" oninput="filterAddRoomSongs(this.value)" placeholder="Cari lagu dari koleksi..." 
+                 class="w-full bg-[#121212] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-[#777] focus:outline-none focus:border-[#1db954]">
+          <span class="absolute right-3 top-2.5 text-[#777] pointer-events-none"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg></span>
+        </div>
+        <button onclick="toggleSelectAllRoomSongs()" class="text-xs px-3 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white font-medium transition shrink-0" id="btnSelectAllRoom">
+          Pilih Semua
+        </button>
       </div>
 
-      <div id="addRoomSongList" class="flex-1 overflow-y-auto custom-scroll space-y-1.5 pr-1 min-h-[220px]">
+      <!-- Multiple Selection Container -->
+      <div id="addRoomSongList" class="flex-1 overflow-y-auto custom-scroll space-y-1.5 pr-1 min-h-[240px]">
         <!-- Populated via JS renderAddRoomSongList() -->
       </div>
 
-      <div class="flex justify-between items-center pt-2 border-t border-[#333] text-xs">
-        <button onclick="switchTab('ytsearch'); closeModal('addSongToRoomModal');" class="text-[#3ea6ff] hover:underline flex items-center gap-1">
-          <svg class="w-4 h-4 text-[#1db954] inline mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg><span>Unduh Lagu Baru di YouTube</span>
-        </button>
-        <button onclick="closeModal('addSongToRoomModal')" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[#333] hover:bg-[#444] text-white">
-          Tutup
-        </button>
+      <!-- Bottom Actions -->
+      <div class="flex items-center justify-between pt-3 border-t border-white/10 text-xs">
+        <div class="text-[11px] text-[#aaa]">
+          Terpilih: <strong id="selectedRoomSongsCount" class="text-[#1db954]">0</strong> lagu
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="closeModal('addSongToRoomModal')" class="px-4 py-2 rounded-full text-xs font-semibold bg-white/[0.06] hover:bg-white/[0.1] text-white transition">
+            Batal
+          </button>
+          <button onclick="submitSelectedRoomSongs()" id="btnSubmitRoomSongs" class="btn-neon-green font-extrabold text-xs px-5 py-2 rounded-full transition shadow cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+            Tambahkan ke Room
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1330,6 +1378,8 @@
     let isPlaying = false;
     let currentTime = 0;
     let playbackSpeed = 1.0;
+    let isShuffleActive = false;
+    let isRepeatActive = false; // false = off, true = repeat current track
     let isPartyMode = false;
     let currentPartyRoom = "Ruang Tamu";
     let currentJoinedRoom = null;
@@ -1356,6 +1406,16 @@
     });
 
     realAudio.addEventListener('ended', () => {
+      if (isRepeatActive && currentSongIndex >= 0) {
+        // Repeat mode: ulangi lagu yang sedang diputar dari detik 0
+        realAudio.currentTime = 0;
+        realAudio.play().then(() => {
+          isPlaying = true;
+          updatePlayerUI();
+        }).catch(e => console.warn(e));
+        return;
+      }
+
       if (isPartyMode) {
         sendRoomQueueNext();
       } else if (soloQueue.length > 0) {
@@ -1369,6 +1429,7 @@
           playSongAt(0);
         }
       } else {
+        // Continuous autoplay: otomatis berlanjut ke lagu berikutnya (acak jika shuffle aktif)
         nextSong();
       }
     });
@@ -1390,7 +1451,7 @@
 
     function init() {
       renderDashboardSongs();
-      renderPlaylists();
+      fetchPlaylistsFromBackend();
       renderMusicSearchCards();
       renderSearchHistoryList();
       updatePreferenceNoticeUI();
@@ -1550,6 +1611,10 @@
             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Party</span>
           </button>
         ` : `
+          <button onclick="openAddToPlaylistModal('${s.id}')" class="text-xs px-2.5 py-1 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] text-[#ccc] hover:text-white transition flex items-center gap-1" title="Tambahkan lagu ini ke Sesi Playlist">
+            <svg class="w-3 h-3 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            <span>+ Playlist</span>
+          </button>
           <button onclick="addToSoloQueue('${s.id}')" class="text-xs px-2.5 py-1 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] text-[#ccc] hover:text-white transition flex items-center gap-1" title="Tambah ke antrean putar solo">
             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Antrean</span>
           </button>
@@ -2199,6 +2264,7 @@
       applyDynamicTheme();
       renderDashboardSongs();
       renderKaraokeLyrics();
+      fetchLyricsAutoSilently(s);
 
       if (isPartyMode && !fromPartySync) {
         sendPartyAction('track_change', {
@@ -2346,7 +2412,7 @@
       }
 
       const s = songs[currentSongIndex];
-      const isAudPlaying = !realAudio.paused && realAudio.currentTime > 0;
+      const isAudPlaying = !realAudio.paused;
       const isFav = favorites.has(s.id);
 
       // 1. Desktop Bar
@@ -2412,14 +2478,37 @@
 
     function nextSong() {
       if (songs.length === 0) return;
-      currentSongIndex = (currentSongIndex + 1) % songs.length;
-      playSongAt(currentSongIndex);
+      if (isShuffleActive && songs.length > 1) {
+        let randIdx = currentSongIndex;
+        while (randIdx === currentSongIndex) {
+          randIdx = Math.floor(Math.random() * songs.length);
+        }
+        playSongAt(randIdx);
+      } else {
+        currentSongIndex = (currentSongIndex + 1) % songs.length;
+        playSongAt(currentSongIndex);
+      }
     }
 
     function prevSong() {
       if (songs.length === 0) return;
-      currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
-      playSongAt(currentSongIndex);
+      // Jika lagu sudah berjalan lebih dari 3 detik, restart lagu saat ini
+      if (realAudio.currentTime > 3) {
+        realAudio.currentTime = 0;
+        currentTime = 0;
+        updateProgressUI();
+        return;
+      }
+      if (isShuffleActive && songs.length > 1) {
+        let randIdx = currentSongIndex;
+        while (randIdx === currentSongIndex) {
+          randIdx = Math.floor(Math.random() * songs.length);
+        }
+        playSongAt(randIdx);
+      } else {
+        currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+        playSongAt(currentSongIndex);
+      }
     }
 
     function seekProgress(e) {
@@ -2609,6 +2698,54 @@
         alert(`"${pendingDownloadedSong.title}" tersimpan di Dashboard STB.`);
       }
       closeModal('lyricsApprovalModal');
+    }
+
+    function fetchLyricsAutoSilently(song) {
+      if (!song || !song.id) return;
+      // Jangan fetch ulang jika lagu sudah memiliki lirik sinkron asli
+      const hasRealLyrics = song.lyrics && song.lyrics.length > 2;
+      if (hasRealLyrics) return;
+
+      fetch(`/api/lyrics?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist || '')}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.found && (data.synced_lyrics || data.plain_lyrics)) {
+            const rawLrc = data.synced_lyrics || data.plain_lyrics;
+            const parsed = [];
+            const regex = /\[(\d{2}):(\d{2})\.?(\d{2,3})?\](.*)/;
+
+            if (data.synced_lyrics) {
+              rawLrc.split('\n').forEach(line => {
+                const m = line.match(regex);
+                if (m) {
+                  const time = parseInt(m[1]) * 60 + parseInt(m[2]);
+                  parsed.push({ time, text: m[4].trim() });
+                }
+              });
+            } else {
+              rawLrc.split('\n').filter(l => l.trim().length > 0).forEach((l, idx) => {
+                parsed.push({ time: idx * 5, text: l.trim() });
+              });
+            }
+
+            if (parsed.length > 0) {
+              song.lyrics = parsed;
+              // Simpan otomatis ke STB database
+              fetch(`/api/songs/${encodeURIComponent(song.id)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lyrics: rawLrc })
+              }).catch(e => console.warn(e));
+
+              // Jika tab karaoke sedang aktif memutar lagu ini, refresh tampilan
+              if (currentSongIndex >= 0 && songs[currentSongIndex].id === song.id) {
+                renderKaraokeLyrics();
+              }
+              console.log(`[Lyrics] Otomatis memuat & menyimpan lirik untuk: ${song.title}`);
+            }
+          }
+        })
+        .catch(e => console.warn('Silent lyrics fetch error:', e));
     }
 
     function searchInternetLyricsForCurrent() {
@@ -2947,25 +3084,28 @@
         targetPos += Math.max(0, elapsed);
       }
 
-      // 4. Dual-Engine Drift Compensation:
-      // If drift is > 0.25s (hard desync), step directly to target position.
-      // If drift is between 0.025s (25ms) and 0.25s, use smooth proportional playbackRate nudge (1.03x / 0.97x) to avoid audible pop/stutter.
+      // 4. Smooth Crystal-Clock Drift Compensation (No stuttering/patah-patah):
+      // Mengeliminasi seek berulang saat client baru bergabung.
+      // Hanya lakukan hard seek jika deviasi waktu sangat jauh (> 1.2 detik).
+      // Untuk drift di bawah 1.2 detik, gunakan dynamic pitch-preserving micro rate (0.97x - 1.03x)
+      // sehingga audio mengalir mulus tanpa henti/buffer patah-patah.
       const drift = realAudio.currentTime - targetPos;
       const absDrift = Math.abs(drift);
 
-      if (absDrift > 0.25) {
+      if (absDrift > 1.2) {
+        // Hard sync hanya saat pertama kali join atau lagging parah
         realAudio.currentTime = targetPos;
         realAudio.playbackRate = 1.0;
-      } else if (absDrift > 0.025) {
-        // Behind server clock: speed up 3%
+      } else if (absDrift > 0.04) { // > 40ms
         if (drift < 0) {
-          realAudio.playbackRate = 1.03;
+          // Sedikit tertinggal dari server -> percepat halus 2.5%
+          realAudio.playbackRate = 1.025;
         } else {
-          // Ahead of server clock: slow down 3%
-          realAudio.playbackRate = 0.97;
+          // Sedikit mendahului server -> perlambat halus 2.5%
+          realAudio.playbackRate = 0.975;
         }
       } else {
-        // Aligned within ±25ms (transparent lock)
+        // Presisi < 40ms -> kecepatan normal 1.0x tanpa interupsi
         realAudio.playbackRate = 1.0;
       }
 
@@ -3098,7 +3238,9 @@
       sendPartyAction('queue_next', {});
     }
 
-    // Modal Add Song to Room List Filter
+    // Modal Add Song to Room List with Multi-Choice Selection
+    let selectedRoomSongIds = new Set();
+
     function renderAddRoomSongList(filterText = '') {
       const container = document.getElementById('addRoomSongList');
       if (!container) return;
@@ -3117,17 +3259,27 @@
             Tidak ada lagu ditemukan.<br>Unduh lagu di menu 'Unduh Musik'.
           </div>
         `;
+        updateSelectedRoomSongsCount();
         return;
       }
 
       filtered.forEach(s => {
+        const isSelected = selectedRoomSongIds.has(s.id);
         const row = document.createElement('div');
-        row.className = 'flex items-center justify-between p-2.5 rounded-xl hover:bg-[#2d2d2d] border border-[#2f2f2f] transition text-xs';
-        const addThumb = getCoverHtml(s, "w-full h-full object-cover rounded-lg", "w-full h-full rounded-lg", "text-[10px]");
+        row.className = `flex items-center justify-between p-2.5 rounded-2xl border transition cursor-pointer select-none ${
+          isSelected 
+            ? 'bg-[#1db954]/15 border-[#1db954]/60 text-white' 
+            : 'bg-white/[0.03] hover:bg-white/[0.08] border-white/[0.06] text-[#ddd]'
+        }`;
+        row.onclick = () => toggleRoomSongSelection(s.id);
+
+        const addThumb = getCoverHtml(s, "w-full h-full object-cover rounded-xl", "w-full h-full rounded-xl", "text-[10px]");
 
         row.innerHTML = `
-          <div class="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-            <div class="w-8 h-8 rounded-lg bg-[#181818] flex items-center justify-center shrink-0 overflow-hidden">
+          <div class="flex items-center gap-3 min-w-0 flex-1 pr-2">
+            <input type="checkbox" ${isSelected ? 'checked' : ''} 
+                   class="w-4 h-4 rounded accent-[#1db954] cursor-pointer pointer-events-none" />
+            <div class="w-9 h-9 rounded-xl bg-[#181818] flex items-center justify-center shrink-0 overflow-hidden shadow">
               ${addThumb}
             </div>
             <div class="min-w-0 flex-1">
@@ -3135,15 +3287,87 @@
                 <span>${escapeHtml(s.title)}</span>
                 ${s.isHiRes ? '<span class="badge-hires-gold text-[7px] font-black px-1 rounded">HI-RES</span>' : ''}
               </div>
-              <div class="text-[10px] text-[#888] truncate">${escapeHtml(s.artist)}</div>
+              <div class="text-[10px] text-[#888] truncate">${escapeHtml(s.artist)} • ${s.codec || 'MP3'}</div>
             </div>
           </div>
-          <button onclick="addSongToRoomQueue('${s.id}')" class="btn-neon-green font-extrabold text-[11px] px-3.5 py-1.5 rounded-full transition shadow cursor-pointer">
-            + Tambah
-          </button>
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full ${isSelected ? 'bg-[#1db954] text-black' : 'text-[#777] bg-white/[0.05]'}">
+            ${isSelected ? 'Dipilih' : 'Pilih'}
+          </span>
         `;
         container.appendChild(row);
       });
+
+      updateSelectedRoomSongsCount();
+    }
+
+    function toggleRoomSongSelection(songId) {
+      if (selectedRoomSongIds.has(songId)) {
+        selectedRoomSongIds.delete(songId);
+      } else {
+        selectedRoomSongIds.add(songId);
+      }
+      const searchVal = document.getElementById('addRoomSearchInput')?.value || '';
+      renderAddRoomSongList(searchVal);
+    }
+
+    function toggleSelectAllRoomSongs() {
+      const searchVal = document.getElementById('addRoomSearchInput')?.value || '';
+      const query = searchVal.toLowerCase().trim();
+      const filtered = songs.filter(s => {
+        if (!query) return true;
+        return (s.title && s.title.toLowerCase().includes(query)) ||
+               (s.artist && s.artist.toLowerCase().includes(query));
+      });
+
+      const allSelected = filtered.every(s => selectedRoomSongIds.has(s.id));
+      if (allSelected) {
+        filtered.forEach(s => selectedRoomSongIds.delete(s.id));
+      } else {
+        filtered.forEach(s => selectedRoomSongIds.add(s.id));
+      }
+      renderAddRoomSongList(searchVal);
+    }
+
+    function updateSelectedRoomSongsCount() {
+      const countEl = document.getElementById('selectedRoomSongsCount');
+      const submitBtn = document.getElementById('btnSubmitRoomSongs');
+      const count = selectedRoomSongIds.size;
+      if (countEl) countEl.innerText = count;
+      if (submitBtn) {
+        submitBtn.disabled = count === 0;
+        submitBtn.innerText = count > 1 ? `Tambahkan ${count} Lagu` : 'Tambahkan ke Room';
+      }
+    }
+
+    function submitSelectedRoomSongs() {
+      if (selectedRoomSongIds.size === 0) return;
+      
+      const idsToAdd = Array.from(selectedRoomSongIds);
+      let addedCount = 0;
+      
+      idsToAdd.forEach(id => {
+        const song = songs.find(s => s.id === id);
+        if (song) {
+          const qSong = {
+            id: song.id,
+            title: song.title,
+            artist: song.artist,
+            album: song.album,
+            duration: song.duration,
+            cover_url: song.cover_url,
+            isHiRes: song.isHiRes,
+            codec: song.codec
+          };
+          roomQueueSongs.push(qSong);
+          sendPartyAction('queue_add', { song: qSong });
+          addedCount++;
+        }
+      });
+
+      renderRoomQueue();
+      selectedRoomSongIds.clear();
+      closeModal('addSongToRoomModal');
+      showToast(`Berhasil menambahkan ${addedCount} lagu ke antrean room!`, 'success');
     }
 
     function filterAddRoomSongs(val) {
@@ -3732,10 +3956,64 @@
       enterPartyRoom(roomName);
     }
 
-    // Playlists
+    // ================= REAL PLAYLIST ENGINE WITH BACKEND & LOCALSTORAGE PERSISTENCE =================
+    let pendingSongToAddToPlaylist = null;
+
+    function fetchPlaylistsFromBackend() {
+      fetch('/api/playlists')
+        .then(res => res.json())
+        .then(serverPls => {
+          if (Array.isArray(serverPls) && serverPls.length > 0) {
+            playlists = serverPls.map(p => ({
+              id: p.id,
+              name: p.name,
+              privacy: 'shared',
+              songs: p.song_ids || []
+            }));
+          } else {
+            // Restore from localStorage or default
+            try {
+              const local = localStorage.getItem('senandung_playlists');
+              if (local) {
+                playlists = JSON.parse(local);
+              } else if (playlists.length === 0) {
+                playlists = [
+                  { id: 'pl_fav', name: 'Lagu Santai Sore', privacy: 'shared', songs: [] }
+                ];
+              }
+            } catch(e) {}
+          }
+          renderPlaylists();
+        })
+        .catch(() => {
+          try {
+            const local = localStorage.getItem('senandung_playlists');
+            if (local) playlists = JSON.parse(local);
+          } catch(e) {}
+          renderPlaylists();
+        });
+    }
+
+    function persistPlaylists() {
+      try {
+        localStorage.setItem('senandung_playlists', JSON.stringify(playlists));
+      } catch(e) {}
+    }
+
     function renderPlaylists() {
       const grid = document.getElementById('playlistGrid');
+      if (!grid) return;
       grid.innerHTML = '';
+
+      if (playlists.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-12 text-center text-[#777] text-xs">
+            Belum ada playlist. Klik tombol "+ Buat Playlist Baru" di atas untuk memulai.
+          </div>
+        `;
+        return;
+      }
+
       playlists.forEach(pl => {
         const card = document.createElement('div');
         card.className = 'bg-white/[0.04] hover:bg-white/[0.08] p-4 rounded-2xl border border-white/[0.08] hover:border-white/[0.18] cursor-pointer transition group shadow-lg';
@@ -3764,19 +4042,118 @@
     function createNewPlaylist() {
       const name = document.getElementById('newPlNameInput').value.trim();
       if (!name) return;
-      const privacy = document.querySelector('input[name="plPrivacy"]:checked').value;
-      const newPl = {
-        id: 'pl_' + Date.now(),
-        name: name,
-        privacy: privacy,
-        icon: privacy === 'private' ? 'private' : 'shared',
-        songs: ["s1"]
-      };
-      playlists.push(newPl);
-      closeModal('createPlaylistModal');
-      document.getElementById('newPlNameInput').value = '';
+      const privacy = document.querySelector('input[name="plPrivacy"]:checked')?.value || 'shared';
+      
+      // Kirim ke backend jika shared
+      fetch('/api/playlists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name })
+      })
+      .then(res => res.json())
+      .then(serverPl => {
+        const newPl = {
+          id: serverPl.id || ('pl_' + Date.now()),
+          name: name,
+          privacy: privacy,
+          songs: []
+        };
+        playlists.push(newPl);
+        persistPlaylists();
+        closeModal('createPlaylistModal');
+        document.getElementById('newPlNameInput').value = '';
+        renderPlaylists();
+        showToast(`Playlist "${name}" berhasil dibuat!`, 'success');
+      })
+      .catch(() => {
+        const newPl = {
+          id: 'pl_' + Date.now(),
+          name: name,
+          privacy: privacy,
+          songs: []
+        };
+        playlists.push(newPl);
+        persistPlaylists();
+        closeModal('createPlaylistModal');
+        document.getElementById('newPlNameInput').value = '';
+        renderPlaylists();
+        showToast(`Playlist "${name}" berhasil dibuat secara lokal!`, 'success');
+      });
+    }
+
+    function openAddToPlaylistModal(songId) {
+      const song = songs.find(s => s.id === songId);
+      if (!song) return;
+      pendingSongToAddToPlaylist = song;
+
+      const titleEl = document.getElementById('addToPlaylistSongTitle');
+      if (titleEl) titleEl.innerText = `${song.title} - ${song.artist}`;
+
+      const container = document.getElementById('targetPlaylistOptionsList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (playlists.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-6 text-xs text-[#777]">
+            Belum ada playlist dibuat. Klik '+ Buat Playlist Baru' di bawah.
+          </div>
+        `;
+      } else {
+        playlists.forEach(pl => {
+          const isAlreadyIn = (pl.songs || []).includes(song.id);
+          const row = document.createElement('div');
+          row.className = `flex items-center justify-between p-3 rounded-2xl border transition cursor-pointer select-none ${
+            isAlreadyIn 
+              ? 'bg-white/[0.02] border-white/[0.04] opacity-60' 
+              : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.08] hover:border-[#1db954]/50'
+          }`;
+          
+          row.innerHTML = `
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center text-[#1db954]">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              </div>
+              <div>
+                <div class="font-bold text-xs text-white">${escapeHtml(pl.name)}</div>
+                <div class="text-[10px] text-[#888]">${(pl.songs || []).length} lagu • ${pl.privacy === 'private' ? 'Privat' : 'Bersama'}</div>
+              </div>
+            </div>
+            <button class="text-xs px-3 py-1.5 rounded-full font-bold transition ${isAlreadyIn ? 'text-[#888] bg-white/[0.05]' : 'btn-neon-green text-black'}">
+              ${isAlreadyIn ? 'Sudah Ada' : '+ Masukkan'}
+            </button>
+          `;
+
+          if (!isAlreadyIn) {
+            row.onclick = () => addSongToSpecificPlaylist(pl.id, song.id);
+          }
+          container.appendChild(row);
+        });
+      }
+
+      openModal('addToPlaylistModal');
+    }
+
+    function addSongToSpecificPlaylist(playlistId, songId) {
+      const pl = playlists.find(p => p.id === playlistId);
+      if (!pl) return;
+      if (!pl.songs) pl.songs = [];
+      if (!pl.songs.includes(songId)) {
+        pl.songs.push(songId);
+      }
+
+      // Sync ke backend server
+      fetch(`/api/playlists/${encodeURIComponent(playlistId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ song_ids: pl.songs })
+      }).catch(e => console.warn(e));
+
+      persistPlaylists();
       renderPlaylists();
-      alert(`Playlist "${name}" (${privacy === 'private' ? 'Privat' : 'Bersama'}) berhasil dibuat!`);
+      closeModal('addToPlaylistModal');
+      const s = songs.find(x => x.id === songId);
+      showToast(`Lagu "${s ? s.title : ''}" berhasil masuk ke playlist "${pl.name}"!`, 'success');
     }
 
     function showPlaylistDetail(pl) {
@@ -3789,32 +4166,67 @@
 
       const listContainer = document.getElementById('playlistSongList');
       listContainer.innerHTML = '';
-      const plSongs = songs.filter(s => pl.songs.includes(s.id));
-      plSongs.forEach(s => {
-        const row = document.createElement('div');
-        row.className = 'flex items-center justify-between p-2.5 rounded-lg hover:bg-[#222] cursor-pointer text-xs';
-        row.innerHTML = `
-          <div class="flex items-center gap-3">
-            <span class="text-base">${s.cover}</span>
-            <div>
-              <div class="font-bold text-white flex items-center gap-1.5">
-                ${s.title}
-                ${s.isHiRes ? '<span class="badge-hires-gold text-[8px] font-black px-1 rounded">HI-RES</span>' : ''}
-              </div>
-              <div class="text-[#888]">${s.artist} • ${s.codec}</div>
-            </div>
+      const plSongs = (pl.songs || []).map(id => songs.find(s => s.id === id)).filter(Boolean);
+
+      if (plSongs.length === 0) {
+        listContainer.innerHTML = `
+          <div class="text-center py-8 text-[#777] text-xs">
+            Belum ada lagu di playlist ini.<br>Tambahkan lagu dari Dashboard dengan menekan tombol <strong>+ Playlist</strong>.
           </div>
-          <button class="text-[#1db954] font-bold text-xs">Putar ▶</button>
         `;
-        row.onclick = () => {
-          const idx = songs.findIndex(x => x.id === s.id);
-          playSongAt(idx);
-        };
-        listContainer.appendChild(row);
-      });
+      } else {
+        plSongs.forEach((s, idx) => {
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.04] transition group text-xs';
+          const pThumb = getCoverHtml(s, "w-full h-full object-cover rounded-lg", "w-full h-full rounded-lg", "text-xs");
+
+          row.innerHTML = `
+            <div class="flex items-center gap-3 min-w-0 flex-1 cursor-pointer pr-2" onclick="playSongAt(songs.findIndex(x => x.id === '${s.id}'))">
+              <span class="text-[11px] text-[#777] font-mono w-4 text-center shrink-0">${idx + 1}</span>
+              <div class="w-9 h-9 rounded-lg bg-[#222] flex items-center justify-center shrink-0 overflow-hidden shadow">
+                ${pThumb}
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="font-bold text-white truncate flex items-center gap-1.5">
+                  <span>${escapeHtml(s.title)}</span>
+                  ${s.isHiRes ? '<span class="badge-hires-gold text-[7px] font-black px-1 rounded">HI-RES</span>' : ''}
+                </div>
+                <div class="text-[11px] text-[#888] truncate">${escapeHtml(s.artist)} • ${s.codec || 'MP3'}</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button onclick="playSongAt(songs.findIndex(x => x.id === '${s.id}'))" class="text-xs font-bold text-[#1db954] hover:text-[#1ed760] px-3 py-1 rounded-full bg-[#1db954]/10 border border-[#1db954]/30 hover:bg-[#1db954]/20 transition">
+                Putar
+              </button>
+              <button onclick="removeSongFromPlaylist('${pl.id}', '${s.id}')" class="text-[#666] hover:text-red-400 p-1 transition" title="Hapus dari playlist">
+                ✕
+              </button>
+            </div>
+          `;
+          listContainer.appendChild(row);
+        });
+      }
 
       view.classList.remove('hidden');
       view.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function removeSongFromPlaylist(playlistId, songId) {
+      const pl = playlists.find(p => p.id === playlistId);
+      if (!pl || !pl.songs) return;
+      pl.songs = pl.songs.filter(id => id !== songId);
+      
+      // Update backend
+      fetch(`/api/playlists/${encodeURIComponent(playlistId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ song_ids: pl.songs })
+      }).catch(e => console.warn(e));
+
+      persistPlaylists();
+      showPlaylistDetail(pl);
+      renderPlaylists();
+      showToast('Lagu dihapus dari playlist.', 'success');
     }
 
     function closePlaylistDetail() {
@@ -4014,11 +4426,41 @@
     }
 
     function toggleShuffle() {
-      document.getElementById('btnShuffle').classList.toggle('text-[#1db954]');
+      isShuffleActive = !isShuffleActive;
+      const btn = document.getElementById('btnShuffle');
+      const fsBtn = document.getElementById('fsBtnShuffle');
+      if (btn) {
+        if (isShuffleActive) {
+          btn.className = "text-[#1db954] hover:text-[#1ed760] transition p-1";
+          btn.title = "Acak Lagu (Aktif)";
+        } else {
+          btn.className = "text-[#888] hover:text-white transition p-1";
+          btn.title = "Acak Lagu (Mati)";
+        }
+      }
+      if (fsBtn) {
+        fsBtn.className = isShuffleActive ? "text-[#1db954] transition p-2" : "text-[#888] hover:text-white transition p-2";
+      }
+      showToast(isShuffleActive ? 'Mode Acak (Shuffle) Aktif' : 'Mode Acak Dimatikan', 'success');
     }
 
     function toggleRepeat() {
-      document.getElementById('btnRepeat').classList.toggle('text-[#1db954]');
+      isRepeatActive = !isRepeatActive;
+      const btn = document.getElementById('btnRepeat');
+      const fsBtn = document.getElementById('fsBtnRepeat');
+      if (btn) {
+        if (isRepeatActive) {
+          btn.className = "text-[#1db954] hover:text-[#1ed760] transition p-1";
+          btn.title = "Ulangi Lagu Ini (Aktif)";
+        } else {
+          btn.className = "text-[#888] hover:text-white transition p-1";
+          btn.title = "Ulangi Lagu (Mati)";
+        }
+      }
+      if (fsBtn) {
+        fsBtn.className = isRepeatActive ? "text-[#1db954] transition p-2" : "text-[#888] hover:text-white transition p-2";
+      }
+      showToast(isRepeatActive ? 'Ulangi Lagu Ini (Repeat) Aktif' : 'Mode Ulangi Dimatikan', 'success');
     }
 
     function formatTime(s) {
