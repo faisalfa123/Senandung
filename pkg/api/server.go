@@ -2,10 +2,11 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -309,20 +310,38 @@ func (s *Server) handleSearchLive(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(results)
 }
 
+func cleanSongTitle(raw string) string {
+	t := raw
+	// 1. Remove bracketed 11-char videoId like [CTkdmwOYUpg]
+	reVid := regexp.MustCompile(`\[[a-zA-Z0-9_-]{11}\]`)
+	t = reVid.ReplaceAllString(t, "")
+
+	// 2. Remove pipes and anything after: "Rasa Yang Tertinggal | Official Lyric Video" -> "Rasa Yang Tertinggal"
+	if idx := strings.Index(t, "|"); idx != -1 {
+		t = t[:idx]
+	}
+
+	// 3. Remove parenthesis / brackets containing video/music metadata
+	reMetaA := regexp.MustCompile(`(?i)\([^)]*(?:official|video|lirik|lyrics|audio|mv|remastered|clip|music)[^)]*\)`)
+	t = reMetaA.ReplaceAllString(t, "")
+	reMetaB := regexp.MustCompile(`(?i)\[[^\]]*(?:official|video|lirik|lyrics|audio|mv|remastered|clip|music)[^\]]*\]`)
+	t = reMetaB.ReplaceAllString(t, "")
+
+	// 4. Remove trailing dash or spaces
+	t = strings.TrimSpace(t)
+	t = strings.TrimRight(t, "- ")
+	return strings.TrimSpace(t)
+}
+
 func (s *Server) handleLyrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	title := strings.TrimSpace(r.URL.Query().Get("title"))
+	rawTitle := strings.TrimSpace(r.URL.Query().Get("title"))
 	artist := strings.TrimSpace(r.URL.Query().Get("artist"))
+	if artist == "Koleksi STB" || artist == "Artis Lokal" || artist == "Unduhan YouTube" {
+		artist = ""
+	}
 
-	// Bersihkan title dari format bracket yt-dlp [videoId] atau (Official Video)
-	cleanTitle := title
-	if idx := strings.Index(cleanTitle, " ["); idx != -1 {
-		cleanTitle = strings.TrimSpace(cleanTitle[:idx])
-	}
-	for _, suffix := range []string{"(Official Music Video)", "(Official Video)", "(Lyrics)", "(Lirik)", "[Official Audio]", "(Audio)"} {
-		cleanTitle = strings.ReplaceAll(cleanTitle, suffix, "")
-	}
-	cleanTitle = strings.TrimSpace(cleanTitle)
+	cleanTitle := cleanSongTitle(rawTitle)
 
 	type LyricsResponse struct {
 		Found        bool   `json:"found"`
@@ -337,64 +356,60 @@ func (s *Server) handleLyrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Coba exact match di LRCLIB API
 	client := &http.Client{Timeout: 6 * time.Second}
-	reqURL := fmt.Sprintf("https://lrclib.net/api/get?track_name=%s&artist_name=%s",
-		strings.ReplaceAll(cleanTitle, " ", "+"),
-		strings.ReplaceAll(artist, " ", "+"),
-	)
-	if artist == "" || artist == "Koleksi STB" || artist == "Artis Lokal" {
-		reqURL = fmt.Sprintf("https://lrclib.net/api/search?q=%s", strings.ReplaceAll(cleanTitle, " ", "+"))
+
+	// Buat daftar query pencarian bertingkat (fallback cascade)
+	queries := []string{}
+	if artist != "" {
+		queries = append(queries, cleanTitle+" "+artist)
+	}
+	queries = append(queries, cleanTitle)
+	if rawTitle != cleanTitle {
+		queries = append(queries, rawTitle)
 	}
 
-	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, reqURL, nil)
-	if err != nil {
-		_ = json.NewEncoder(w).Encode(LyricsResponse{Found: false})
-		return
-	}
-	req.Header.Set("User-Agent", "Senandung-HiRes-Player/2.0")
+	for _, q := range queries {
+		reqURL := "https://lrclib.net/api/search?q=" + url.QueryEscape(q)
+		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, reqURL, nil)
+		if err != nil {
+			continue
+		}
+		req.Header.Set("User-Agent", "Senandung-HiRes-Player/2.0")
 
-	resp, err := client.Do(req)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		_ = json.NewEncoder(w).Encode(LyricsResponse{Found: false})
-		return
-	}
-	defer resp.Body.Close()
+		resp, err := client.Do(req)
+		if err != nil || resp.StatusCode != http.StatusOK {
+			if resp != nil {
+				resp.Body.Close()
+			}
+			continue
+		}
 
-	var rawData interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&rawData); err != nil {
-		_ = json.NewEncoder(w).Encode(LyricsResponse{Found: false})
-		return
-	}
+		var items []map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&items)
+		resp.Body.Close()
 
-	// Parsing hasil LRCLIB (baik single object maupun array search)
-	var syncedLyrics, plainLyrics, trackName, artistName string
-	if obj, ok := rawData.(map[string]interface{}); ok {
-		syncedLyrics, _ = obj["syncedLyrics"].(string)
-		plainLyrics, _ = obj["plainLyrics"].(string)
-		trackName, _ = obj["trackName"].(string)
-		artistName, _ = obj["artistName"].(string)
-	} else if arr, ok := rawData.([]interface{}); ok && len(arr) > 0 {
-		if first, ok := arr[0].(map[string]interface{}); ok {
-			syncedLyrics, _ = first["syncedLyrics"].(string)
-			plainLyrics, _ = first["plainLyrics"].(string)
-			trackName, _ = first["trackName"].(string)
-			artistName, _ = first["artistName"].(string)
+		if err == nil && len(items) > 0 {
+			for _, item := range items {
+				synced, _ := item["syncedLyrics"].(string)
+				plain, _ := item["plainLyrics"].(string)
+				tName, _ := item["trackName"].(string)
+				aName, _ := item["artistName"].(string)
+
+				if synced != "" || plain != "" {
+					_ = json.NewEncoder(w).Encode(LyricsResponse{
+						Found:        true,
+						SyncedLyrics: synced,
+						PlainLyrics:  plain,
+						TrackName:    tName,
+						ArtistName:   aName,
+					})
+					return
+				}
+			}
 		}
 	}
 
-	if syncedLyrics == "" && plainLyrics == "" {
-		_ = json.NewEncoder(w).Encode(LyricsResponse{Found: false})
-		return
-	}
-
-	_ = json.NewEncoder(w).Encode(LyricsResponse{
-		Found:        true,
-		SyncedLyrics: syncedLyrics,
-		PlainLyrics:  plainLyrics,
-		TrackName:    trackName,
-		ArtistName:   artistName,
-	})
+	_ = json.NewEncoder(w).Encode(LyricsResponse{Found: false})
 }
 
 func (s *Server) handleSysInfo(w http.ResponseWriter, r *http.Request) {
