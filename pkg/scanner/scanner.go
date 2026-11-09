@@ -48,9 +48,14 @@ func (s *Scanner) ScanFolder() (int, error) {
 			title := fileName
 			artist := "Koleksi STB"
 
-			// Bersihkan akhiran [videoId] jika ada dari yt-dlp
-			if idx := strings.LastIndex(title, " ["); idx != -1 && strings.HasSuffix(title, "]") {
-				title = strings.TrimSpace(title[:idx])
+			// Bersihkan akhiran [videoId] jika ada dari yt-dlp & ambil thumbnail aslinya
+			var coverURL string
+			if idx := strings.LastIndex(fileName, " ["); idx != -1 && strings.HasSuffix(fileName, "]") {
+				vID := fileName[idx+2 : len(fileName)-1]
+				if len(vID) == 11 {
+					coverURL = fmt.Sprintf("https://i.ytimg.com/vi/%s/hqdefault.jpg", vID)
+				}
+				title = strings.TrimSpace(fileName[:idx])
 			}
 
 			// Cek format umum: "Artis - Judul"
@@ -76,6 +81,7 @@ func (s *Scanner) ScanFolder() (int, error) {
 				Album:     album,
 				Duration:  0,
 				FilePath:  path,
+				CoverURL:  coverURL,
 				Source:    "local",
 				Lyrics:    lyricsContent,
 				CreatedAt: info.ModTime(),
