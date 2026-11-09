@@ -545,7 +545,8 @@
                 <div class="relative z-10 w-full flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/10">
                   <div class="flex items-center gap-2">
                     <button onclick="sendRoomQueueNext()" class="bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold px-3.5 py-1.5 rounded-full flex items-center gap-1.5 transition cursor-pointer">
-                      <span>⏭️ Putar Lagu Berikutnya</span>
+                      <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="m5 4 10 8-10 8V4z"/><rect x="17" y="4" width="2" height="16" rx="1"/></svg>
+                      <span>Putar Lagu Berikutnya</span>
                     </button>
                     <button onclick="openModal('addSongToRoomModal')" class="btn-neon-green font-black text-xs px-3.5 py-1.5 rounded-full flex items-center gap-1.5 cursor-pointer">
                       <span>+ Tambah Lagu</span>
@@ -704,7 +705,9 @@
           </div>
         </div>
       </div>
-      <button onclick="toggleFavCurrent()" id="btnFavCurrent" class="text-sm ml-1 hover:scale-110 transition">🤍</button>
+      <button onclick="toggleFavCurrent()" id="btnFavCurrent" class="text-sm ml-1 p-1 hover:scale-110 transition text-[#aaa] hover:text-red-500" title="Favorit">
+        <svg class="w-5 h-5 fill-none stroke-current" stroke-width="2" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+      </button>
     </div>
 
     <!-- Center: Playback Controls & Progress -->
@@ -779,7 +782,9 @@
           <div id="fsTitle" class="text-xl font-extrabold text-white truncate">Belum Memutar</div>
           <div id="fsArtist" class="text-sm text-[#aaa] font-medium truncate mt-0.5">Pilih lagu dari koleksi</div>
         </div>
-        <button onclick="toggleFavCurrent()" id="fsBtnFav" class="text-2xl text-white/80 hover:scale-110 transition">🤍</button>
+        <button onclick="toggleFavCurrent()" id="fsBtnFav" class="p-2 text-white/80 hover:text-red-500 hover:scale-110 transition" title="Favorit">
+          <svg class="w-6 h-6 fill-none stroke-current" stroke-width="2" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        </button>
       </div>
     </div>
 
