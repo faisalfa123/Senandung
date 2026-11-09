@@ -121,6 +121,32 @@
   <!-- Live Toast Notification Container -->
   <div id="toastNotificationContainer" class="fixed top-5 right-5 z-[9999] space-y-2 pointer-events-none"></div>
 
+  <!-- Global Multi-Device Room Activity Sync Banner (Spotify Jam Parity) -->
+  <div id="globalRoomActivityBanner" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-lg transition-all duration-300">
+    <div class="glass-card-active rounded-2xl p-3 border border-[#1db954]/60 shadow-2xl flex items-center justify-between gap-3 bg-[#121212]/95 backdrop-blur-xl">
+      <div class="flex items-center gap-3 overflow-hidden">
+        <div class="w-9 h-9 rounded-xl bg-[#1db954] text-black flex items-center justify-center shrink-0 font-black shadow">
+          <svg class="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19.1"/></svg>
+        </div>
+        <div class="truncate">
+          <div class="text-xs font-black text-white flex items-center gap-2">
+            <span id="bannerRoomName">Ruang Tamu</span>
+            <span class="text-[9px] bg-[#1db954] text-black font-extrabold px-1.5 py-0.2 rounded-full">AKTIF DIPUTAR</span>
+          </div>
+          <div id="bannerRoomDesc" class="text-[11px] text-[#aaa] truncate mt-0.5">Sedang diputar perangkat lain</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button id="bannerJoinBtn" onclick="joinActiveRoomFromBanner()" class="bg-[#1db954] hover:bg-[#1ed760] text-black font-black text-xs px-3.5 py-1.5 rounded-full transition shadow cursor-pointer">
+          Gabung Room
+        </button>
+        <button onclick="dismissRoomActivityBanner()" class="text-[#888] hover:text-white text-xs p-1.5 rounded-full hover:bg-white/10 transition" title="Tutup">
+          ✕
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Top Header Navigation -->
   <header class="app-header px-4 sm:px-6 bg-[#000000]/80 backdrop-blur-md border-b border-[#222] flex items-center justify-between shrink-0 z-30">
     <div class="flex items-center gap-3 sm:gap-6 flex-1 max-w-xl">
@@ -134,21 +160,25 @@
       <div class="relative w-full max-w-sm hidden sm:block">
         <input type="text" id="demoSearchInput" oninput="handleSearch(this.value)" placeholder="Cari koleksi musik..." 
                class="w-full bg-[#242424] hover:bg-[#2a2a2a] text-xs sm:text-sm text-white placeholder-[#b3b3b3] rounded-full px-4 py-1.5 pl-9 focus:outline-none focus:ring-1 focus:ring-white transition">
-        <span class="absolute left-3 top-2 text-[#b3b3b3] text-xs">🔍</span>
+        <span class="absolute left-3.5 top-2.5 text-[#888] pointer-events-none flex items-center"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg></span>
       </div>
     </div>
 
     <!-- Header Right Buttons: Unduh Musik & Status Mode -->
     <div class="flex items-center gap-2 sm:gap-3">
       <!-- One-Click Open Unduh Musik Tab -->
-      <button onclick="switchTab('ytsearch')" class="bg-[#242424] hover:bg-[#333] border border-[#383838] text-white px-2.5 sm:px-3.5 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 transition hover:border-[#1db954]">
-        <span>🎵 ⬇️</span> <span class="hidden xs:inline">Unduh</span>
+      <button onclick="switchTab('ytsearch')" class="bg-[#181818] hover:bg-[#252525] border border-white/10 text-white/90 hover:text-white px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 transition hover:border-[#1db954]/50 shadow-sm">
+        <svg class="w-3.5 h-3.5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        <span class="hidden xs:inline">Unduh Musik</span>
       </button>
 
       <!-- Active Mode Pill (Click to switch Party / Solo) -->
-      <button onclick="togglePlaybackMode()" id="headerModePill" class="bg-[#1db954]/20 border border-[#1db954]/40 px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs text-[#1db954] font-semibold flex items-center gap-1.5 hover:scale-105 transition cursor-pointer">
+      <button onclick="togglePlaybackMode()" id="headerModePill" class="bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 px-3 py-1.5 rounded-full text-xs text-white/90 font-medium flex items-center gap-2 hover:scale-[1.02] transition cursor-pointer shadow-sm">
         <span id="headerModeDot" class="w-2 h-2 rounded-full bg-[#1db954] animate-pulse"></span>
-        <span id="txtHeaderMode">🎧 Solo</span>
+        <span id="txtHeaderMode" class="flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+          <span>Solo</span>
+        </span>
       </button>
     </div>
   </header>
@@ -161,37 +191,46 @@
       <div class="space-y-6">
         <!-- Main Navigation Tabs -->
         <nav class="space-y-1">
-          <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-4 px-3 py-2.5 rounded-lg text-sm font-bold text-white bg-[#282828] transition">
-            <span class="text-lg">🏠</span> Dashboard
+          <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-white bg-white/[0.08] transition">
+            <svg class="w-5 h-5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span>Dashboard</span>
           </button>
-          <button onclick="switchTab('ytsearch')" id="nav-ytsearch" class="nav-btn w-full flex items-center gap-4 px-3 py-2.5 rounded-lg text-sm font-bold text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] transition">
-            <span class="text-lg">🎵</span> Unduh Musik
+          <button onclick="switchTab('ytsearch')" id="nav-ytsearch" class="nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#a7a7a7] hover:text-white hover:bg-white/[0.04] transition">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            <span>Unduh Musik</span>
           </button>
-          <button onclick="switchTab('karaoke')" id="nav-karaoke" class="nav-btn w-full flex items-center gap-4 px-3 py-2.5 rounded-lg text-sm font-bold text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] transition">
-            <span class="text-lg">🎤</span> Karaoke Lirik Penuh
+          <button onclick="switchTab('karaoke')" id="nav-karaoke" class="nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#a7a7a7] hover:text-white hover:bg-white/[0.04] transition">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg>
+            <span>Karaoke Lirik</span>
           </button>
-          <button onclick="switchTab('playlists')" id="nav-playlists" class="nav-btn w-full flex items-center gap-4 px-3 py-2.5 rounded-lg text-sm font-bold text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] transition">
-            <span class="text-lg">📂</span> Sesi Playlist
+          <button onclick="switchTab('playlists')" id="nav-playlists" class="nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#a7a7a7] hover:text-white hover:bg-white/[0.04] transition">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            <span>Sesi Playlist</span>
           </button>
-          <button onclick="switchTab('party')" id="nav-party" class="nav-btn w-full flex items-center gap-4 px-3 py-2.5 rounded-lg text-sm font-bold text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] transition">
-            <span class="text-lg">📻</span> Ruang Party (Sync)
+          <button onclick="switchTab('party')" id="nav-party" class="nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#a7a7a7] hover:text-white hover:bg-white/[0.04] transition">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19.1"/></svg>
+            <span>Ruang Party (Sync)</span>
           </button>
         </nav>
 
         <!-- Hi-Res & Library Filters -->
-        <div class="pt-2 border-t border-[#222] space-y-1">
-          <div class="text-[11px] font-bold text-[#888] uppercase tracking-wider px-3 mb-2">Koleksi Cepat</div>
-          <button onclick="filterByChip('hires')" class="w-full text-left px-3 py-1.5 text-xs text-[#ffd700] hover:text-white transition flex items-center gap-2 font-semibold">
-            <span>✨</span> Khusus Hi-Res Lossless
+        <div class="pt-3 border-t border-white/[0.08] space-y-1">
+          <div class="text-[11px] font-bold text-[#777] uppercase tracking-wider px-3 mb-2">Koleksi Cepat</div>
+          <button onclick="filterByChip('hires')" class="w-full text-left px-3 py-2 text-xs text-[#ffd700] hover:text-white hover:bg-white/[0.04] rounded-lg transition flex items-center gap-2.5 font-medium">
+            <svg class="w-4 h-4 text-[#ffd700]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span>Khusus Hi-Res FLAC</span>
           </button>
-          <button onclick="filterByChip('fav')" class="w-full text-left px-3 py-1.5 text-xs text-[#b3b3b3] hover:text-white transition flex items-center gap-2">
-            <span>❤️</span> Lagu Favorit
+          <button onclick="filterByChip('fav')" class="w-full text-left px-3 py-2 text-xs text-[#a7a7a7] hover:text-white hover:bg-white/[0.04] rounded-lg transition flex items-center gap-2.5 font-medium">
+            <svg class="w-4 h-4 text-red-500" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+            <span>Lagu Favorit</span>
           </button>
-          <button onclick="filterByChip('offline')" class="w-full text-left px-3 py-1.5 text-xs text-[#b3b3b3] hover:text-white transition flex items-center gap-2">
-            <span>📲</span> Tersimpan Offline di HP
+          <button onclick="filterByChip('offline')" class="w-full text-left px-3 py-2 text-xs text-[#a7a7a7] hover:text-white hover:bg-white/[0.04] rounded-lg transition flex items-center gap-2.5 font-medium">
+            <svg class="w-4 h-4 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            <span>Tersimpan Offline di HP</span>
           </button>
-          <button onclick="saveAllOffline()" class="w-full text-left px-3 py-1.5 text-xs text-[#1db954] hover:underline transition flex items-center gap-2 font-medium">
-            <span>⬇️</span> Simpan Semua Offline
+          <button onclick="saveAllOffline()" class="w-full text-left px-3 py-2 text-xs text-[#1db954] hover:text-[#1ed760] hover:bg-white/[0.04] rounded-lg transition flex items-center gap-2.5 font-medium">
+            <svg class="w-4 h-4 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 17 4 4 4-4"/></svg>
+            <span>Simpan Semua Offline</span>
           </button>
         </div>
       </div>
@@ -228,11 +267,20 @@
       <section id="view-dashboard" class="tab-view space-y-6">
         <!-- Quick Filter Chips -->
         <div class="flex items-center gap-2 overflow-x-auto pb-1">
-          <button onclick="filterByChip('all')" id="chip-all" class="filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-white text-black transition">Semua</button>
-          <button onclick="filterByChip('hires')" id="chip-hires" class="filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-[#2a2a2a] text-[#ffd700] border border-[#ffd700]/30 hover:bg-[#333] transition">✨ Hi-Res FLAC</button>
-          <button onclick="filterByChip('music')" id="chip-music" class="filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-[#2a2a2a] text-white hover:bg-[#333] transition">Lokal STB</button>
-          <button onclick="filterByChip('fav')" id="chip-fav" class="filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-[#2a2a2a] text-white hover:bg-[#333] transition">Favorit ❤️</button>
-          <button onclick="filterByChip('offline')" id="chip-offline" class="filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-[#2a2a2a] text-white hover:bg-[#333] transition">Offline (HP) 📲</button>
+          <button onclick="filterByChip('all')" id="chip-all" class="filter-chip px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-black transition">Semua</button>
+          <button onclick="filterByChip('hires')" id="chip-hires" class="filter-chip px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/[0.08] text-[#ffd700] border border-[#ffd700]/40 hover:bg-white/[0.12] transition flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span>Hi-Res FLAC</span>
+          </button>
+          <button onclick="filterByChip('music')" id="chip-music" class="filter-chip px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/[0.08] text-white hover:bg-white/[0.12] transition">Lokal STB</button>
+          <button onclick="filterByChip('fav')" id="chip-fav" class="filter-chip px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/[0.08] text-white hover:bg-white/[0.12] transition flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-red-500" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+            <span>Favorit</span>
+          </button>
+          <button onclick="filterByChip('offline')" id="chip-offline" class="filter-chip px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/[0.08] text-white hover:bg-white/[0.12] transition flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            <span>Offline (HP)</span>
+          </button>
         </div>
 
         <!-- Featured Recent Cards (Dynamic based on songs database) -->
@@ -243,7 +291,7 @@
           <div class="flex justify-between items-center">
             <h2 class="text-xl font-bold tracking-tight">Koleksi Musik</h2>
             <button onclick="scanLocalSTB()" class="text-xs text-[#888] hover:text-white flex items-center gap-1 transition">
-              <span>🔄</span> Pindai Ulang STB
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg> <span>Pindai Ulang STB</span>
             </button>
           </div>
 
@@ -297,7 +345,7 @@
               <!-- Search History Dropdown (Shown on Focus) -->
               <div id="searchHistoryDropdown" class="absolute left-0 right-0 top-full mt-1.5 bg-[#1f1f1f] border border-[#333] rounded-2xl shadow-2xl p-2 z-40 hidden space-y-1">
                 <div class="flex items-center justify-between px-3 py-1 text-[11px] font-bold text-[#888] uppercase tracking-wider">
-                  <span>🕒 Riwayat Pencarian</span>
+                  <div class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Riwayat Pencarian</span></div>
                   <button onclick="clearAllSearchHistory()" class="text-[10px] text-[#3ea6ff] hover:underline normal-case">Hapus Semua</button>
                 </div>
                 <div id="searchHistoryList" class="space-y-0.5 max-h-56 overflow-y-auto custom-scroll">
@@ -354,7 +402,7 @@
       <!-- ================= 3. TAB: KARAOKE LIRIK PENUH ================= -->
       <section id="view-karaoke" class="tab-view hidden h-full flex flex-col items-center justify-between py-4">
         <div class="text-center space-y-1 max-w-lg mb-6">
-          <div class="text-xs uppercase font-bold tracking-widest text-[#1db954]">🎤 Sedang Menyanyikan</div>
+          <div class="text-xs uppercase font-bold tracking-widest text-[#1db954] flex items-center gap-1.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg><span>Sedang Menyanyikan</span></div>
           <h1 id="karaokeMainTitle" class="text-2xl sm:text-3xl font-extrabold truncate text-white">Judul Lagu</h1>
           <p id="karaokeMainArtist" class="text-sm text-[#a7a7a7]">Nama Penyanyi</p>
           <div id="karaokeHiResBadge" class="inline-block mt-1"></div>
@@ -366,11 +414,11 @@
         <div class="mt-6 flex items-center gap-3 bg-[#181818] px-4 py-2 rounded-full border border-[#333]">
           <span class="text-xs text-[#888]">Lirik tidak pas?</span>
           <button onclick="openLyricsEditor()" class="text-xs font-semibold text-[#1db954] hover:underline">
-            ✏️ Edit / Pasang Lirik Sendiri
+            <svg class="w-3.5 h-3.5 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Edit / Pasang Lirik Sendiri</span>
           </button>
           <span class="text-[#444]">|</span>
           <button onclick="searchInternetLyricsForCurrent()" class="text-xs font-semibold text-white hover:text-[#1db954]">
-            🌐 Cari Ulang di Internet
+            <svg class="w-3.5 h-3.5 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><span>Cari Ulang di Internet</span>
           </button>
         </div>
       </section>
@@ -392,7 +440,7 @@
         <div id="selectedPlaylistView" class="hidden mt-8 bg-[#181818] p-5 rounded-2xl border border-[#2a2a2a] space-y-4">
           <div class="flex justify-between items-center">
             <div class="flex items-center gap-3">
-              <div class="text-3xl" id="plDetailIcon">📁</div>
+              <div class="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center text-white shrink-0" id="plDetailIcon"><svg class="w-5 h-5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
               <div>
                 <h3 class="text-lg font-bold" id="plDetailName">Nama Playlist</h3>
                 <span class="text-xs px-2 py-0.5 rounded-full" id="plDetailBadge">Bersama</span>
@@ -427,11 +475,13 @@
             </p>
 
             <div class="pt-2 flex flex-wrap items-center justify-center gap-3">
-              <button onclick="openModal('createRoomModal')" class="btn-neon-green font-extrabold text-xs px-5 py-2.5 rounded-full flex items-center gap-2 shadow-xl cursor-pointer">
-                <span>➕ Buat Room Baru</span>
+              <button onclick="openModal('createRoomModal')" class="btn-neon-green font-bold text-xs px-5 py-2.5 rounded-full flex items-center gap-2 shadow-xl cursor-pointer">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Buat Room Baru</span>
               </button>
-              <button onclick="refreshActiveRoomsList()" class="bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-bold px-4 py-2.5 rounded-full flex items-center gap-2 transition cursor-pointer">
-                <span>🔄 Segarkan Daftar</span>
+              <button onclick="refreshActiveRoomsList()" class="bg-white/10 hover:bg-white/15 border border-white/10 text-white text-xs font-semibold px-4 py-2.5 rounded-full flex items-center gap-2 transition cursor-pointer">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                <span>Segarkan Daftar</span>
               </button>
             </div>
           </div>
@@ -440,7 +490,7 @@
           <div class="space-y-3">
             <div class="flex items-center justify-between px-1">
               <h3 class="text-base font-bold text-white flex items-center gap-2">
-                <span>📻</span>
+                <svg class="w-4 h-4 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19.1"/></svg>
                 <span>Pilih Ruangan yang Ingin Dimasuki</span>
               </h3>
               <span class="text-xs text-[#888]">Klik "Masuk Room" untuk bergabung</span>
@@ -470,7 +520,7 @@
 
                 <div class="flex items-center gap-3 mt-1">
                   <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2">
-                    <span>📻</span>
+                    <svg class="w-6 h-6 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19.1"/></svg>
                     <span id="activePartyRoomTitle">Ruang Tamu</span>
                   </h1>
                 </div>
@@ -481,11 +531,13 @@
 
               <!-- Top Controls: Keluar Room & Tambah Lagu -->
               <div class="flex items-center gap-2.5 w-full md:w-auto">
-                <button onclick="openModal('addSongToRoomModal')" class="flex-1 md:flex-none btn-neon-green font-extrabold text-xs px-4 py-2.5 rounded-full flex items-center justify-center gap-1.5 shadow cursor-pointer">
-                  <span>➕ Tambah ke Antrean</span>
+                <button onclick="openModal('addSongToRoomModal')" class="flex-1 md:flex-none btn-neon-green font-bold text-xs px-4 py-2.5 rounded-full flex items-center justify-center gap-2 shadow cursor-pointer">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Tambah ke Antrean</span>
                 </button>
-                <button onclick="leavePartyRoom()" class="flex-1 md:flex-none bg-[#242424] hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50 border border-white/20 text-[#ccc] text-xs font-bold px-4 py-2.5 rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer">
-                  <span>🚪 Keluar Room</span>
+                <button onclick="leavePartyRoom()" class="flex-1 md:flex-none bg-white/[0.08] hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/40 border border-white/10 text-white/80 text-xs font-semibold px-4 py-2.5 rounded-full transition flex items-center justify-center gap-2 cursor-pointer">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+                  <span>Keluar Room</span>
                 </button>
               </div>
             </div>
@@ -515,8 +567,8 @@
                 <div class="relative z-10 my-2">
                   <div class="relative w-44 h-44 sm:w-56 sm:h-56 rounded-3xl overflow-hidden shadow-2xl border-2 border-white/20 group">
                     <img id="roomCoverImage" src="" alt="Album Art" class="w-full h-full object-cover hidden">
-                    <div id="roomPlayingCover" class="w-full h-full bg-gradient-to-br from-[#202020] to-[#121212] flex items-center justify-center text-6xl">
-                      🎵
+                    <div id="roomPlayingCover" class="w-full h-full bg-gradient-to-br from-white/[0.08] to-black flex items-center justify-center text-white/30">
+                      <svg class="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
                     </div>
                   </div>
                 </div>
@@ -568,8 +620,9 @@
               <!-- Active Members in Room -->
               <div class="glass-card rounded-2xl p-4 space-y-3">
                 <div class="flex items-center justify-between text-xs">
-                  <span class="font-bold text-white flex items-center gap-1.5">
-                    <span>👥</span> Anggota yang Online di Room Ini:
+                  <span class="font-bold text-white flex items-center gap-2">
+                    <svg class="w-4 h-4 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span>Anggota yang Online di Room Ini:</span>
                   </span>
                   <span id="activeListenersCount" class="text-[11px] text-[#1db954] font-mono font-bold">1 Perangkat Terhubung</span>
                 </div>
@@ -583,7 +636,7 @@
             <div class="glass-card rounded-3xl p-5 flex flex-col justify-between space-y-4 shadow-2xl">
               <div class="flex items-center justify-between border-b border-white/10 pb-3">
                 <div class="flex items-center gap-2">
-                  <span class="text-lg">📋</span>
+                  <svg class="w-4 h-4 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                   <h3 class="font-bold text-sm text-white">Antrean Room (Up Next)</h3>
                 </div>
                 <span id="roomQueueCountBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-[#1db954]">0 Lagu</span>
@@ -596,8 +649,9 @@
 
               <!-- Queue Footer Actions -->
               <div class="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
-                <button onclick="clearRoomQueue()" class="text-[#888] hover:text-red-400 transition text-[11px] cursor-pointer">
-                  🗑️ Bersihkan Antrean
+                <button onclick="clearRoomQueue()" class="text-[#888] hover:text-red-400 transition text-[11px] flex items-center gap-1.5 cursor-pointer">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  <span>Bersihkan Antrean</span>
                 </button>
                 <button onclick="openModal('addSongToRoomModal')" class="btn-neon-green px-3.5 py-1.5 rounded-full text-xs font-bold cursor-pointer">
                   + Tambah Lagu
@@ -614,18 +668,25 @@
   </div>
 
   <!-- iOS Safari Autoplay Unlock Floating Pill (Shown only if browser blocks autoplay during Party Sync) -->
-  <div id="iosAutoplayPrompt" class="fixed top-20 left-1/2 -translate-x-1/2 z-[999] hidden">
-    <button onclick="unlockIosPartyAudio()" class="bg-[#1db954] hover:bg-[#1ed760] text-black font-extrabold text-xs px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2 animate-bounce border-2 border-white">
-      <span>🔊</span>
-      <span>Ketuk untuk Sinkron Suara Party</span>
+  <!-- iOS Autoplay Unlock Floating Pill (Modern Spotify Connect Bar) -->
+  <div id="iosAutoplayPrompt" class="fixed top-16 left-1/2 -translate-x-1/2 z-[999] hidden w-[90%] max-w-sm">
+    <button onclick="unlockIosPartyAudio()" class="w-full bg-[#1db954] hover:bg-[#1ed760] text-black font-bold text-xs px-4 py-3 rounded-2xl shadow-2xl flex items-center justify-between border border-white/20 transition cursor-pointer">
+      <div class="flex items-center gap-2.5 text-left">
+        <svg class="w-4 h-4 shrink-0 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+        <div>
+          <div class="font-extrabold leading-tight">Sambungkan Audio iPhone</div>
+          <div class="text-[10px] text-black/75">Ketuk di sini untuk mulai mendengarkan bersama</div>
+        </div>
+      </div>
+      <span class="text-xs font-black bg-black text-[#1db954] px-2.5 py-1 rounded-full shadow">Sinkron</span>
     </button>
   </div>
 
   <!-- ================= MOBILE FLOATING MINI-PLAYER (Visible on <md) ================= -->
   <div id="mobileMiniPlayer" class="app-mini-player md:hidden fixed left-2.5 right-2.5 z-40 bg-[#181818]/95 backdrop-blur-2xl border border-[#333] rounded-2xl p-2.5 shadow-2xl flex items-center justify-between">
     <div onclick="openFullscreenPlayer()" class="flex items-center gap-3 overflow-hidden flex-1 cursor-pointer">
-      <div id="mPlayerThumb" class="w-11 h-11 rounded-xl bg-[#282828] flex items-center justify-center text-xl shrink-0 shadow">
-        🎵
+      <div id="mPlayerThumb" class="w-11 h-11 rounded-xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10 flex items-center justify-center text-white/40 shrink-0 shadow overflow-hidden">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
       </div>
       <div class="overflow-hidden flex-1 pr-2">
         <div class="flex items-center gap-1.5">
@@ -655,26 +716,26 @@
   </div>
 
   <!-- ================= MOBILE BOTTOM NAVIGATION (Visible on <md) ================= -->
-  <nav class="app-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#000000]/95 backdrop-blur-xl border-t border-[#222] flex items-center justify-around text-[10px] font-medium">
-    <button onclick="switchTab('dashboard')" id="mNav-dashboard" class="mNav-btn flex flex-col items-center gap-0.5 text-white py-1">
-      <span class="text-lg">🏠</span>
+  <nav class="app-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#0c0c0c]/95 backdrop-blur-2xl border-t border-white/[0.08] flex items-center justify-around text-[10px] font-medium">
+    <button onclick="switchTab('dashboard')" id="mNav-dashboard" class="mNav-btn flex flex-col items-center gap-1 text-white py-1 transition">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <span>Home</span>
     </button>
-    <button onclick="switchTab('ytsearch')" id="mNav-ytsearch" class="mNav-btn flex flex-col items-center gap-0.5 text-[#888] hover:text-white py-1">
-      <span class="text-lg">🎵</span>
+    <button onclick="switchTab('ytsearch')" id="mNav-ytsearch" class="mNav-btn flex flex-col items-center gap-1 text-[#888] hover:text-white py-1 transition">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
       <span>Unduh</span>
     </button>
-    <button onclick="switchTab('karaoke')" id="mNav-karaoke" class="mNav-btn flex flex-col items-center gap-0.5 text-[#888] hover:text-white py-1">
-      <span class="text-lg">🎤</span>
+    <button onclick="switchTab('karaoke')" id="mNav-karaoke" class="mNav-btn flex flex-col items-center gap-1 text-[#888] hover:text-white py-1 transition">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg>
       <span>Karaoke</span>
     </button>
-    <button onclick="switchTab('party')" id="mNav-party" class="mNav-btn flex flex-col items-center gap-0.5 text-[#888] hover:text-white py-1 relative">
-      <span class="text-lg">📻</span>
+    <button onclick="switchTab('party')" id="mNav-party" class="mNav-btn flex flex-col items-center gap-1 text-[#888] hover:text-white py-1 relative transition">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19.1"/></svg>
       <span>Party</span>
-      <span id="mPartyActiveDot" class="hidden absolute top-1 right-2 w-2 h-2 rounded-full bg-[#1db954] animate-pulse"></span>
+      <span id="mPartyActiveDot" class="hidden absolute top-0.5 right-2 w-2 h-2 rounded-full bg-[#1db954] ring-2 ring-black animate-pulse"></span>
     </button>
-    <button onclick="switchTab('playlists')" id="mNav-playlists" class="mNav-btn flex flex-col items-center gap-0.5 text-[#888] hover:text-white py-1">
-      <span class="text-lg">📂</span>
+    <button onclick="switchTab('playlists')" id="mNav-playlists" class="mNav-btn flex flex-col items-center gap-1 text-[#888] hover:text-white py-1 transition">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
       <span>Koleksi</span>
     </button>
   </nav>
@@ -684,8 +745,8 @@
     
     <!-- Left: Track Cover, Hi-Res Badge & Quality Details -->
     <div class="flex items-center gap-3.5 w-1/3 min-w-[220px]">
-      <div id="playerThumb" class="w-14 h-14 rounded-lg bg-[#282828] flex items-center justify-center text-2xl shrink-0 shadow-md">
-        🎵
+      <div id="playerThumb" class="w-14 h-14 rounded-xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10 flex items-center justify-center text-white/40 shrink-0 shadow-md overflow-hidden">
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
       </div>
       <div class="overflow-hidden">
         <div class="flex items-center gap-1.5">
@@ -697,7 +758,7 @@
         <!-- Live Bitrate & Codec Inspector -->
         <div class="flex items-center gap-2 mt-1">
           <button onclick="togglePlaybackMode()" id="btnFooterModeToggle" class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#282828] hover:bg-[#333] text-[#bbb] border border-[#3a3a3a] transition">
-            <span id="footerModeIcon">🎧</span>
+            <span id="footerModeIcon"><svg class="w-3.5 h-3.5 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg></span>
             <span id="footerModeText">Solo</span>
           </button>
           <div id="playerBitrateInspector" class="text-[10px] text-[#888] font-mono truncate">
@@ -746,15 +807,21 @@
         ✨ HI-RES FLAC
       </button>
 
-      <button onclick="switchTab('karaoke')" class="text-sm p-1.5 hover:text-[#1db954] transition" title="Buka Tab Karaoke Lirik">🎤</button>
-      <button onclick="cycleSpeed()" id="btnSpeed" class="text-[11px] font-bold bg-[#242424] hover:bg-[#333] border border-[#383838] px-2 py-1 rounded text-[#bbb]" title="Kecepatan Pemutaran">
+      <button onclick="switchTab('karaoke')" class="p-2 text-[#a7a7a7] hover:text-white hover:bg-white/[0.06] rounded-full transition" title="Buka Tab Karaoke Lirik">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg>
+      </button>
+      <button onclick="cycleSpeed()" id="btnSpeed" class="text-[11px] font-bold bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 px-2 py-1 rounded text-[#bbb]" title="Kecepatan Pemutaran">
         1.0x
       </button>
-      <button onclick="openModal('eqModal')" class="text-sm p-1.5 hover:text-[#1db954] transition" title="Equalizer 5-Band">🎚️</button>
-      <button onclick="saveCurrentOffline()" class="text-sm p-1.5 hover:text-[#1db954] transition" title="Download ke HP (Offline PWA)">📲</button>
+      <button onclick="openModal('eqModal')" class="p-2 text-[#a7a7a7] hover:text-white hover:bg-white/[0.06] rounded-full transition" title="Equalizer 5-Band & Bass Booster">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+      </button>
+      <button onclick="saveCurrentOffline()" class="p-2 text-[#a7a7a7] hover:text-[#1db954] hover:bg-white/[0.06] rounded-full transition" title="Simpan ke HP (Offline PWA)">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+      </button>
       
       <div class="flex items-center gap-1.5 ml-1">
-        <span class="text-xs">🔊</span>
+        <svg class="w-4 h-4 text-[#888]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
         <input type="range" min="0" max="1" step="0.05" value="0.8" oninput="changeVolume(this.value)" class="w-14 accent-[#1db954] cursor-pointer">
       </div>
     </div>
@@ -769,13 +836,13 @@
         <div class="text-[10px] uppercase font-bold tracking-widest text-[#888]">Memutar Dari</div>
         <div id="fsRoomHeader" class="text-xs font-bold text-white">Koleksi Senandung</div>
       </div>
-      <button onclick="togglePlaybackMode()" class="text-sm p-2 text-white/80 hover:text-white">📻</button>
+      <button onclick="togglePlaybackMode()" class="p-2 text-white/80 hover:text-[#1db954] hover:bg-white/10 rounded-full transition" title="Mode Party Multi-Room"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19.1"/></svg></button>
     </div>
 
     <!-- Album Art / Large Display -->
     <div class="my-auto flex flex-col items-center">
-      <div id="fsArtwork" class="w-64 h-64 sm:w-72 sm:h-72 rounded-2xl bg-gradient-to-br from-[#282828] to-[#181818] border border-[#333] shadow-2xl flex items-center justify-center text-7xl mb-6">
-        🎵
+      <div id="fsArtwork" class="w-64 h-64 sm:w-72 sm:h-72 rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10 shadow-2xl flex items-center justify-center text-white/30 mb-6 overflow-hidden">
+        <svg class="w-20 h-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
       </div>
       <div class="w-full flex items-center justify-between px-2">
         <div class="overflow-hidden flex-1 mr-4">
@@ -823,10 +890,10 @@
       <!-- Bottom Quick Actions: Lyrics & Audio Switcher & Solo Queue -->
       <div class="flex items-center justify-between pt-2 border-t border-white/10 text-xs">
         <button onclick="closeFullscreenPlayer(); switchTab('karaoke');" class="text-[#1db954] hover:underline flex items-center gap-1.5 font-semibold">
-          <span>🎤</span> Lirik Karaoke
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg><span>Lirik Karaoke</span>
         </button>
         <button onclick="openSoloQueueModal()" class="text-white hover:text-[#1db954] flex items-center gap-1 font-semibold">
-          <span>📋</span> Antrean Solo
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Antrean Solo</span>
         </button>
         <button onclick="toggleAudioQuality()" id="fsBtnQuality" class="badge-hires-gold px-2.5 py-1 rounded text-[10px] font-black">
           ✨ HI-RES FLAC
@@ -840,7 +907,7 @@
     <div class="glass-card border border-white/15 rounded-3xl p-6 w-full max-w-lg space-y-4 shadow-2xl flex flex-col max-h-[85vh]">
       <div class="flex justify-between items-center border-b border-white/10 pb-3">
         <div class="flex items-center gap-2">
-          <span class="text-lg">🎧</span>
+          <svg class="w-5 h-5 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
           <h3 class="font-bold text-base text-white">Antrean Pemutaran Solo (Up Next)</h3>
         </div>
         <button onclick="closeModal('soloQueueModal')" class="text-sm text-[#888] hover:text-white px-2 py-1 cursor-pointer">✕</button>
@@ -848,7 +915,7 @@
 
       <div class="text-xs text-[#aaa] flex justify-between items-center">
         <span>Lagu yang akan diputar otomatis setelah ini:</span>
-        <button onclick="clearSoloQueue()" class="text-[#888] hover:text-red-400 transition text-[11px] cursor-pointer">🗑️ Kosongkan</button>
+        <button onclick="clearSoloQueue()" class="text-[#888] hover:text-red-400 transition text-[11px] flex items-center gap-1 cursor-pointer"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>Kosongkan</span></button>
       </div>
 
       <!-- Solo Queue Items Container -->
@@ -950,7 +1017,7 @@
 
       <!-- STB Info Footer -->
       <div class="bg-[#141414] p-3 rounded-xl border border-[#282828] text-[11px] text-[#777]">
-        💡 Download berjalan di background tanpa membebani CPU HG680P / Odroid C2, sehingga streaming Immich tetap lancar tanpa buffering.
+        Download berjalan di background tanpa membebani CPU HG680P / Odroid C2, sehingga streaming Immich tetap lancar tanpa buffering.
       </div>
     </div>
   </div>
@@ -960,7 +1027,7 @@
     <div class="bg-[#242424] border border-[#333] rounded-2xl p-6 w-full max-w-lg space-y-4 shadow-2xl">
       <div class="flex justify-between items-center">
         <div class="flex items-center gap-2 text-[#1db954] font-bold text-base">
-          <span>🌐</span> Lirik Ditemukan di Internet
+          <svg class="w-4 h-4 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><span>Lirik Terverifikasi di Internet</span>
         </div>
         <span class="text-xs text-[#888] bg-[#181818] px-2 py-0.5 rounded border border-[#333]">Sinkron .LRC</span>
       </div>
@@ -982,7 +1049,7 @@
   <div id="createPlaylistModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
     <div class="bg-[#242424] border border-[#333] rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
       <div class="flex justify-between items-center">
-        <h3 class="font-bold text-base">📁 Buat Playlist Baru</h3>
+        <h3 class="font-bold text-base flex items-center gap-2"><svg class="w-5 h-5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Buat Playlist Baru</span></h3>
         <button onclick="closeModal('createPlaylistModal')" class="text-sm text-[#888] hover:text-white">✕</button>
       </div>
       <input type="text" id="newPlNameInput" placeholder="Nama playlist (misal: Koleksi Lossless)" 
@@ -993,11 +1060,11 @@
         <div class="flex items-center gap-4 text-xs">
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="radio" name="plPrivacy" value="shared" checked class="accent-[#1db954]">
-            <span>👥 Bersama (Keluarga)</span>
+            <span class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Bersama (Keluarga)</span></span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="radio" name="plPrivacy" value="private" class="accent-[#1db954]">
-            <span>🔒 Privat (HP Ini Saja)</span>
+            <span class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Privat (HP Ini Saja)</span></span>
           </label>
         </div>
       </div>
@@ -1013,7 +1080,7 @@
   <div id="lyricsEditorModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
     <div class="bg-[#242424] border border-[#333] rounded-2xl p-6 w-full max-w-lg space-y-4 shadow-2xl">
       <div class="flex justify-between items-center">
-        <h3 class="font-bold text-base">✏️ Edit Lirik Lagu (.LRC)</h3>
+        <h3 class="font-bold text-base flex items-center gap-2"><svg class="w-5 h-5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Edit Lirik Lagu (.LRC)</span></h3>
         <button onclick="closeModal('lyricsEditorModal')" class="text-sm text-[#888] hover:text-white">✕</button>
       </div>
       <textarea id="rawLyricsTextarea" rows="8" class="w-full bg-[#181818] border border-[#3a3a3a] rounded-lg p-3 text-xs font-mono text-white focus:outline-none focus:border-[#1db954]"></textarea>
@@ -1029,7 +1096,7 @@
   <div id="eqModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
     <div class="bg-[#242424] border border-[#333] rounded-2xl p-6 w-full max-w-md space-y-5 shadow-2xl">
       <div class="flex justify-between items-center">
-        <h3 class="font-bold text-base">🎚️ Equalizer 5-Band & Bass Booster</h3>
+        <h3 class="font-bold text-base flex items-center gap-2"><svg class="w-5 h-5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>Equalizer 5-Band & Bass Booster</span></h3>
         <button onclick="closeModal('eqModal')" class="text-sm text-[#888] hover:text-white">✕</button>
       </div>
       <div class="flex justify-around items-center py-2">
@@ -1066,7 +1133,7 @@
     <div class="bg-[#242424] border border-[#333] rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
       <div class="flex justify-between items-center">
         <h3 class="font-bold text-base flex items-center gap-2 text-white">
-          <span>📻</span> Buat Room Party Baru
+          <svg class="w-5 h-5 text-[#1db954] inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19.1"/></svg><span>Buat Room Party Baru</span>
         </h3>
         <button onclick="closeModal('createRoomModal')" class="text-sm text-[#888] hover:text-white">✕</button>
       </div>
@@ -1091,7 +1158,7 @@
     <div class="bg-[#242424] border border-[#333] rounded-2xl p-5 w-full max-w-lg space-y-4 shadow-2xl flex flex-col max-h-[85vh]">
       <div class="flex justify-between items-center border-b border-[#333] pb-3">
         <div class="flex items-center gap-2">
-          <span class="text-lg">➕</span>
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           <h3 class="font-bold text-sm text-white">Tambah Lagu ke Antrean Room</h3>
         </div>
         <button onclick="closeModal('addSongToRoomModal')" class="text-sm text-[#888] hover:text-white px-2 py-1">✕</button>
@@ -1100,7 +1167,7 @@
       <div class="relative">
         <input type="text" id="addRoomSearchInput" oninput="filterAddRoomSongs(this.value)" placeholder="Cari lagu dari koleksi..." 
                class="w-full bg-[#181818] border border-[#383838] rounded-xl px-3.5 py-2 text-xs text-white placeholder-[#777] focus:outline-none focus:border-[#ffd700]">
-        <span class="absolute right-3 top-2.5 text-xs text-[#777]">🔍</span>
+        <span class="absolute right-3 top-2.5 text-[#777] pointer-events-none"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg></span>
       </div>
 
       <div id="addRoomSongList" class="flex-1 overflow-y-auto custom-scroll space-y-1.5 pr-1 min-h-[220px]">
@@ -1109,7 +1176,7 @@
 
       <div class="flex justify-between items-center pt-2 border-t border-[#333] text-xs">
         <button onclick="switchTab('ytsearch'); closeModal('addSongToRoomModal');" class="text-[#3ea6ff] hover:underline flex items-center gap-1">
-          <span>🎵</span> Unduh Lagu Baru di YouTube
+          <svg class="w-4 h-4 text-[#1db954] inline mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg><span>Unduh Lagu Baru di YouTube</span>
         </button>
         <button onclick="closeModal('addSongToRoomModal')" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[#333] hover:bg-[#444] text-white">
           Tutup
@@ -1121,8 +1188,8 @@
   <!-- Modal: Dialog Konfirmasi Lanjutkan Sesi Lagu Sebelumnya (Requirement #3) -->
   <div id="resumeRoomSessionModal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
     <div class="bg-[#202020] border-2 border-[#ffd700] rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl relative text-center animate-fade-in">
-      <div class="w-14 h-14 rounded-full bg-[#ffd700]/20 border border-[#ffd700] flex items-center justify-center text-3xl mx-auto shadow-lg">
-        📻
+      <div class="w-14 h-14 rounded-full bg-[#ffd700]/15 border border-[#ffd700]/60 flex items-center justify-center text-[#ffd700] mx-auto shadow-lg">
+        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19.1"/></svg>
       </div>
       
       <div class="space-y-1">
@@ -1177,7 +1244,7 @@
 
       <div class="space-y-2 pt-1">
         <button onclick="retryNetworkCheck()" class="w-full bg-[#1db954] hover:bg-[#1ed760] text-black font-extrabold py-2.5 rounded-xl text-xs transition shadow flex items-center justify-center gap-2">
-          <span>🔄</span> Coba Sambungkan Kembali
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg><span>Coba Sambungkan Kembali</span>
         </button>
         <button onclick="closeModal('networkDiagnosticModal')" class="w-full bg-[#2a2a2a] hover:bg-[#333] text-[#aaa] hover:text-white py-2 rounded-xl text-xs font-semibold transition">
           Tutup Sementara
@@ -1338,6 +1405,22 @@
       const devEl = document.getElementById('txtMyDeviceName');
       if (devEl) devEl.innerText = `${myDeviceName} (Anda)`;
       setTimeout(checkServerHealth, 1500);
+
+      // Multi-Device Auto-Sync Presence Polling (Paritas PC & Mobile)
+      if (activeRoomSyncInterval) clearInterval(activeRoomSyncInterval);
+      activeRoomSyncInterval = setInterval(() => {
+        refreshActiveRoomsList();
+      }, 4000);
+
+      // Auto-restore last active room if previously inside party room
+      try {
+        const lastRoom = localStorage.getItem('senandung_active_room');
+        if (lastRoom && !isPartyMode) {
+          // Check if user reloaded while in room
+          console.log('[Presence] Restoring previous party room session:', lastRoom);
+          enterPartyRoom(lastRoom);
+        }
+      } catch(e) {}
     }
 
     function switchTab(tabName) {
@@ -1396,7 +1479,7 @@
 
         const featuredThumb = s.cover_url
           ? `<img src="${s.cover_url}" class="w-full h-full object-cover" loading="lazy" alt="Cover">`
-          : `<span>${s.cover || '🎵'}</span>`;
+          : getCoverHtml(s, "w-full h-full object-cover", "w-full h-full", "text-xs");
 
         card.innerHTML = `
           <div class="w-16 h-16 bg-[#333] flex items-center justify-center text-2xl shrink-0 overflow-hidden">
@@ -1434,7 +1517,7 @@
       if (list.length === 0) {
         container.innerHTML = `
           <div class="py-12 text-center text-[#888] space-y-3 bg-[#181818]/60 border border-[#262626] rounded-2xl p-6">
-            <div class="text-4xl">🎵</div>
+            <div class="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center mx-auto text-[#1db954]"><svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg></div>
             <div class="text-sm font-semibold text-white">Belum Ada Lagu di Penyimpanan STB</div>
             <p class="text-xs text-[#777] max-w-sm mx-auto leading-relaxed">
               Koleksi musik fisik masih kosong. Gunakan tab <strong>Unduh Musik</strong> untuk mencari dan mengunduh lagu favorit Anda langsung dari YouTube ke STB.
@@ -1464,11 +1547,11 @@
 
         const partyQueueBtnHtml = isPartyMode ? `
           <button onclick="addSongToRoomQueue('${s.id}')" class="text-xs px-2.5 py-1 rounded-full btn-neon-green text-black font-extrabold transition flex items-center gap-1 shadow" title="Tambah lagu ke Antrean Room Party">
-            <span>➕ Party</span>
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Party</span>
           </button>
         ` : `
           <button onclick="addToSoloQueue('${s.id}')" class="text-xs px-2.5 py-1 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] text-[#ccc] hover:text-white transition flex items-center gap-1" title="Tambah ke antrean putar solo">
-            <span>➕ Antrean</span>
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Antrean</span>
           </button>
         `;
 
@@ -1488,11 +1571,11 @@
           <div class="flex items-center gap-2">
             ${partyQueueBtnHtml}
             <button onclick="downloadSongToPhone('${s.id}')" class="text-xs px-2.5 py-1 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] text-[#ccc] hover:text-white transition flex items-center gap-1" title="Unduh file fisik ke HP / Komputer ini">
-              <span>⬇️</span> <span class="hidden md:inline">Ke HP</span>
+              <svg class="w-3.5 h-3.5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg><span class="hidden md:inline">Ke HP</span>
             </button>
             <button onclick="toggleFav('${s.id}')" class="p-1 hover:scale-110 transition" title="Favorit">${getSvgHeartIcon(isFav, 4)}</button>
             <button onclick="toggleOffline('${s.id}')" class="text-xs px-2.5 py-1 rounded-full ${isOff ? 'bg-[#1db954]/20 text-[#1db954] border border-[#1db954]/40' : 'bg-[#242424] text-[#888]'} hover:text-white transition" title="Offline PWA Cache">
-              ${isOff ? '✓ Saved' : '📲 Cache'}
+              ${isOff ? '✓ Saved' : 'Cache'}
             </button>
           </div>
         `;
@@ -1602,7 +1685,7 @@
         row.className = 'flex items-center justify-between px-3 py-2 hover:bg-[#2a2a2a] rounded-xl cursor-pointer text-xs transition group';
         row.innerHTML = `
           <div class="flex items-center gap-2.5 truncate flex-1 text-white/90 group-hover:text-white">
-            <span class="text-[#888] text-[11px]">🕒</span>
+            <svg class="w-3.5 h-3.5 text-[#888] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             <span class="truncate">${escapeHtml(item)}</span>
           </div>
           <button onclick="removeSearchHistoryItem(${index}, event)" class="text-[#666] hover:text-white text-xs px-1.5 py-0.5 rounded transition" title="Hapus">✕</button>
@@ -1718,7 +1801,7 @@
       if (musicSearchResults.length === 0) {
         container.innerHTML = `
           <div class="py-12 text-center text-[#777] space-y-2">
-            <div class="text-3xl">🔍</div>
+            <div class="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center mx-auto text-white/50"><svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg></div>
             <div class="text-xs font-semibold text-white">Belum ada pencarian musik</div>
             <p class="text-[11px] text-[#888]">Ketik judul lagu atau nama artis di kolom pencarian di atas lalu klik Cari.</p>
           </div>
@@ -2364,7 +2447,7 @@
 
       if (isHighResMode) {
         btn.className = "badge-hires-gold px-2 py-1 rounded text-[10px] font-black cursor-pointer hover:scale-105 transition";
-        btn.innerText = "✨ HI-RES FLAC";
+        btn.innerHTML = `<svg class="w-3.5 h-3.5 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>HI-RES FLAC</span>`;
         song.isHiRes = true;
         song.codec = "FLAC";
         song.bitDepth = 24;
@@ -2373,7 +2456,7 @@
         alert("Beralih ke KUALITAS TINGGI: Hi-Res Lossless FLAC 24-bit/96kHz (1411 kbps)!");
       } else {
         btn.className = "bg-[#282828] border border-[#444] text-[#aaa] px-2 py-1 rounded text-[10px] font-bold cursor-pointer hover:scale-105 transition";
-        btn.innerText = "🎵 STANDAR MP3";
+        btn.innerHTML = `<svg class="w-3.5 h-3.5 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg><span>STANDAR MP3</span>`;
         song.isHiRes = false;
         song.codec = "MP3";
         song.bitDepth = 16;
@@ -2405,7 +2488,7 @@
       if (downloadQueueJobs.length === 0) {
         container.innerHTML = `
           <div class="text-center py-8 text-[#777] text-xs">
-            <div class="text-2xl mb-1">☕</div>
+            <div class="w-10 h-10 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center mx-auto mb-2 text-[#1db954]"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg></div>
             Tidak ada antrean download saat ini.<br>Cari lagu di menu Unduh Musik untuk menambah antrean.
           </div>
         `;
@@ -2558,14 +2641,14 @@
             if (container) {
               container.innerHTML = `
                 <div class="text-[#888] text-center space-y-3 py-14">
-                  <div class="text-4xl">🔍</div>
+                  <div class="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center mx-auto text-white/50"><svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg></div>
                   <div class="font-bold text-white text-lg">Lirik Tidak Ditemukan di Database Internet</div>
                   <p class="text-xs text-[#aaa] max-w-md mx-auto">
                     Database LRCLIB belum memiliki lirik terverifikasi untuk "${escapeHtml(song.title)}".<br>
                     Kami tidak menampilkan lirik palsu/berbeda demi kenyamanan Anda.
                   </p>
                   <button onclick="openLyricsEditor()" class="btn-neon-green text-xs font-bold px-4 py-2 rounded-full cursor-pointer">
-                    ✏️ Pasang Lirik Sendiri Manual (.LRC)
+                    <svg class="w-3.5 h-3.5 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Pasang Lirik Sendiri Manual (.LRC)</span>
                   </button>
                 </div>
               `;
@@ -2594,11 +2677,11 @@
       if (!song.lyrics || song.lyrics.length === 0) {
         container.innerHTML = `
           <div class="text-[#888] text-center space-y-3 py-14">
-            <div class="text-4xl">🎤</div>
+            <div class="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center mx-auto text-[#1db954]"><svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg></div>
             <div class="font-bold text-white text-base">Lirik belum tersedia untuk trek ini</div>
             <p class="text-xs text-[#aaa]">Klik tombol "Cari Ulang di Internet" di bawah untuk memindai dari database LRCLIB resmi.</p>
             <button onclick="searchInternetLyricsForCurrent()" class="btn-neon-green text-xs font-bold px-4 py-2 rounded-full cursor-pointer shadow">
-              🌐 Cari Lirik di Internet Sekarang
+              <svg class="w-3.5 h-3.5 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><span>Cari Lirik di Internet Sekarang</span>
             </button>
           </div>
         `;
@@ -2929,7 +3012,7 @@
       if (roomQueueSongs.length === 0) {
         container.innerHTML = `
           <div class="text-center py-8 text-[#777] text-xs space-y-1">
-            <div class="text-2xl">☕</div>
+            <div class="w-10 h-10 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center mx-auto mb-2 text-[#1db954]"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg></div>
             <div>Belum ada antrean lagu di room ini.</div>
             <button onclick="openModal('addSongToRoomModal')" class="text-[#ffd700] hover:underline font-semibold mt-1">
               + Tambah Lagu Pertama
@@ -3082,9 +3165,9 @@
       if (soloQueue.length === 0) {
         container.innerHTML = `
           <div class="text-center py-10 text-[#777] text-xs space-y-2">
-            <div class="text-3xl">☕</div>
+            <div class="w-12 h-12 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center mx-auto mb-2 text-[#1db954]"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg></div>
             <div class="text-white font-semibold">Antrean Solo Masih Kosong</div>
-            <p class="text-[11px] text-[#888]">Klik tombol <strong>➕ Antrean</strong> pada lagu di Dashboard untuk menambahkan ke antrean putar berikutnya.</p>
+            <p class="text-[11px] text-[#888]">Klik tombol <strong>+ Antrean</strong> pada lagu di Dashboard untuk menambahkan ke antrean putar berikutnya.</p>
           </div>
         `;
         return;
@@ -3241,31 +3324,40 @@
       if (!modal || !msgBox) return;
 
       if (type === 'tailscale_offline') {
-        iconBox.innerHTML = '🔒';
-        iconBox.className = 'w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-500/50 flex items-center justify-center text-2xl shrink-0';
+        iconBox.innerHTML = '<svg class="w-6 h-6 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+        iconBox.className = 'w-12 h-12 rounded-2xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center shrink-0 shadow-lg';
         titleEl.innerText = 'Tailscale VPN Belum Terkoneksi';
         msgBox.innerHTML = `
-          <div class="text-white font-bold text-sm">💡 Hidupkan Aplikasi Tailscale Anda</div>
-          <p>Aplikasi Senandung diakses menggunakan alamat jaringan pribadi Tailscale (<strong>${escapeHtml(window.location.hostname)}</strong>).</p>
-          <p class="text-[#ffd700]">Harap buka aplikasi <strong>Tailscale</strong> di HP/Laptop Anda dan pastikan statusnya <strong>CONNECTED</strong> agar musik dapat diputar.</p>
+          <div class="text-white font-bold text-sm flex items-center gap-2">
+            <svg class="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>Hidupkan Aplikasi Tailscale Anda</span>
+          </div>
+          <p class="text-xs text-[#aaa] leading-relaxed">Aplikasi Senandung diakses menggunakan alamat IP Tailscale STB (<strong>${escapeHtml(window.location.hostname)}</strong>).</p>
+          <p class="text-xs text-[#ffd700] leading-relaxed">Buka aplikasi <strong>Tailscale</strong> di perangkat ini dan pastikan statusnya <strong>CONNECTED</strong> agar terhubung ke server STB.</p>
         `;
       } else if (type === 'no_signal' || type === 'weak_signal') {
-        iconBox.innerHTML = '📶';
-        iconBox.className = 'w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-2xl shrink-0';
+        iconBox.innerHTML = '<svg class="w-6 h-6 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>';
+        iconBox.className = 'w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-lg';
         titleEl.innerText = 'Sinyal Internet Buruk / Lemah';
         msgBox.innerHTML = `
-          <div class="text-white font-bold text-sm">📡 Gangguan Koneksi Jaringan</div>
-          <p>Koneksi ke server mengalami timeout atau ponsel Anda sedang berada di luar jangkauan jaringan.</p>
-          <p class="text-[#ffd700]">Silakan pindah ke tempat dengan <strong>sinyal seluler atau Wi-Fi yang lebih kuat</strong> untuk melanjutkan mendengarkan lagu.</p>
+          <div class="text-white font-bold text-sm flex items-center gap-2">
+            <svg class="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span>Gangguan Koneksi Jaringan</span>
+          </div>
+          <p class="text-xs text-[#aaa] leading-relaxed">Koneksi ke server mengalami timeout atau ponsel Anda sedang berada di luar jangkauan sinyal.</p>
+          <p class="text-xs text-[#ffd700] leading-relaxed">Silakan berpindah ke area dengan <strong>Wi-Fi atau sinyal seluler yang lebih stabil</strong>.</p>
         `;
       } else {
-        iconBox.innerHTML = '🛠️';
-        iconBox.className = 'w-12 h-12 rounded-xl bg-red-500/20 border border-red-500/50 flex items-center justify-center text-2xl shrink-0';
+        iconBox.innerHTML = '<svg class="w-6 h-6 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+        iconBox.className = 'w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center shrink-0 shadow-lg';
         titleEl.innerText = 'Server Sedang Offline / Maintenance';
         msgBox.innerHTML = `
-          <div class="text-white font-bold text-sm">⚠️ Server STB Tidak Merespon</div>
-          <p>Server Senandung pada STB HG680P / Odroid C2 sedang dalam proses perbaikan sistem atau perangkat STB dalam keadaan mati.</p>
-          <p class="text-[#ffd700]">Periksa apakah kabel daya dan koneksi LAN pada STB menyala normal.</p>
+          <div class="text-white font-bold text-sm flex items-center gap-2">
+            <svg class="w-4 h-4 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>Server STB Tidak Merespon</span>
+          </div>
+          <p class="text-xs text-[#aaa] leading-relaxed">Layanan Senandung pada STB HG680P / Odroid C2 sedang dalam proses update atau STB mati.</p>
+          <p class="text-xs text-[#ffd700] leading-relaxed">Periksa apakah kabel daya dan koneksi LAN/Wi-Fi STB menyala normal.</p>
         `;
       }
 
@@ -3334,18 +3426,58 @@
       });
     }
 
-    // Refresh & Render Multi-Room Explorer Grid
+    // Refresh & Render Multi-Room Explorer Grid + Multi-Device Auto-Sync Presence
     function refreshActiveRoomsList() {
       fetch('/api/rooms')
         .then(res => res.json())
         .then(rooms => {
           activeRoomsData = rooms || [];
           renderActiveRoomsGrid();
+          checkActiveRoomBroadcastBanner();
         })
         .catch(err => {
           console.warn('Gagal memuat rooms:', err);
           renderActiveRoomsGrid();
         });
+    }
+
+    function checkActiveRoomBroadcastBanner() {
+      if (isPartyMode) {
+        dismissRoomActivityBanner();
+        return;
+      }
+
+      // Cari apakah ada room yang sedang aktif memutar lagu atau memiliki pendengar lain
+      const activeRoom = activeRoomsData.find(r => r.listeners > 0 || (r.is_playing && r.current_song));
+      const banner = document.getElementById('globalRoomActivityBanner');
+      if (!banner) return;
+
+      if (activeRoom) {
+        lastActiveRoomPlaying = activeRoom.id;
+        const nameEl = document.getElementById('bannerRoomName');
+        const descEl = document.getElementById('bannerRoomDesc');
+        const songTitle = activeRoom.current_song ? `${activeRoom.current_song.title} - ${activeRoom.current_song.artist}` : 'Sesi musik aktif';
+        const memberCount = activeRoom.listeners || (activeRoom.members ? activeRoom.members.length : 1);
+
+        if (nameEl) nameEl.innerText = activeRoom.id;
+        if (descEl) descEl.innerText = `${memberCount} perangkat terhubung • Memutar: ${songTitle}`;
+        banner.classList.remove('hidden');
+      } else {
+        banner.classList.add('hidden');
+      }
+    }
+
+    function joinActiveRoomFromBanner() {
+      if (lastActiveRoomPlaying) {
+        enterPartyRoom(lastActiveRoomPlaying);
+      } else {
+        enterPartyRoom("Ruang Tamu");
+      }
+    }
+
+    function dismissRoomActivityBanner() {
+      const banner = document.getElementById('globalRoomActivityBanner');
+      if (banner) banner.classList.add('hidden');
     }
 
     function renderActiveRoomsGrid() {
@@ -3374,8 +3506,8 @@
         card.innerHTML = `
           <div>
             <div class="flex items-center justify-between mb-3">
-              <span class="font-black text-sm text-white flex items-center gap-2 tracking-tight">
-                <span class="text-base">📻</span>
+              <span class="font-bold text-sm text-white flex items-center gap-2.5 tracking-tight">
+                <svg class="w-4 h-4 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19.1"/></svg>
                 <span>${escapeHtml(roomId)}</span>
               </span>
               <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
@@ -3434,7 +3566,7 @@
         if (!optExists) {
           const opt = document.createElement('option');
           opt.value = name;
-          opt.innerText = '📻 ' + name;
+          opt.innerText = name;
           select.appendChild(opt);
         }
       }
@@ -3470,7 +3602,7 @@
       if (!drawer) return;
       drawer.classList.remove('translate-y-full', 'opacity-0', 'pointer-events-none');
       drawer.classList.add('translate-y-0', 'opacity-100');
-      document.getElementById('fsRoomHeader').innerText = isPartyMode ? `📻 Party: ${currentPartyRoom}` : 'Koleksi Senandung';
+      document.getElementById('fsRoomHeader').innerText = isPartyMode ? `Party: ${currentPartyRoom}` : 'Koleksi Senandung';
     }
 
     function closeFullscreenPlayer() {
@@ -3498,10 +3630,19 @@
       showToast("Pilih ruangan yang ingin dimasuki untuk mulai mendengarkan bersama!", 'success');
     }
 
+    let activeRoomSyncInterval = null;
+    let lastActiveRoomPlaying = null;
+
     function enterPartyRoom(roomName) {
       currentJoinedRoom = roomName;
       currentPartyRoom = roomName;
       isPartyMode = true;
+      try {
+        localStorage.setItem('senandung_active_room', roomName);
+      } catch(e) {}
+
+      // Sembunyikan banner jika masuk ke room tersebut
+      dismissRoomActivityBanner();
 
       // 1. Pindah tab ke 'party' dan tampilkan isolated room view
       switchTab('party');
@@ -3525,12 +3666,14 @@
       const partySwitchBtn = document.getElementById('btnPartySwitch');
 
       if (headerPill) headerPill.className = "bg-[#1db954] text-black px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold flex items-center gap-1.5 shadow cursor-pointer";
-      if (txtHeader) txtHeader.innerText = `📻 Party: ${roomName}`;
-      if (footerIcon) footerIcon.innerText = "📻";
+      if (txtHeader) {
+        txtHeader.innerHTML = `<svg class="w-3.5 h-3.5 text-black shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19.1"/></svg><span>Party: ${escapeHtml(roomName)}</span>`;
+      }
+      if (footerIcon) footerIcon.innerHTML = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19.1"/></svg>`;
       if (footerText) footerText.innerText = `Party (${roomName})`;
       if (mPartyDot) mPartyDot.classList.remove('hidden');
       if (partySwitchBtn) {
-        partySwitchBtn.innerHTML = "<span>📻 Room Aktif: " + escapeHtml(roomName) + "</span>";
+        partySwitchBtn.innerHTML = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19.1"/></svg><span>Room: ${escapeHtml(roomName)}</span>`;
         partySwitchBtn.className = "flex-1 sm:flex-none px-4 py-2 rounded-full font-bold text-xs flex items-center justify-center gap-2 bg-[#1db954] text-black shadow";
       }
 
@@ -3544,6 +3687,9 @@
       const leftRoomName = currentJoinedRoom || currentPartyRoom;
       currentJoinedRoom = null;
       isPartyMode = false;
+      try {
+        localStorage.removeItem('senandung_active_room');
+      } catch(e) {}
 
       // Close WebSocket
       if (partyWs) {
@@ -3569,8 +3715,10 @@
       const mPartyDot = document.getElementById('mPartyActiveDot');
 
       if (headerPill) headerPill.className = "bg-[#282828] border border-[#3e3e3e] px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs text-[#aaa] font-semibold flex items-center gap-1.5";
-      if (txtHeader) txtHeader.innerText = "🎧 Solo";
-      if (footerIcon) footerIcon.innerText = "🎧";
+      if (txtHeader) {
+        txtHeader.innerHTML = `<svg class="w-3.5 h-3.5 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg><span>Solo</span>`;
+      }
+      if (footerIcon) footerIcon.innerHTML = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>`;
       if (footerText) footerText.innerText = "Solo";
       if (mPartyDot) mPartyDot.classList.add('hidden');
 
@@ -3590,17 +3738,21 @@
       grid.innerHTML = '';
       playlists.forEach(pl => {
         const card = document.createElement('div');
-        card.className = 'bg-[#181818] hover:bg-[#242424] p-4 rounded-xl border border-[#282828] cursor-pointer transition group shadow';
+        card.className = 'bg-white/[0.04] hover:bg-white/[0.08] p-4 rounded-2xl border border-white/[0.08] hover:border-white/[0.18] cursor-pointer transition group shadow-lg';
         const isPrivate = pl.privacy === 'private';
+        const iconSvg = isPrivate
+          ? `<svg class="w-8 h-8 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`
+          : `<svg class="w-8 h-8 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`;
+
         card.innerHTML = `
-          <div class="w-full aspect-square bg-[#222] rounded-lg flex items-center justify-center text-4xl mb-3 group-hover:scale-105 transition shadow">
-            ${pl.icon}
+          <div class="w-full aspect-square bg-gradient-to-br from-white/[0.08] to-white/[0.02] rounded-xl flex items-center justify-center mb-3 group-hover:scale-105 transition shadow-inner border border-white/[0.05]">
+            ${iconSvg}
           </div>
           <div class="font-bold text-sm truncate text-white">${escapeHtml(pl.name)}</div>
-          <div class="flex items-center justify-between text-xs text-[#888] mt-1">
-            <span>${pl.songs.length} Lagu</span>
-            <span class="text-[10px] px-1.5 py-0.5 rounded ${isPrivate ? 'bg-red-500/20 text-red-400' : 'bg-[#1db954]/20 text-[#1db954]'}">
-              ${isPrivate ? '🔒 Privat' : '👥 Bersama'}
+          <div class="flex items-center justify-between text-xs text-[#888] mt-1.5">
+            <span>${pl.songs ? pl.songs.length : 0} Lagu</span>
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${isPrivate ? 'bg-white/[0.08] text-[#aaa]' : 'bg-[#1db954]/15 text-[#1db954] border border-[#1db954]/30'}">
+              ${isPrivate ? '<svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Privat' : '<svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Bersama'}
             </span>
           </div>
         `;
@@ -3617,7 +3769,7 @@
         id: 'pl_' + Date.now(),
         name: name,
         privacy: privacy,
-        icon: privacy === 'private' ? '🔒' : '🎵',
+        icon: privacy === 'private' ? 'private' : 'shared',
         songs: ["s1"]
       };
       playlists.push(newPl);
@@ -3632,7 +3784,7 @@
       document.getElementById('plDetailName').innerText = pl.name;
       document.getElementById('plDetailIcon').innerText = pl.icon;
       const badge = document.getElementById('plDetailBadge');
-      badge.innerText = pl.privacy === 'private' ? '🔒 Khusus HP Ini (Privat)' : '👥 Terbuka Seluruh Keluarga (Bersama)';
+      badge.innerText = pl.privacy === 'private' ? 'Khusus HP Ini (Privat)' : 'Terbuka Seluruh Keluarga (Bersama)';
       badge.className = pl.privacy === 'private' ? 'text-xs px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/40' : 'text-xs px-2.5 py-0.5 rounded-full bg-[#1db954]/20 text-[#1db954] border border-[#1db954]/40';
 
       const listContainer = document.getElementById('playlistSongList');
