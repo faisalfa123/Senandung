@@ -42,18 +42,43 @@ mkdir -p "$INSTALL_DIR"
 mkdir -p "$DATA_DIR/covers"
 mkdir -p "$MUSIC_DIR"
 
-# Salin binary senandung jika ada di folder saat ini
+# Deteksi arsitektur CPU dan salin binary yang sesuai dari bin/ atau root
+ARCH=$(uname -m)
+COPIED=0
+
 if [ -f "./senandung" ]; then
   cp "./senandung" "$INSTALL_DIR/senandung"
   chmod +x "$INSTALL_DIR/senandung"
+  COPIED=1
+elif [ "$ARCH" = "aarch64" ] && [ -f "./bin/senandung-linux-aarch64" ]; then
+  echo "    Terdeteksi arsitektur aarch64 (ARM64), memasang bin/senandung-linux-aarch64..."
+  cp "./bin/senandung-linux-aarch64" "$INSTALL_DIR/senandung"
+  chmod +x "$INSTALL_DIR/senandung"
+  COPIED=1
+elif { [ "$ARCH" = "armv7l" ] || [ "$ARCH" = "armv6l" ] || [ "$ARCH" = "armhf" ]; } && [ -f "./bin/senandung-linux-armv7l" ]; then
+  echo "    Terdeteksi arsitektur $ARCH (ARM 32-bit), memasang bin/senandung-linux-armv7l..."
+  cp "./bin/senandung-linux-armv7l" "$INSTALL_DIR/senandung"
+  chmod +x "$INSTALL_DIR/senandung"
+  COPIED=1
+elif [ "$ARCH" = "x86_64" ] && [ -f "./bin/senandung-linux-x86_64" ]; then
+  echo "    Terdeteksi arsitektur x86_64 (PC/Server), memasang bin/senandung-linux-x86_64..."
+  cp "./bin/senandung-linux-x86_64" "$INSTALL_DIR/senandung"
+  chmod +x "$INSTALL_DIR/senandung"
+  COPIED=1
 elif [ -f "./main.go" ]; then
   echo "    Mengompilasi binary langsung di target OS..."
   if command -v go &> /dev/null; then
     go build -ldflags="-s -w" -o "$INSTALL_DIR/senandung" .
+    COPIED=1
   else
-    echo -e "${RED}[!] Go compiler tidak ditemukan. Silakan build binary terlebih dahulu atau install golang via dietpi-software.${NC}"
+    echo -e "${RED}[!] Go compiler tidak ditemukan dan binary precompiled tidak tersedia.${NC}"
     exit 1
   fi
+fi
+
+if [ "$COPIED" -eq 0 ]; then
+  echo -e "${RED}[!] Gagal menemukan binary yang cocok untuk arsitektur $ARCH.${NC}"
+  exit 1
 fi
 
 echo -e "${BLUE}[4/5] Memasang Service Systemd...${NC}"
