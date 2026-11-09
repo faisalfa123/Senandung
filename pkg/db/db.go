@@ -133,6 +133,20 @@ func (d *DB) GetAllSongs() ([]models.Song, error) {
 				continue
 			}
 		}
+		// Pastikan CoverURL terisi jika ada videoId pada nama file atau title
+		if s.CoverURL == "" {
+			checkStr := s.FilePath
+			if checkStr == "" {
+				checkStr = s.Title
+			}
+			if idx := strings.LastIndex(checkStr, " ["); idx != -1 {
+				rem := checkStr[idx+2:]
+				if endBracket := strings.Index(rem, "]"); endBracket == 11 {
+					s.CoverURL = fmt.Sprintf("https://i.ytimg.com/vi/%s/hqdefault.jpg", rem[:11])
+				}
+			}
+		}
+
 		// Bersihkan akhiran [videoId] jika ada (cth [CTkdmwOYUpg])
 		if idx := strings.LastIndex(s.Title, " ["); idx != -1 && strings.HasSuffix(s.Title, "]") {
 			s.Title = strings.TrimSpace(s.Title[:idx])

@@ -635,12 +635,16 @@
       </div>
     </div>
     
-    <div class="flex items-center gap-1 shrink-0">
-      <button onclick="toggleFavCurrent()" id="mBtnFav" class="p-2 text-sm text-[#aaa] hover:text-white transition">🤍</button>
-      <button onclick="togglePlay()" id="mBtnPlay" class="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center font-bold text-sm shadow-lg hover:scale-105 active:scale-95 transition">
-        ▶️
+    <div class="flex items-center gap-1.5 shrink-0">
+      <button onclick="toggleFavCurrent()" id="mBtnFav" class="p-2 text-[#aaa] hover:text-red-500 transition" title="Favorit">
+        <svg class="w-5 h-5 fill-none stroke-current" viewBox="0 0 24 24" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
       </button>
-      <button onclick="nextSong()" class="p-2 text-sm text-[#ddd] hover:text-white transition">⏭️</button>
+      <button onclick="togglePlay()" id="mBtnPlay" class="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition" title="Putar / Jeda">
+        <svg class="w-5 h-5 fill-current ml-0.5" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+      </button>
+      <button onclick="nextSong()" class="p-2 text-[#ddd] hover:text-white transition" title="Lagu Berikutnya">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="m5 4 10 8-10 8V4z"/><rect x="17" y="4" width="2" height="16" rx="1"/></svg>
+      </button>
     </div>
     
     <!-- Mini Player Progress Line at very bottom of card -->
@@ -706,13 +710,21 @@
     <!-- Center: Playback Controls & Progress -->
     <div class="flex flex-col items-center w-1/3 max-w-xl">
       <div class="flex items-center gap-5 mb-1.5">
-        <button onclick="toggleShuffle()" id="btnShuffle" class="text-xs text-[#888] hover:text-white transition">🔀</button>
-        <button onclick="prevSong()" class="text-sm text-[#ddd] hover:text-white transition">⏮️</button>
-        <button onclick="togglePlay()" id="btnPlay" class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center font-bold text-sm hover:scale-105 transition shadow-lg">
-          ▶️
+        <button onclick="toggleShuffle()" id="btnShuffle" class="text-[#888] hover:text-white transition p-1" title="Acak Lagu">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 5 5-5 5"/><path d="M4 20L21 3"/><path d="m21 16-5 5-5-5"/><path d="M15 15l-4.5 4.5"/><path d="M4 4l5 5"/></svg>
         </button>
-        <button onclick="nextSong()" class="text-sm text-[#ddd] hover:text-white transition">⏭️</button>
-        <button onclick="toggleRepeat()" id="btnRepeat" class="text-xs text-[#888] hover:text-white transition">🔁</button>
+        <button onclick="prevSong()" id="btnPrev" class="text-[#ddd] hover:text-white transition p-1" title="Lagu Sebelumnya">
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="m19 20-10-8 10-8v16z"/><rect x="5" y="4" width="2" height="16" rx="1"/></svg>
+        </button>
+        <button onclick="togglePlay()" id="btnPlay" class="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-lg" title="Putar / Jeda">
+          <svg class="w-5 h-5 fill-current ml-0.5" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+        </button>
+        <button onclick="nextSong()" id="btnNext" class="text-[#ddd] hover:text-white transition p-1" title="Lagu Berikutnya">
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="m5 4 10 8-10 8V4z"/><rect x="17" y="4" width="2" height="16" rx="1"/></svg>
+        </button>
+        <button onclick="toggleRepeat()" id="btnRepeat" class="text-[#888] hover:text-white transition p-1" title="Ulangi Lagu">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+        </button>
       </div>
 
       <div class="flex items-center gap-2.5 w-full text-[11px] text-[#888]">
@@ -786,13 +798,21 @@
 
       <!-- Playback Controls -->
       <div class="flex items-center justify-between px-4">
-        <button onclick="toggleShuffle()" id="fsBtnShuffle" class="text-lg text-[#888] hover:text-white transition">🔀</button>
-        <button onclick="prevSong()" class="text-2xl text-white hover:scale-110 transition">⏮️</button>
-        <button onclick="togglePlay()" id="fsBtnPlay" class="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center font-bold text-2xl shadow-2xl hover:scale-105 active:scale-95 transition">
-          ▶️
+        <button onclick="toggleShuffle()" id="fsBtnShuffle" class="text-[#888] hover:text-white transition p-2" title="Acak Lagu">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 5 5-5 5"/><path d="M4 20L21 3"/><path d="m21 16-5 5-5-5"/><path d="M15 15l-4.5 4.5"/><path d="M4 4l5 5"/></svg>
         </button>
-        <button onclick="nextSong()" class="text-2xl text-white hover:scale-110 transition">⏭️</button>
-        <button onclick="toggleRepeat()" id="fsBtnRepeat" class="text-lg text-[#888] hover:text-white transition">🔁</button>
+        <button onclick="prevSong()" class="text-white hover:scale-110 active:scale-95 transition p-2" title="Lagu Sebelumnya">
+          <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24"><path d="m19 20-10-8 10-8v16z"/><rect x="5" y="4" width="2" height="16" rx="1"/></svg>
+        </button>
+        <button onclick="togglePlay()" id="fsBtnPlay" class="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition" title="Putar / Jeda">
+          <svg class="w-8 h-8 fill-current ml-1" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+        </button>
+        <button onclick="nextSong()" class="text-white hover:scale-110 active:scale-95 transition p-2" title="Lagu Berikutnya">
+          <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24"><path d="m5 4 10 8-10 8V4z"/><rect x="17" y="4" width="2" height="16" rx="1"/></svg>
+        </button>
+        <button onclick="toggleRepeat()" id="fsBtnRepeat" class="text-[#888] hover:text-white transition p-2" title="Ulangi Lagu">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+        </button>
       </div>
 
       <!-- Bottom Quick Actions: Lyrics & Audio Switcher & Solo Queue -->
@@ -864,19 +884,24 @@
       <input type="hidden" id="dlInputQuery">
       <input type="hidden" id="dlInputSongId">
       
-      <!-- Format Selector Buttons -->
+      <!-- Format Selector Buttons: MP3 320k Non-FLAC as Primary Recommended -->
       <div class="grid grid-cols-2 gap-3 pt-1">
-        <button onclick="handleFormatSelection('flac')" class="bg-gradient-to-r from-[#ffd700]/20 to-[#b8860b]/30 border border-[#ffd700] hover:scale-102 p-3.5 rounded-xl text-left transition group">
-          <div class="text-xs font-bold text-[#ffd700] flex items-center gap-1.5">
-            <span>✨</span> FLAC Lossless
+        <button onclick="handleFormatSelection('mp3')" class="bg-[#1db954]/15 border-2 border-[#1db954] hover:scale-102 p-3.5 rounded-xl text-left transition group shadow-lg shadow-[#1db954]/10 relative">
+          <div class="absolute -top-2.5 right-2 bg-[#1db954] text-black text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+            Direkomendasikan
           </div>
-          <div class="text-[10px] text-[#ccc] mt-1 leading-snug">Audio 24-bit / 96kHz High-Res Studio Master murni</div>
+          <div class="text-xs font-bold text-[#1db954] flex items-center gap-1.5">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            <span>Standar MP3</span>
+          </div>
+          <div class="text-[10px] text-[#ccc] mt-1 leading-snug">320 kbps optimal • Hemat penyimpanan & suara renyah</div>
         </button>
-        <button onclick="handleFormatSelection('mp3')" class="bg-[#181818] border border-[#333] hover:border-[#666] hover:scale-102 p-3.5 rounded-xl text-left transition">
-          <div class="text-xs font-bold text-white flex items-center gap-1.5">
-            <span>🎵</span> Standar MP3
+        <button onclick="handleFormatSelection('flac')" class="bg-[#181818] border border-white/15 hover:border-[#ffd700] hover:scale-102 p-3.5 rounded-xl text-left transition group">
+          <div class="text-xs font-bold text-[#ffd700] flex items-center gap-1.5">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
+            <span>FLAC Lossless</span>
           </div>
-          <div class="text-[10px] text-[#888] mt-1 leading-snug">320kbps hemat memori & hemat ruang penyimpanan STB</div>
+          <div class="text-[10px] text-[#888] mt-1 leading-snug">Audio 24-bit / 96kHz High-Res Studio Master murni</div>
         </button>
       </div>
 
@@ -1238,7 +1263,7 @@
     let currentJoinedRoom = null;
     let soloQueue = [];
     let activeFilter = 'all';
-    let isHighResMode = true;
+    let isHighResMode = false; // Default: Standar MP3 320kbps (hemat penyimpanan & memori, renyah didengar)
     let favorites = new Set();
     let offlineSongs = new Set();
     let pendingDownloadedSong = null;
@@ -1430,13 +1455,21 @@
           ? `<span class="badge-hires-gold text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider shadow">HI-RES LOSSLESS</span>` 
           : `<span class="text-[9px] bg-[#222] text-[#888] px-1.5 py-0.5 rounded border border-[#333]">MP3 320K</span>`;
 
-        const thumbHtml = s.cover_url
-          ? `<img src="${s.cover_url}" class="w-full h-full object-cover rounded-md" loading="lazy" alt="Cover">`
-          : `<span>${s.cover || '🎵'}</span>`;
+        const thumbHtml = getCoverHtml(s, "w-full h-full object-cover rounded-md", "w-full h-full rounded-md", "text-xs");
+
+        const partyQueueBtnHtml = isPartyMode ? `
+          <button onclick="addSongToRoomQueue('${s.id}')" class="text-xs px-2.5 py-1 rounded-full btn-neon-green text-black font-extrabold transition flex items-center gap-1 shadow" title="Tambah lagu ke Antrean Room Party">
+            <span>➕ Party</span>
+          </button>
+        ` : `
+          <button onclick="addToSoloQueue('${s.id}')" class="text-xs px-2.5 py-1 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] text-[#ccc] hover:text-white transition flex items-center gap-1" title="Tambah ke antrean putar solo">
+            <span>➕ Antrean</span>
+          </button>
+        `;
 
         row.innerHTML = `
           <div class="flex items-center gap-3 overflow-hidden flex-1" onclick="playSongAt(${originalIdx})">
-            <div class="w-10 h-10 rounded-md bg-[#222] flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition overflow-hidden">
+            <div class="w-10 h-10 rounded-md bg-[#222] flex items-center justify-center shrink-0 group-hover:scale-105 transition overflow-hidden">
               ${thumbHtml}
             </div>
             <div class="truncate">
@@ -1448,13 +1481,11 @@
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <button onclick="addToSoloQueue('${s.id}')" class="text-xs px-2.5 py-1 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] text-[#ccc] hover:text-white transition flex items-center gap-1" title="Tambah ke antrean putar solo">
-              <span>➕ Antrean</span>
-            </button>
+            ${partyQueueBtnHtml}
             <button onclick="downloadSongToPhone('${s.id}')" class="text-xs px-2.5 py-1 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] text-[#ccc] hover:text-white transition flex items-center gap-1" title="Unduh file fisik ke HP / Komputer ini">
               <span>⬇️</span> <span class="hidden md:inline">Ke HP</span>
             </button>
-            <button onclick="toggleFav('${s.id}')" class="text-sm p-1 hover:scale-110 transition" title="Favorit">${isFav ? '❤️' : '🤍'}</button>
+            <button onclick="toggleFav('${s.id}')" class="p-1 hover:scale-110 transition" title="Favorit">${getSvgHeartIcon(isFav, 4)}</button>
             <button onclick="toggleOffline('${s.id}')" class="text-xs px-2.5 py-1 rounded-full ${isOff ? 'bg-[#1db954]/20 text-[#1db954] border border-[#1db954]/40' : 'bg-[#242424] text-[#888]'} hover:text-white transition" title="Offline PWA Cache">
               ${isOff ? '✓ Saved' : '📲 Cache'}
             </button>
@@ -2154,31 +2185,80 @@
       });
     }
 
+    // License-Free Lucide SVG Helper Functions
+    function getSvgPlayIcon(size = 5) {
+      return `<svg class="w-${size} h-${size} fill-current ml-0.5" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></svg>`;
+    }
+    function getSvgPauseIcon(size = 5) {
+      return `<svg class="w-${size} h-${size} fill-current" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>`;
+    }
+    function getSvgHeartIcon(isFav, size = 5) {
+      if (isFav) {
+        return `<svg class="w-${size} h-${size} fill-red-500 text-red-500" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`;
+      }
+      return `<svg class="w-${size} h-${size} fill-none stroke-current" stroke-width="2" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`;
+    }
+
+    // Artist Initial Fallback Avatar Generator (Zero headphone emojis)
+    function getArtistAvatarHtml(artistName, title, sizeClasses = "w-full h-full", textClass = "text-xs") {
+      const name = (artistName || title || "Senandung").trim();
+      const initials = name.split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || "SN";
+      const gradients = [
+        "from-emerald-600 to-teal-800",
+        "from-indigo-600 to-purple-800",
+        "from-blue-600 to-cyan-800",
+        "from-violet-600 to-fuchsia-800",
+        "from-amber-600 to-orange-800",
+        "from-rose-600 to-pink-800"
+      ];
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) hash = (hash << 5) - hash + name.charCodeAt(i);
+      const grad = gradients[Math.abs(hash) % gradients.length];
+      return `<div class="${sizeClasses} bg-gradient-to-br ${grad} rounded-inherit flex items-center justify-center font-black ${textClass} text-white tracking-wider shadow-inner select-none">${escapeHtml(initials)}</div>`;
+    }
+
+    // Universal Cover Renderer with Automatic YouTube Resolution & Real Musician Fallback
+    function getCoverHtml(s, imgClasses = "w-full h-full object-cover rounded-inherit", fallbackSize = "w-full h-full", fontClass = "text-xs") {
+      if (!s) return getArtistAvatarHtml("Senandung", "", fallbackSize, fontClass);
+      let url = s.cover_url;
+      if (!url && s.id && s.id.startsWith('yt_')) {
+        url = `https://i.ytimg.com/vi/${s.id.slice(3)}/hqdefault.jpg`;
+      }
+      if (url) {
+        const safeArtist = escapeHtml(s.artist || s.title || 'Senandung').replace(/'/g, "\\'");
+        const safeTitle = escapeHtml(s.title || '').replace(/'/g, "\\'");
+        return `<img src="${escapeHtml(url)}" class="${imgClasses}" loading="lazy" alt="Cover" onerror="this.onerror=null; this.parentElement.innerHTML=getArtistAvatarHtml('${safeArtist}','${safeTitle}','${fallbackSize}','${fontClass}');">`;
+      }
+      return getArtistAvatarHtml(s.artist, s.title, fallbackSize, fontClass);
+    }
+
     function updatePlayerUI() {
+      const btnPlay = document.getElementById('btnPlay');
+      const mBtnPlay = document.getElementById('mBtnPlay');
+      const fsBtnPlay = document.getElementById('fsBtnPlay');
+
       if (currentSongIndex < 0 || !songs[currentSongIndex]) {
         // Desktop
         document.getElementById('playerTitle').innerText = "Belum Memutar";
         document.getElementById('playerArtist').innerText = "Pilih lagu dari daftar";
-        document.getElementById('btnPlay').innerText = "▶️";
+        if (btnPlay) btnPlay.innerHTML = getSvgPlayIcon(5);
         // Mobile Mini Player
         const mTitle = document.getElementById('mPlayerTitle');
         if (mTitle) mTitle.innerText = "Belum Memutar";
         const mArtist = document.getElementById('mPlayerArtist');
         if (mArtist) mArtist.innerText = "Pilih lagu dari koleksi";
-        const mBtnPlay = document.getElementById('mBtnPlay');
-        if (mBtnPlay) mBtnPlay.innerText = "▶️";
+        if (mBtnPlay) mBtnPlay.innerHTML = getSvgPlayIcon(5);
         // Fullscreen Drawer
         const fsTitle = document.getElementById('fsTitle');
         if (fsTitle) fsTitle.innerText = "Belum Memutar";
         const fsArtist = document.getElementById('fsArtist');
         if (fsArtist) fsArtist.innerText = "Pilih lagu dari koleksi";
-        const fsBtnPlay = document.getElementById('fsBtnPlay');
-        if (fsBtnPlay) fsBtnPlay.innerText = "▶️";
+        if (fsBtnPlay) fsBtnPlay.innerHTML = getSvgPlayIcon(8);
         return;
       }
+
       const s = songs[currentSongIndex];
       const isAudPlaying = !realAudio.paused && realAudio.currentTime > 0;
-      const playIcon = isAudPlaying ? '⏸️' : '▶️';
       const isFav = favorites.has(s.id);
 
       // 1. Desktop Bar
@@ -2186,14 +2266,11 @@
       document.getElementById('playerArtist').innerText = s.artist;
       const deskThumb = document.getElementById('playerThumb');
       if (deskThumb) {
-        if (s.cover_url) {
-          deskThumb.innerHTML = `<img src="${s.cover_url}" class="w-full h-full object-cover rounded-lg" alt="Cover">`;
-        } else {
-          deskThumb.innerHTML = `<span>${s.cover || '🎵'}</span>`;
-        }
+        deskThumb.innerHTML = getCoverHtml(s, "w-full h-full object-cover rounded-lg", "w-full h-full rounded-lg", "text-sm");
       }
-      document.getElementById('btnPlay').innerText = playIcon;
-      document.getElementById('btnFavCurrent').innerText = isFav ? '❤️' : '🤍';
+      if (btnPlay) btnPlay.innerHTML = isAudPlaying ? getSvgPauseIcon(5) : getSvgPlayIcon(5);
+      const btnFav = document.getElementById('btnFavCurrent');
+      if (btnFav) btnFav.innerHTML = getSvgHeartIcon(isFav, 4);
       
       const hiResBadge = document.getElementById('playerHiResBadge');
       if (s.isHiRes) {
@@ -2212,16 +2289,11 @@
       if (mArtist) mArtist.innerText = s.artist;
       const mThumb = document.getElementById('mPlayerThumb');
       if (mThumb) {
-        if (s.cover_url) {
-          mThumb.innerHTML = `<img src="${s.cover_url}" class="w-full h-full object-cover rounded-xl" alt="Cover">`;
-        } else {
-          mThumb.innerHTML = `<span>${s.cover || '🎵'}</span>`;
-        }
+        mThumb.innerHTML = getCoverHtml(s, "w-full h-full object-cover rounded-xl", "w-full h-full rounded-xl", "text-xs");
       }
-      const mBtnPlay = document.getElementById('mBtnPlay');
-      if (mBtnPlay) mBtnPlay.innerText = playIcon;
+      if (mBtnPlay) mBtnPlay.innerHTML = isAudPlaying ? getSvgPauseIcon(5) : getSvgPlayIcon(5);
       const mBtnFav = document.getElementById('mBtnFav');
-      if (mBtnFav) mBtnFav.innerText = isFav ? '❤️' : '🤍';
+      if (mBtnFav) mBtnFav.innerHTML = getSvgHeartIcon(isFav, 5);
       const mHiRes = document.getElementById('mPlayerHiResBadge');
       if (mHiRes) {
         if (s.isHiRes) {
@@ -2239,16 +2311,11 @@
       if (fsArtist) fsArtist.innerText = s.artist;
       const fsThumb = document.getElementById('fsArtwork');
       if (fsThumb) {
-        if (s.cover_url) {
-          fsThumb.innerHTML = `<img src="${s.cover_url}" class="w-full h-full object-cover rounded-2xl shadow-2xl" alt="Cover">`;
-        } else {
-          fsThumb.innerHTML = `<span>${s.cover || '🎵'}</span>`;
-        }
+        fsThumb.innerHTML = getCoverHtml(s, "w-full h-full object-cover rounded-2xl shadow-2xl", "w-full h-full rounded-2xl shadow-2xl", "text-4xl");
       }
-      const fsBtnPlay = document.getElementById('fsBtnPlay');
-      if (fsBtnPlay) fsBtnPlay.innerText = playIcon;
+      if (fsBtnPlay) fsBtnPlay.innerHTML = isAudPlaying ? getSvgPauseIcon(8) : getSvgPlayIcon(8);
       const fsBtnFav = document.getElementById('fsBtnFav');
-      if (fsBtnFav) fsBtnFav.innerText = isFav ? '❤️' : '🤍';
+      if (fsBtnFav) fsBtnFav.innerHTML = getSvgHeartIcon(isFav, 6);
 
       document.getElementById('karaokeMainTitle').innerText = s.title;
       document.getElementById('karaokeMainArtist').innerText = s.artist;
@@ -2742,15 +2809,20 @@
       }
       const roomImg = document.getElementById('roomCoverImage');
       if (roomImg && coverEl) {
-        if (msg.song && (msg.song.cover_url || (msg.song.id && msg.song.id.startsWith('yt_')))) {
-          const cUrl = msg.song.cover_url || `https://i.ytimg.com/vi/${msg.song.id.slice(3)}/hqdefault.jpg`;
+        let cUrl = msg.song ? (msg.song.cover_url || (msg.song.id && msg.song.id.startsWith('yt_') ? `https://i.ytimg.com/vi/${msg.song.id.slice(3)}/hqdefault.jpg` : '')) : '';
+        if (cUrl) {
           roomImg.src = cUrl;
           roomImg.classList.remove('hidden');
           coverEl.classList.add('hidden');
+          roomImg.onerror = () => {
+            roomImg.classList.add('hidden');
+            coverEl.classList.remove('hidden');
+            coverEl.innerHTML = getArtistAvatarHtml(msg.song ? msg.song.artist : 'Room', msg.song ? msg.song.title : '', 'w-full h-full', 'text-4xl');
+          };
         } else {
           roomImg.classList.add('hidden');
           coverEl.classList.remove('hidden');
-          coverEl.innerText = (msg.song && msg.song.isHiRes) ? '✨' : '🎧';
+          coverEl.innerHTML = getArtistAvatarHtml(msg.song ? msg.song.artist : 'Room', msg.song ? msg.song.title : '', 'w-full h-full', 'text-4xl');
         }
       }
       if (hiResBadge) {
@@ -2866,14 +2938,12 @@
       roomQueueSongs.forEach((song, idx) => {
         const item = document.createElement('div');
         item.className = 'flex items-center justify-between p-2.5 rounded-xl bg-[#202020] hover:bg-[#272727] border border-[#2d2d2d] transition group text-xs';
-        const qThumb = (song.cover_url || (song.id && song.id.startsWith('yt_')))
-          ? `<img src="${song.cover_url || `https://i.ytimg.com/vi/${song.id.slice(3)}/hqdefault.jpg`}" class="w-full h-full object-cover rounded-lg" alt="Cover">`
-          : `<span>${song.isHiRes ? '✨' : '🎧'}</span>`;
+        const qThumb = getCoverHtml(song, "w-full h-full object-cover rounded-lg", "w-full h-full rounded-lg", "text-xs");
 
         item.innerHTML = `
           <div class="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
             <span class="text-[#888] font-mono text-[10px] w-4 text-center shrink-0">${idx + 1}</span>
-            <div class="w-8 h-8 rounded-lg bg-[#2e2e2e] flex items-center justify-center text-sm shrink-0 overflow-hidden">
+            <div class="w-8 h-8 rounded-lg bg-[#2e2e2e] flex items-center justify-center shrink-0 overflow-hidden">
               ${qThumb}
             </div>
             <div class="min-w-0 flex-1">
@@ -2965,13 +3035,11 @@
       filtered.forEach(s => {
         const row = document.createElement('div');
         row.className = 'flex items-center justify-between p-2.5 rounded-xl hover:bg-[#2d2d2d] border border-[#2f2f2f] transition text-xs';
-        const addThumb = (s.cover_url || (s.id && s.id.startsWith('yt_')))
-          ? `<img src="${s.cover_url || `https://i.ytimg.com/vi/${s.id.slice(3)}/hqdefault.jpg`}" class="w-full h-full object-cover rounded-lg" alt="Cover">`
-          : `<span>${s.isHiRes ? '✨' : '🎧'}</span>`;
+        const addThumb = getCoverHtml(s, "w-full h-full object-cover rounded-lg", "w-full h-full rounded-lg", "text-[10px]");
 
         row.innerHTML = `
           <div class="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-            <div class="w-8 h-8 rounded-lg bg-[#181818] flex items-center justify-center text-sm shrink-0 overflow-hidden">
+            <div class="w-8 h-8 rounded-lg bg-[#181818] flex items-center justify-center shrink-0 overflow-hidden">
               ${addThumb}
             </div>
             <div class="min-w-0 flex-1">
@@ -3021,14 +3089,12 @@
       soloQueue.forEach((s, idx) => {
         const item = document.createElement('div');
         item.className = 'flex items-center justify-between p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 transition text-xs';
-        const sThumb = (s.cover_url || (s.id && s.id.startsWith('yt_')))
-          ? `<img src="${s.cover_url || `https://i.ytimg.com/vi/${s.id.slice(3)}/hqdefault.jpg`}" class="w-full h-full object-cover rounded-lg" alt="Cover">`
-          : `<span>${s.cover || (s.isHiRes ? '✨' : '🎧')}</span>`;
+        const sThumb = getCoverHtml(s, "w-full h-full object-cover rounded-lg", "w-full h-full rounded-lg", "text-xs");
 
         item.innerHTML = `
           <div class="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
             <span class="text-[#888] font-mono text-[10px] w-4 text-center shrink-0">${idx + 1}</span>
-            <div class="w-8 h-8 rounded-lg bg-[#242424] flex items-center justify-center text-sm shrink-0 overflow-hidden">
+            <div class="w-8 h-8 rounded-lg bg-[#242424] flex items-center justify-center shrink-0 overflow-hidden">
               ${sThumb}
             </div>
             <div class="min-w-0 flex-1">
@@ -3215,30 +3281,51 @@
 
     function renderPartyMembers(members) {
       const container = document.getElementById('partyMembersList');
+      const countEl = document.getElementById('activeListenersCount');
       if (!container) return;
       container.innerHTML = '';
 
-      if (members.length === 0) {
-        container.innerHTML = `
-          <div class="bg-[#242424] border border-[#333] px-3 py-1 rounded-full text-xs text-white flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-[#1db954]"></span>
-            <span>${escapeHtml(myDeviceName)} (Anda)</span>
-          </div>
-        `;
-        return;
-      }
+      const list = (members && members.length > 0) ? members : [myDeviceName];
+      if (countEl) countEl.innerText = `${list.length} Perangkat Online`;
 
-      members.forEach((m, idx) => {
+      list.forEach((m, idx) => {
         const isMe = m === myDeviceName || idx === 0;
-        const chip = document.createElement('div');
-        chip.className = `px-3 py-1 rounded-full text-xs flex items-center gap-1.5 border ${
-          isMe ? 'bg-[#1db954]/20 border-[#1db954]/60 text-[#1db954] font-semibold' : 'bg-[#242424] border-[#333] text-white'
+        const lower = (m || '').toLowerCase();
+        let deviceType = "Smartphone";
+        let deviceIcon = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>`;
+        if (lower.includes('mac') || lower.includes('windows') || lower.includes('laptop') || lower.includes('pc') || lower.includes('desktop')) {
+          deviceType = "Desktop / Laptop";
+          deviceIcon = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>`;
+        } else if (lower.includes('tablet') || lower.includes('ipad')) {
+          deviceType = "Tablet";
+          deviceIcon = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg>`;
+        }
+
+        const initials = (m || 'D').split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+
+        const card = document.createElement('div');
+        card.className = `flex items-center gap-2.5 px-3.5 py-2 rounded-2xl border transition ${
+          isMe 
+            ? 'bg-[#1db954]/15 border-[#1db954]/50 text-white shadow-lg shadow-[#1db954]/10' 
+            : 'bg-white/[0.04] border-white/10 text-[#ddd] hover:bg-white/[0.08]'
         }`;
-        chip.innerHTML = `
-          <span class="w-2 h-2 rounded-full ${isMe ? 'bg-[#1db954] animate-pulse' : 'bg-[#1db954]'}"></span>
-          <span>${escapeHtml(m)} ${isMe ? '(Anda)' : ''}</span>
+        card.innerHTML = `
+          <div class="w-7 h-7 rounded-full bg-gradient-to-br from-[#1db954] to-emerald-800 text-black font-black text-[10px] flex items-center justify-center shrink-0 shadow">
+            ${escapeHtml(initials)}
+          </div>
+          <div class="min-w-0 pr-1">
+            <div class="text-xs font-bold truncate flex items-center gap-1.5">
+              <span>${escapeHtml(m)}</span>
+              ${isMe ? '<span class="text-[9px] bg-[#1db954] text-black px-1.5 py-0.2 rounded font-black">ANDA</span>' : ''}
+            </div>
+            <div class="text-[10px] text-[#888] flex items-center gap-1">
+              ${deviceIcon}
+              <span>${deviceType}</span>
+            </div>
+          </div>
+          <span class="w-2 h-2 rounded-full bg-[#1db954] shrink-0 ml-auto ${isMe ? 'animate-pulse' : ''}" title="Online Sinkron"></span>
         `;
-        container.appendChild(chip);
+        container.appendChild(card);
       });
     }
 
@@ -3390,53 +3477,20 @@
 
     // Toggle Solo vs Party Mode
     function togglePlaybackMode() {
-      isPartyMode = !isPartyMode;
-      const headerPill = document.getElementById('headerModePill');
-      const txtHeader = document.getElementById('txtHeaderMode');
-      const footerIcon = document.getElementById('footerModeIcon');
-      const footerText = document.getElementById('footerModeText');
-      const partySwitchBtn = document.getElementById('btnPartySwitch');
-      const mPartyDot = document.getElementById('mPartyActiveDot');
-      const activeCard = document.getElementById('activePartyRoomCard');
-
       if (isPartyMode) {
-        headerPill.className = "bg-[#1db954] text-black px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold flex items-center gap-1.5 shadow";
-        txtHeader.innerText = `📻 Party: ${currentPartyRoom}`;
-        footerIcon.innerText = "📻";
-        footerText.innerText = `Party (${currentPartyRoom})`;
-        if (partySwitchBtn) {
-          partySwitchBtn.innerHTML = "<span>📻 Mode Party Aktif</span>";
-          partySwitchBtn.className = "flex-1 sm:flex-none px-4 py-2 rounded-full font-bold text-xs flex items-center justify-center gap-2 bg-[#1db954] text-black hover:scale-105 transition shadow";
-        }
-        if (mPartyDot) mPartyDot.classList.remove('hidden');
-        if (activeCard) {
-          activeCard.className = "bg-gradient-to-r from-[#182a1c] to-[#181818] p-5 rounded-2xl border border-[#1db954]/40 space-y-4 shadow-lg";
-        }
-
-        initPartyWebSocket();
-        showToast(`Mode Party Aktif! Sinkron dengan room "${currentPartyRoom}"`, 'success');
-      } else {
-        headerPill.className = "bg-[#282828] border border-[#3e3e3e] px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs text-[#aaa] font-semibold flex items-center gap-1.5";
-        txtHeader.innerText = "🎧 Solo";
-        footerIcon.innerText = "🎧";
-        footerText.innerText = "Solo";
-        if (partySwitchBtn) {
-          partySwitchBtn.innerHTML = "<span>🎧 Mode Solo (Pribadi)</span>";
-          partySwitchBtn.className = "flex-1 sm:flex-none px-4 py-2 rounded-full font-bold text-xs flex items-center justify-center gap-2 bg-[#282828] text-white hover:bg-[#333] transition border border-[#444]";
-        }
-        if (mPartyDot) mPartyDot.classList.add('hidden');
-        if (activeCard) {
-          activeCard.className = "bg-[#181818] p-5 rounded-2xl border border-[#2a2a2a] space-y-4 opacity-75";
-        }
-
-        if (partyWs) {
-          try { partyWs.close(); } catch(e) {}
-          partyWs = null;
-        }
-        hideIosPrompt();
-        showToast("Beralih ke Mode Solo (Pribadi)", 'success');
+        // Jika sedang party, klik header mode pill akan membawa langsung ke ruang room terisolasi
+        switchTab('party');
+        const lobby = document.getElementById('partyLobbyView');
+        const isolated = document.getElementById('partyIsolatedRoomView');
+        if (lobby) lobby.classList.add('hidden');
+        if (isolated) isolated.classList.remove('hidden');
+        showToast(`Membuka Ruangan Party: ${currentPartyRoom}`, 'success');
+        return;
       }
-      renderActiveRoomsGrid();
+
+      // Jika dari solo ingin mengaktifkan party, bawa ke tab Party untuk pilih/masuk room
+      switchTab('party');
+      showToast("Pilih ruangan yang ingin dimasuki untuk mulai mendengarkan bersama!", 'success');
     }
 
     function enterPartyRoom(roomName) {
@@ -3444,33 +3498,40 @@
       currentPartyRoom = roomName;
       isPartyMode = true;
 
-      // Update room UI headers
-      const titleEl = document.getElementById('activePartyRoomTitle');
-      if (titleEl) titleEl.innerText = roomName;
-      const select = document.getElementById('partyRoomSelect');
-      if (select) select.value = roomName;
-
-      // Switch sub-views in Ruang Party
+      // 1. Pindah tab ke 'party' dan tampilkan isolated room view
+      switchTab('party');
       const lobby = document.getElementById('partyLobbyView');
       const isolated = document.getElementById('partyIsolatedRoomView');
       if (lobby) lobby.classList.add('hidden');
       if (isolated) isolated.classList.remove('hidden');
 
-      // Update Header badges
+      // 2. Update room UI headers
+      const titleEl = document.getElementById('activePartyRoomTitle');
+      if (titleEl) titleEl.innerText = roomName;
+      const select = document.getElementById('partyRoomSelect');
+      if (select) select.value = roomName;
+
+      // 3. Update Header badges & Footer Mode
       const headerPill = document.getElementById('headerModePill');
       const txtHeader = document.getElementById('txtHeaderMode');
       const footerIcon = document.getElementById('footerModeIcon');
       const footerText = document.getElementById('footerModeText');
       const mPartyDot = document.getElementById('mPartyActiveDot');
+      const partySwitchBtn = document.getElementById('btnPartySwitch');
 
-      if (headerPill) headerPill.className = "bg-[#1db954] text-black px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold flex items-center gap-1.5 shadow";
+      if (headerPill) headerPill.className = "bg-[#1db954] text-black px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold flex items-center gap-1.5 shadow cursor-pointer";
       if (txtHeader) txtHeader.innerText = `📻 Party: ${roomName}`;
       if (footerIcon) footerIcon.innerText = "📻";
       if (footerText) footerText.innerText = `Party (${roomName})`;
       if (mPartyDot) mPartyDot.classList.remove('hidden');
+      if (partySwitchBtn) {
+        partySwitchBtn.innerHTML = "<span>📻 Room Aktif: " + escapeHtml(roomName) + "</span>";
+        partySwitchBtn.className = "flex-1 sm:flex-none px-4 py-2 rounded-full font-bold text-xs flex items-center justify-center gap-2 bg-[#1db954] text-black shadow";
+      }
 
       initPartyWebSocket();
-      showToast(`Memasuki room terisolasi "${roomName}"! Audio tersinkron bersama.`, 'success');
+      renderDashboardSongs();
+      showToast(`Berhasil masuk room terisolasi "${roomName}"! Audio disinkronkan real-time.`, 'success');
       renderActiveRoomsGrid();
     }
 
@@ -3689,7 +3750,7 @@
                 artist: s.artist || "Artis STB",
                 album: s.album || (isFlac ? "Koleksi FLAC Hi-Res" : "Koleksi Standar"),
                 duration: s.duration || 210,
-                cover: isFlac ? "✨" : "🎧",
+                cover: isFlac ? "FLAC" : "MP3",
                 cover_url: s.cover_url || (s.id && s.id.startsWith('yt_') ? `https://i.ytimg.com/vi/${s.id.slice(3)}/hqdefault.jpg` : ''),
                 themeColor: isFlac ? "#332a10" : "#1a253a",
                 isHiRes: isFlac,
