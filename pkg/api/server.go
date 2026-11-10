@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -123,6 +124,52 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 	if err != nil || song.FilePath == "" {
 		http.Error(w, "File not found", http.StatusNotFound)
 		return
+	}
+
+	bitrate := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("bitrate")))
+	// If a specific compressed bitrate is requested (64k, 128k, 320k), transcode dynamically on-the-fly
+	if bitrate != "" && bitrate != "lossless" && bitrate != "original" && bitrate != "auto" {
+		bRate := "128k"
+		if bitrate == "64k" || bitrate == "64" {
+			bRate = "64k"
+		} else if bitrate == "128k" || bitrate == "128" {
+			bRate = "128k"
+		} else if bitrate == "320k" || bitrate == "320" {
+			bRate = "320k"
+		}
+
+		ffmpegBin, errFF := exec.LookPath("ffmpeg")
+		if errFF == nil {
+			var cmdArgs []string
+			var execName string
+
+			niceBin, errNice := exec.LookPath("nice")
+			if errNice == nil {
+				execName = niceBin
+				cmdArgs = append(cmdArgs, "-n", "19", ffmpegBin)
+			} else {
+				execName = ffmpegBin
+			}
+
+			cmdArgs = append(cmdArgs, "-nostdin", "-v", "error")
+			if ss := r.URL.Query().Get("ss"); ss != "" {
+				cmdArgs = append(cmdArgs, "-ss", ss)
+			}
+			cmdArgs = append(cmdArgs, "-i", song.FilePath, "-vn", "-c:a", "libmp3lame", "-b:a", bRate, "-f", "mp3", "pipe:1")
+
+			cmd := exec.CommandContext(r.Context(), execName, cmdArgs...)
+			w.Header().Set("Content-Type", "audio/mpeg")
+			w.Header().Set("Cache-Control", "no-cache, no-store")
+			w.Header().Set("X-Transcoded-Bitrate", bRate)
+
+			if flusher, ok := w.(http.Flusher); ok {
+				flusher.Flush()
+			}
+			cmd.Stdout = w
+			cmd.Stderr = os.Stderr
+			_ = cmd.Run()
+			return
+		}
 	}
 
 	f, err := os.Open(song.FilePath)
