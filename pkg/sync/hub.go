@@ -102,7 +102,7 @@ func (h *Hub) Run() {
 			var activeRooms []string
 			for id, room := range h.rooms {
 				room.mu.RLock()
-				if room.IsPlaying && len(room.Clients) > 0 {
+				if len(room.Clients) > 0 {
 					activeRooms = append(activeRooms, id)
 				}
 				room.mu.RUnlock()
@@ -377,6 +377,11 @@ func (c *Client) readPump() {
 
 		room.mu.Lock()
 		switch msg.Action {
+		case "get_state":
+			// Minta broadcast state terkini secara instan ke seluruh listener di room
+			room.mu.Unlock()
+			c.hub.broadcastRoomState(c.roomID)
+			continue
 		case "play":
 			room.IsPlaying = true
 			room.PositionSec = msg.PositionSec

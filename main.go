@@ -111,7 +111,7 @@ func main() {
 	serverAddr := fmt.Sprintf("0.0.0.0:%d", *port)
 	server := &http.Server{
 		Addr:    serverAddr,
-		Handler: mux,
+		Handler: corsMiddleware(mux),
 	}
 
 	// Tangani shutdown anggun (Graceful shutdown)
@@ -128,6 +128,21 @@ func main() {
 
 	<-stopChan
 	log.Printf("[Senandung] Mematikan server secara aman...")
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Range, Content-Type, Authorization, Accept, X-Requested-With")
+		w.Header().Set("Access-Control-Expose-Headers", "Content-Range, Accept-Ranges, Content-Length, X-Transcoded-Bitrate")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func loadEnvConfig(port *int, dataDir, musicDir *string) {
