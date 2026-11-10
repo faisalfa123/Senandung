@@ -256,3 +256,16 @@ func (d *DB) UpdateLyrics(songID, lyrics string) error {
 	}
 	return fmt.Errorf("song not found")
 }
+
+func (d *DB) UpdateLyricOffset(songID string, offset float64) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if s, ok := d.state.Songs[songID]; ok {
+		log.Printf("[DB] Updating lyric offset for song %s to %.2fs", songID, offset)
+		s.LyricOffset = offset
+		d.state.Songs[songID] = s
+		return d.saveLocked()
+	}
+	return fmt.Errorf("song not found")
+}

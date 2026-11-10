@@ -411,15 +411,42 @@
         <div id="karaokeScrollContainer" class="flex-1 w-full max-w-2xl overflow-y-auto custom-scroll flex flex-col items-center justify-start space-y-8 py-10 px-4 text-center">
         </div>
 
-        <div class="mt-6 flex items-center gap-3 bg-[#181818] px-4 py-2 rounded-full border border-[#333]">
-          <span class="text-xs text-[#888]">Lirik tidak pas?</span>
-          <button onclick="openLyricsEditor()" class="text-xs font-semibold text-[#1db954] hover:underline">
-            <svg class="w-3.5 h-3.5 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Edit / Pasang Lirik Sendiri</span>
-          </button>
-          <span class="text-[#444]">|</span>
-          <button onclick="searchInternetLyricsForCurrent()" class="text-xs font-semibold text-white hover:text-[#1db954]">
-            <svg class="w-3.5 h-3.5 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><span>Cari Ulang di Internet</span>
-          </button>
+        <!-- Lyric Calibration & Control Center -->
+        <div class="mt-4 w-full max-w-2xl bg-[#181818]/90 backdrop-blur-md p-3 rounded-2xl border border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xl">
+          <!-- Offset Calibration Controls -->
+          <div class="flex items-center flex-wrap gap-2">
+            <span class="text-[#888] font-medium flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>Offset:</span>
+            </span>
+            <span id="lyricOffsetDisplay" class="font-mono font-bold px-2 py-0.5 rounded bg-white/[0.06] text-emerald-400 border border-white/10">0.00s</span>
+
+            <div class="flex items-center gap-1">
+              <button onclick="adjustLyricOffset(-0.5)" class="px-2 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white/90 hover:text-white transition font-mono text-[11px] cursor-pointer" title="Tunda 0.5s (Jika lirik terlalu cepat)">-0.5s</button>
+              <button onclick="adjustLyricOffset(-0.1)" class="px-1.5 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white/90 hover:text-white transition font-mono text-[11px] cursor-pointer" title="Tunda 0.1s">-0.1s</button>
+              <button onclick="resetLyricOffset()" class="px-2 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-[#888] hover:text-white transition text-[10px] cursor-pointer" title="Reset offset ke 0">Reset</button>
+              <button onclick="adjustLyricOffset(0.1)" class="px-1.5 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white/90 hover:text-white transition font-mono text-[11px] cursor-pointer" title="Percepat 0.1s">+0.1s</button>
+              <button onclick="adjustLyricOffset(0.5)" class="px-2 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white/90 hover:text-white transition font-mono text-[11px] cursor-pointer" title="Percepat 0.5s (Jika lirik terlalu lambat)">+0.5s</button>
+            </div>
+
+            <!-- Save Offset to STB Button -->
+            <button onclick="saveLyricOffsetToSTB()" id="btnSaveLyricOffset" class="px-3 py-1 rounded-lg bg-[#1db954]/20 hover:bg-[#1db954] text-[#1db954] hover:text-black font-bold border border-[#1db954]/40 transition flex items-center gap-1 shadow-sm cursor-pointer" title="Simpan offset ini permanen ke STB untuk lagu ini">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              <span>Simpan ke STB</span>
+            </button>
+          </div>
+
+          <!-- Edit & Search Actions -->
+          <div class="flex items-center gap-2">
+            <button onclick="openLyricsEditor()" class="px-3 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white font-medium transition flex items-center gap-1.5 cursor-pointer">
+              <svg class="w-3.5 h-3.5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              <span>Edit Lirik</span>
+            </button>
+            <button onclick="searchInternetLyricsForCurrent()" class="px-3 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-[#bbb] hover:text-white font-medium transition flex items-center gap-1.5 cursor-pointer">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <span>Cari Ulang</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -446,7 +473,13 @@
                 <span class="text-xs px-2 py-0.5 rounded-full" id="plDetailBadge">Bersama</span>
               </div>
             </div>
-            <button onclick="closePlaylistDetail()" class="text-sm text-[#888] hover:text-white">✕ Tutup</button>
+            <div class="flex items-center gap-2">
+              <button onclick="deleteCurrentOpenPlaylist()" class="text-xs px-3 py-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1.5 transition cursor-pointer" title="Hapus playlist ini">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <span>Hapus Playlist</span>
+              </button>
+              <button onclick="closePlaylistDetail()" class="text-sm text-[#888] hover:text-white px-2 py-1 cursor-pointer">✕ Tutup</button>
+            </div>
           </div>
           <div id="playlistSongList" class="space-y-1"></div>
         </div>
@@ -1085,18 +1118,37 @@
     </div>
   </div>
 
-  <!-- Modal: Editor Lirik Manual -->
-  <div id="lyricsEditorModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-[#242424] border border-[#333] rounded-2xl p-6 w-full max-w-lg space-y-4 shadow-2xl">
-      <div class="flex justify-between items-center">
-        <h3 class="font-bold text-base flex items-center gap-2"><svg class="w-5 h-5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Edit Lirik Lagu (.LRC)</span></h3>
-        <button onclick="closeModal('lyricsEditorModal')" class="text-sm text-[#888] hover:text-white">✕</button>
+  <!-- Modal: Editor Lirik Manual & Kalibrasi STB -->
+  <div id="lyricsEditorModal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+    <div class="glass-card border border-white/15 rounded-3xl p-6 w-full max-w-xl space-y-4 shadow-2xl flex flex-col max-h-[85vh]">
+      <div class="flex justify-between items-center border-b border-white/10 pb-3">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <div>
+            <h3 class="font-bold text-base text-white">Edit & Pasang Lirik Lagu</h3>
+            <p id="lyricsEditorSongTitle" class="text-[11px] text-[#aaa]">Format standar LRC [mm:ss.xx] teks atau teks biasa</p>
+          </div>
+        </div>
+        <button onclick="closeModal('lyricsEditorModal')" class="text-sm text-[#888] hover:text-white px-2 py-1 cursor-pointer">✕</button>
       </div>
-      <textarea id="rawLyricsTextarea" rows="8" class="w-full bg-[#181818] border border-[#3a3a3a] rounded-lg p-3 text-xs font-mono text-white focus:outline-none focus:border-[#1db954]"></textarea>
-      
-      <div class="flex justify-end gap-2 pt-2">
-        <button onclick="closeModal('lyricsEditorModal')" class="px-4 py-2 rounded-lg text-xs font-semibold bg-[#333] hover:bg-[#444]">Batal</button>
-        <button onclick="saveManualLyrics()" class="px-5 py-2 rounded-lg text-xs font-bold bg-[#1db954] text-black hover:bg-[#1ed760] transition shadow">Simpan Lirik</button>
+
+      <div class="space-y-1.5 flex-1 flex flex-col min-h-0">
+        <div class="flex items-center justify-between text-xs text-[#888]">
+          <span>Format tag waktu: <code class="text-emerald-400 font-mono">[01:23.45] Baris lirik</code></span>
+          <button onclick="convertPlainTextToTimestampedLrc()" class="text-[#1db954] hover:underline text-[11px] font-semibold cursor-pointer">Beri Waktu Otomatis</button>
+        </div>
+        <textarea id="rawLyricsTextarea" rows="12" class="w-full flex-1 bg-[#121212] border border-white/10 rounded-2xl p-4 text-xs font-mono text-white focus:outline-none focus:border-[#1db954] leading-relaxed custom-scroll resize-none" placeholder="[00:05.20] Baris lirik pertama...&#10;[00:09.50] Baris lirik kedua..."></textarea>
+      </div>
+
+      <div class="flex items-center justify-between pt-2 border-t border-white/10">
+        <span class="text-[11px] text-[#888]">Perubahan akan disimpan permanen ke database STB</span>
+        <div class="flex items-center gap-2">
+          <button onclick="closeModal('lyricsEditorModal')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white cursor-pointer">Batal</button>
+          <button onclick="saveManualLyrics()" class="px-5 py-2 rounded-xl text-xs font-bold bg-[#1db954] text-black hover:bg-[#1ed760] transition shadow cursor-pointer flex items-center gap-1.5">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Simpan Lirik ke STB</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1545,11 +1597,22 @@
     }
 
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && isPlaying) {
-        requestWakeLock();
-      }
-      if (bgAudioCtx && bgAudioCtx.state === 'suspended' && isPlaying) {
-        bgAudioCtx.resume().catch(() => {});
+      if (document.visibilityState === 'visible') {
+        if (isPlaying) {
+          requestWakeLock();
+        }
+        if (bgAudioCtx && bgAudioCtx.state === 'suspended' && isPlaying) {
+          bgAudioCtx.resume().catch(() => {});
+        }
+        // Auto-reconnect & auto-resync Party WebSocket saat layar ponsel aktif kembali
+        if (isPartyMode) {
+          if (!partyWs || partyWs.readyState !== WebSocket.OPEN) {
+            console.log('[PartySync] Layar aktif kembali, memulihkan koneksi room...');
+            initPartyWebSocket();
+          } else {
+            sendPartyAction('ping', { client_time_ms: Date.now() });
+          }
+        }
       }
     });
 
@@ -2846,18 +2909,13 @@
             }
           }
         });
-        navigator.mediaSession.setActionHandler('seekbackward', (details) => {
-          const skipTime = details.seekOffset || 10;
-          realAudio.currentTime = Math.max(0, realAudio.currentTime - skipTime);
-          currentTime = Math.floor(realAudio.currentTime);
-          updateProgressUI();
-        });
-        navigator.mediaSession.setActionHandler('seekforward', (details) => {
-          const skipTime = details.seekOffset || 10;
-          realAudio.currentTime = Math.min(realAudio.duration || 0, realAudio.currentTime + skipTime);
-          currentTime = Math.floor(realAudio.currentTime);
-          updateProgressUI();
-        });
+        // PENTING UNTUK iOS (iPhone / iPad / Apple Watch):
+        // Jika seekbackward & seekforward diisi, WebKit iOS akan menggantikan tombol Next/Prev dengan lompat 10 detik.
+        // Dengan meniadakan (null) seekbackward/forward, iOS akan menampilkan tombol Previous Track (|◀) & Next Track (▶|).
+        try {
+          navigator.mediaSession.setActionHandler('seekbackward', null);
+          navigator.mediaSession.setActionHandler('seekforward', null);
+        } catch(eSkip) {}
       } catch(e) {
         console.warn('[MediaSession] Error setting handlers:', e);
       }
@@ -3237,7 +3295,8 @@
               rawLrc.split('\n').forEach(line => {
                 const m = line.match(regex);
                 if (m) {
-                  const time = parseInt(m[1]) * 60 + parseInt(m[2]);
+                  const ms = m[3] ? parseFloat("0." + m[3]) : 0;
+                  const time = parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + ms;
                   parsed.push({ time, text: m[4].trim() });
                 }
               });
@@ -3360,13 +3419,28 @@
     }
 
     function syncKaraokeScroll() {
+      if (currentSongIndex < 0 || !songs[currentSongIndex]) return;
       const song = songs[currentSongIndex];
-      if (!song.lyrics) return;
+      if (!song.lyrics || !Array.isArray(song.lyrics)) return;
+
+      const offset = song.lyric_offset || 0;
+      const effectiveTime = (realAudio.currentTime || 0) + offset;
+
+      // Update tampilan badge offset di UI
+      const offsetDisp = document.getElementById('lyricOffsetDisplay');
+      if (offsetDisp) {
+        const sign = offset > 0 ? '+' : '';
+        offsetDisp.innerText = `${sign}${offset.toFixed(2)}s`;
+        offsetDisp.className = offset !== 0 
+          ? "font-mono font-bold px-2 py-0.5 rounded bg-[#1db954]/20 text-[#1db954] border border-[#1db954]/40" 
+          : "font-mono font-bold px-2 py-0.5 rounded bg-white/[0.06] text-[#888] border border-white/10";
+      }
 
       song.lyrics.forEach((l, idx) => {
         const el = document.getElementById('full-lyric-' + idx);
         if (!el) return;
-        const isCurrent = currentTime >= l.time && (idx === song.lyrics.length - 1 || currentTime < song.lyrics[idx + 1].time);
+        const nextTime = (idx < song.lyrics.length - 1) ? song.lyrics[idx + 1].time : 999999;
+        const isCurrent = effectiveTime >= l.time && effectiveTime < nextTime;
         if (isCurrent) {
           el.className = 'text-2xl sm:text-4xl font-extrabold text-[#1db954] scale-105 transition-all duration-300';
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3376,38 +3450,131 @@
       });
     }
 
+    function adjustLyricOffset(delta) {
+      if (currentSongIndex < 0 || !songs[currentSongIndex]) return;
+      const song = songs[currentSongIndex];
+      song.lyric_offset = Math.round(((song.lyric_offset || 0) + delta) * 100) / 100;
+      syncKaraokeScroll();
+      const sign = song.lyric_offset > 0 ? '+' : '';
+      showToast(`Offset lirik: ${sign}${song.lyric_offset.toFixed(2)}s. Tekan "Simpan ke STB" agar permanen.`, 'success');
+    }
+
+    function resetLyricOffset() {
+      if (currentSongIndex < 0 || !songs[currentSongIndex]) return;
+      const song = songs[currentSongIndex];
+      song.lyric_offset = 0;
+      syncKaraokeScroll();
+      showToast('Offset lirik direset ke 0.00s', 'success');
+    }
+
+    function saveLyricOffsetToSTB() {
+      if (currentSongIndex < 0 || !songs[currentSongIndex]) return;
+      const song = songs[currentSongIndex];
+      const offset = song.lyric_offset || 0;
+      const btn = document.getElementById('btnSaveLyricOffset');
+      if (btn) btn.innerHTML = '<span>Menyimpan...</span>';
+
+      fetch(`/api/songs/${encodeURIComponent(song.id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lyric_offset: offset })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        showToast(`Offset lirik (${offset > 0 ? '+' : ''}${offset.toFixed(2)}s) tersimpan di server STB!`, 'success');
+      })
+      .catch(err => {
+        showToast('Gagal menyimpan offset ke STB: ' + err.message, 'error');
+      })
+      .finally(() => {
+        if (btn) btn.innerHTML = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg><span>Simpan ke STB</span>`;
+      });
+    }
+
     // Manual Lyrics Editor
     function openLyricsEditor() {
+      if (currentSongIndex < 0 || !songs[currentSongIndex]) {
+        showToast('Pilih lagu terlebih dahulu untuk mengedit lirik', 'error');
+        return;
+      }
       const song = songs[currentSongIndex];
+      const titleEl = document.getElementById('lyricsEditorSongTitle');
+      if (titleEl) titleEl.innerText = `${song.title} - ${song.artist}`;
+
       const rawText = (song.lyrics || []).map(l => `[${formatLrcTime(l.time)}] ${l.text}`).join('\n');
       document.getElementById('rawLyricsTextarea').value = rawText;
       openModal('lyricsEditorModal');
     }
 
+    function convertPlainTextToTimestampedLrc() {
+      const ta = document.getElementById('rawLyricsTextarea');
+      const text = ta.value;
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      if (lines.length === 0) return;
+
+      const dur = (songs[currentSongIndex] && songs[currentSongIndex].duration) || 180;
+      const interval = Math.max(3, (dur - 10) / lines.length);
+      const converted = lines.map((l, idx) => {
+        if (/^\[\d{2}:\d{2}/.test(l)) return l;
+        const t = Math.min(dur - 2, 5 + (idx * interval));
+        return `[${formatLrcTime(t)}] ${l}`;
+      }).join('\n');
+
+      ta.value = converted;
+      showToast('Waktu baris lirik otomatis ditambahkan secara proporsional!', 'success');
+    }
+
     function saveManualLyrics() {
+      if (currentSongIndex < 0 || !songs[currentSongIndex]) return;
+      const song = songs[currentSongIndex];
       const text = document.getElementById('rawLyricsTextarea').value;
       const lines = text.split('\n');
       const parsed = [];
       const regex = /\[(\d{2}):(\d{2})\.?(\d{2,3})?\](.*)/;
 
-      lines.forEach(line => {
+      lines.forEach((line, idx) => {
         const m = line.match(regex);
         if (m) {
-          const time = parseInt(m[1]) * 60 + parseInt(m[2]);
+          const ms = m[3] ? parseFloat("0." + m[3]) : 0;
+          const time = parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + ms;
           parsed.push({ time, text: m[4].trim() });
+        } else if (line.trim().length > 0) {
+          // Plain text fallback
+          parsed.push({ time: idx * 5, text: line.trim() });
         }
       });
 
-      songs[currentSongIndex].lyrics = parsed;
+      if (parsed.length === 0) {
+        showToast('Lirik tidak boleh kosong', 'error');
+        return;
+      }
+
+      parsed.sort((a, b) => a.time - b.time);
+      song.lyrics = parsed;
+
+      // Simpan permanen ke STB Server
+      fetch(`/api/songs/${encodeURIComponent(song.id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lyrics: text })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        showToast(`Lirik lagu "${song.title}" berhasil disimpan secara permanen di server STB!`, 'success');
+      })
+      .catch(err => {
+        showToast('Gagal menyimpan lirik ke STB: ' + err.message, 'error');
+      });
+
       closeModal('lyricsEditorModal');
       renderKaraokeLyrics();
-      alert('Lirik berhasil disimpan!');
     }
 
     function formatLrcTime(s) {
       const m = Math.floor(s / 60);
-      const sec = s % 60;
-      return `${m < 10 ? '0' : ''}${m}:${sec < 10 ? '0' : ''}${sec}.00`;
+      const sec = Math.floor(s % 60);
+      const ms = Math.floor((s - Math.floor(s)) * 100);
+      return `${m < 10 ? '0' : ''}${m}:${sec < 10 ? '0' : ''}${sec}.${ms < 10 ? '0' : ''}${ms}`;
     }
 
     // ================= REAL-TIME WEBSOCKET PARTY SYNC ENGINE (SPOTIFY JAM) =================
@@ -3449,6 +3616,15 @@
 
       partyWs.onopen = () => {
         console.log('[PartySync] Terhubung ke room:', currentPartyRoom);
+
+        // Kirim semua tindakan antrean (seperti queue_next) yang tertahan saat layar mati
+        while (pendingPartyActions.length > 0) {
+          const act = pendingPartyActions.shift();
+          try {
+            partyWs.send(JSON.stringify(act));
+          } catch(e) {}
+        }
+
         sendPartyAction('ping', { client_time_ms: Date.now() });
 
         if (pingInterval) clearInterval(pingInterval);
@@ -3471,12 +3647,12 @@
       };
 
       partyWs.onclose = () => {
-        console.warn('[PartySync] Koneksi terputus. Menghubungkan ulang dalam 3 detik...');
+        console.warn('[PartySync] Koneksi terputus. Menghubungkan ulang dalam 2 detik...');
         if (pingInterval) clearInterval(pingInterval);
         if (isPartyMode) {
           setTimeout(() => {
             if (isPartyMode) initPartyWebSocket();
-          }, 3000);
+          }, 2000);
         }
       };
 
@@ -3485,18 +3661,25 @@
       };
     }
 
+    let pendingPartyActions = [];
+
     function sendPartyAction(action, payload = {}) {
       if (!isPartyMode) return;
-      if (!partyWs || partyWs.readyState !== WebSocket.OPEN) {
-        initPartyWebSocket();
-        return;
-      }
       const data = {
         action: action,
         room_id: currentPartyRoom,
         ...payload
       };
-      partyWs.send(JSON.stringify(data));
+      if (!partyWs || partyWs.readyState !== WebSocket.OPEN) {
+        pendingPartyActions.push(data);
+        initPartyWebSocket();
+        return;
+      }
+      try {
+        partyWs.send(JSON.stringify(data));
+      } catch(e) {
+        pendingPartyActions.push(data);
+      }
     }
 
     let roomQueueSongs = [];
@@ -3518,6 +3701,11 @@
       }
 
       if (msg.action === 'room_resume_prompt' && msg.saved_state) {
+        // Jika sedang aktif dalam sesi room, otomatis lanjutkan pemutaran tanpa memunculkan modal pemblokir di saku
+        if (isPartyMode && (isPlaying || currentSongIndex >= 0)) {
+          sendPartyAction('room_resume_confirm', { resume_choice: true });
+          return;
+        }
         showRoomResumeModal(msg.saved_state);
         return;
       }
@@ -4519,6 +4707,8 @@
       } catch(e) {}
     }
 
+    let currentOpenPlaylistId = null;
+
     function renderPlaylists() {
       const grid = document.getElementById('playlistGrid');
       if (!grid) return;
@@ -4535,15 +4725,20 @@
 
       playlists.forEach(pl => {
         const card = document.createElement('div');
-        card.className = 'bg-white/[0.04] hover:bg-white/[0.08] p-4 rounded-2xl border border-white/[0.08] hover:border-white/[0.18] cursor-pointer transition group shadow-lg';
+        card.className = 'bg-white/[0.04] hover:bg-white/[0.08] p-4 rounded-2xl border border-white/[0.08] hover:border-white/[0.18] cursor-pointer transition group shadow-lg relative';
         const isPrivate = pl.privacy === 'private';
         const iconSvg = isPrivate
           ? `<svg class="w-8 h-8 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`
           : `<svg class="w-8 h-8 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`;
 
         card.innerHTML = `
-          <div class="w-full aspect-square bg-gradient-to-br from-white/[0.08] to-white/[0.02] rounded-xl flex items-center justify-center mb-3 group-hover:scale-105 transition shadow-inner border border-white/[0.05]">
+          <div class="relative w-full aspect-square bg-gradient-to-br from-white/[0.08] to-white/[0.02] rounded-xl flex items-center justify-center mb-3 group-hover:scale-105 transition shadow-inner border border-white/[0.05]">
             ${iconSvg}
+            <button onclick="event.stopPropagation(); confirmDeletePlaylist('${pl.id}', '${escapeHtml(pl.name)}')" 
+                    class="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-red-500/80 text-white/70 hover:text-white opacity-0 group-hover:opacity-100 transition shadow cursor-pointer" 
+                    title="Hapus Playlist">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
           </div>
           <div class="font-bold text-sm truncate text-white">${escapeHtml(pl.name)}</div>
           <div class="flex items-center justify-between text-xs text-[#888] mt-1.5">
@@ -4556,6 +4751,33 @@
         card.onclick = () => showPlaylistDetail(pl);
         grid.appendChild(card);
       });
+    }
+
+    function confirmDeletePlaylist(playlistId, playlistName) {
+      if (!confirm(`Hapus playlist "${playlistName}"? Tindakan ini tidak dapat dibatalkan.`)) return;
+
+      // Sync hapus ke backend STB
+      fetch(`/api/playlists/${encodeURIComponent(playlistId)}`, {
+        method: 'DELETE'
+      }).catch(e => console.warn('[Playlist] Delete server error:', e));
+
+      // Hapus dari state lokal
+      playlists = playlists.filter(p => p.id !== playlistId);
+      persistPlaylists();
+
+      if (currentOpenPlaylistId === playlistId) {
+        closePlaylistDetail();
+      }
+
+      renderPlaylists();
+      showToast(`Playlist "${playlistName}" berhasil dihapus!`, 'success');
+    }
+
+    function deleteCurrentOpenPlaylist() {
+      if (!currentOpenPlaylistId) return;
+      const pl = playlists.find(p => p.id === currentOpenPlaylistId);
+      const name = pl ? pl.name : 'Playlist';
+      confirmDeletePlaylist(currentOpenPlaylistId, name);
     }
 
     function createNewPlaylist() {
@@ -4676,6 +4898,7 @@
     }
 
     function showPlaylistDetail(pl) {
+      currentOpenPlaylistId = pl.id;
       const view = document.getElementById('selectedPlaylistView');
       document.getElementById('plDetailName').innerText = pl.name;
       document.getElementById('plDetailIcon').innerText = pl.icon;
@@ -4821,7 +5044,9 @@
                 lines.forEach(l => {
                   const m = l.match(regex);
                   if (m) {
-                    lyricsArr.push({ time: parseInt(m[1]) * 60 + parseInt(m[2]), text: m[4].trim() });
+                    const ms = m[3] ? parseFloat("0." + m[3]) : 0;
+                    const time = parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + ms;
+                    lyricsArr.push({ time, text: m[4].trim() });
                   }
                 });
               }
@@ -4847,7 +5072,8 @@
                 sampleRate: isFlac ? "96 kHz" : "44.1 kHz",
                 bitrate: isFlac ? "1411 kbps" : "320 kbps",
                 source: s.source || "local",
-                lyrics: lyricsArr
+                lyrics: lyricsArr,
+                lyric_offset: s.lyric_offset || 0
               };
             });
 

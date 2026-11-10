@@ -14,6 +14,7 @@ type Song struct {
 	Source      string    `json:"source"`   // "local" atau "youtube"
 	YoutubeURL  string    `json:"youtube_url,omitempty"`
 	Lyrics      string    `json:"lyrics,omitempty"` // format LRC atau plain text
+	LyricOffset float64   `json:"lyric_offset,omitempty"` // offset sinkronisasi lirik dalam detik (+/-)
 	CreatedAt   time.Time `json:"created_at"`
 }
 
