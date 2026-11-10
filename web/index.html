@@ -1655,14 +1655,17 @@
     }
 
     function getAudioStreamUrl(songId, positionSec = 0) {
+      if (isPartyMode) {
+        // Di Party Mode (Sync Mode), WAJIB menggunakan stream native byte-range (lossless/original)
+        // langsung dari storage STB tanpa transcoding pipe agar HTTP Range 206 aktif,
+        // audio dapat di-seek presisi, dan sinkronisasi sub-40ms berjalan sempurna
+        return `/api/stream/${encodeURIComponent(songId)}`;
+      }
       const eff = getEffectiveBitrate();
       let url = `/api/stream/${encodeURIComponent(songId)}`;
       const params = [];
       if (eff !== 'lossless') {
         params.push(`bitrate=${eff}`);
-      }
-      if (positionSec > 0) {
-        params.push(`ss=${positionSec.toFixed(1)}`);
       }
       if (params.length > 0) {
         url += '?' + params.join('&');
@@ -2594,19 +2597,38 @@
     }
 
     // Playback Logic: Real HTML5 Streaming dari Storage STB (/api/stream/{id})
-    function playSongAt(idx, fromPartySync = false) {
+    function playSongAt(idx, fromPartySync = false, startPosition = 0) {
       if (idx < 0 || idx >= songs.length) return;
       currentSongIndex = idx;
       const s = songs[currentSongIndex];
-      currentTime = 0;
+      currentTime = startPosition;
 
       // Keepalive background audio & wake lock
       ensureBackgroundAudioKeepAlive();
       requestWakeLock();
 
       // Putar file audio dengan bitrate adaptif / manual pilihan user
-      realAudio.src = getAudioStreamUrl(s.id);
+      const targetSrc = getAudioStreamUrl(s.id);
+      const fullTarget = targetSrc.startsWith('http') ? targetSrc : location.origin + targetSrc;
+      if (realAudio.src !== fullTarget && !realAudio.src.endsWith(targetSrc)) {
+        realAudio.src = targetSrc;
+      }
       realAudio.playbackRate = playbackSpeed;
+
+      if (startPosition > 0) {
+        const applyInitialSeek = () => {
+          try {
+            realAudio.currentTime = startPosition;
+          } catch(e) {}
+        };
+        if (realAudio.readyState >= 1) {
+          applyInitialSeek();
+        } else {
+          realAudio.addEventListener('loadedmetadata', applyInitialSeek, { once: true });
+          realAudio.addEventListener('canplay', applyInitialSeek, { once: true });
+        }
+      }
+
       realAudio.play().then(() => {
         isPlaying = true;
         hideIosPrompt();
@@ -3085,7 +3107,12 @@
       let icon = '';
       let isGold = false;
 
-      if (selectedQualityMode === 'auto') {
+      if (isPartyMode) {
+        icon = '⚡';
+        labelText = 'Party Sync (Lossless)';
+        fsLabelText = 'Party Sync';
+        isGold = true;
+      } else if (selectedQualityMode === 'auto') {
         icon = '⚡';
         labelText = `Auto (${eff === 'lossless' ? 'Hi-Res' : eff})`;
         fsLabelText = `Auto (${eff === 'lossless' ? 'Hi-Res' : eff})`;
@@ -3771,25 +3798,33 @@
 
       if (!msg.song) return;
 
-      // 2. Track Change Detection
+      // 2. Track Change Detection & Target Calculation
       const isDifferentSong = currentSongIndex < 0 || !songs[currentSongIndex] || songs[currentSongIndex].id !== msg.song.id;
-      if (isDifferentSong) {
-        let foundIdx = songs.findIndex(s => s.id === msg.song.id);
-        if (foundIdx === -1) {
-          songs.unshift(msg.song);
-          foundIdx = 0;
-        }
-        playSongAt(foundIdx, true);
-      }
 
       // 3. NTP Precision Target Calculation
       const now = Date.now();
       const serverNow = now + serverClockOffset;
       let targetPos = msg.position_sec || 0;
       if (msg.is_playing && msg.server_time_ms) {
-        const elapsed = (serverNow - msg.server_time_ms) / 1000.0;
-        targetPos += Math.max(0, elapsed);
+        let elapsed = (serverNow - msg.server_time_ms) / 1000.0;
+        if (elapsed < 0 || elapsed > 2.0) {
+          elapsed = 0; // Clamped to network bounds so unsynced STB RTC doesn't skew target position
+        }
+        targetPos += elapsed;
       }
+
+      if (isDifferentSong) {
+        let foundIdx = songs.findIndex(s => s.id === msg.song.id);
+        if (foundIdx === -1) {
+          songs.unshift(msg.song);
+          foundIdx = 0;
+        }
+        playSongAt(foundIdx, true, targetPos);
+        return;
+      }
+
+      // Jangan hitung drift jika audio belum siap (menghindari false seek loop saat buffering)
+      if (realAudio.readyState < 1) return;
 
       // 4. Smooth Crystal-Clock Drift Compensation (No stuttering/patah-patah):
       // Mengeliminasi seek berulang saat client baru bergabung.
@@ -4608,8 +4643,21 @@
         partySwitchBtn.className = "flex-1 sm:flex-none px-4 py-2 rounded-full font-bold text-xs flex items-center justify-center gap-2 bg-[#1db954] text-black shadow";
       }
 
+      if (currentSongIndex >= 0 && songs[currentSongIndex]) {
+        const s = songs[currentSongIndex];
+        const partySrc = `/api/stream/${encodeURIComponent(s.id)}`;
+        if (realAudio.src.includes('bitrate=')) {
+          const curPos = realAudio.currentTime || 0;
+          const wasPlay = !realAudio.paused;
+          realAudio.src = partySrc;
+          realAudio.currentTime = curPos;
+          if (wasPlay) realAudio.play().catch(e => console.warn(e));
+        }
+      }
+
       initPartyWebSocket();
       renderDashboardSongs();
+      updateQualityUI();
       showToast(`Berhasil masuk room terisolasi "${roomName}"! Audio disinkronkan real-time.`, 'success');
       renderActiveRoomsGrid();
     }

@@ -146,35 +146,27 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 
 		ffmpegBin, errFF := exec.LookPath("ffmpeg")
 		if errFF == nil {
-			var cmdArgs []string
-			var execName string
+			cacheDir := filepath.Join(os.TempDir(), "senandung_cache")
+			_ = os.MkdirAll(cacheDir, 0755)
+			safeID := regexp.MustCompile(`[^a-zA-Z0-9_-]`).ReplaceAllString(id, "_")
+			cacheFile := filepath.Join(cacheDir, safeID+"_"+bRate+".mp3")
 
-			niceBin, errNice := exec.LookPath("nice")
-			if errNice == nil {
-				execName = niceBin
-				cmdArgs = append(cmdArgs, "-n", "19", ffmpegBin)
-			} else {
-				execName = ffmpegBin
+			cStat, errStat := os.Stat(cacheFile)
+			if errStat != nil || cStat.Size() == 0 {
+				cmd := exec.Command(ffmpegBin, "-y", "-nostdin", "-v", "error", "-i", song.FilePath, "-vn", "-c:a", "libmp3lame", "-b:a", bRate, cacheFile)
+				if errRun := cmd.Run(); errRun == nil {
+					cStat, _ = os.Stat(cacheFile)
+				}
 			}
 
-			cmdArgs = append(cmdArgs, "-nostdin", "-v", "error")
-			if ss := r.URL.Query().Get("ss"); ss != "" {
-				cmdArgs = append(cmdArgs, "-ss", ss)
+			if cFile, errOpen := os.Open(cacheFile); errOpen == nil {
+				defer cFile.Close()
+				w.Header().Set("Accept-Ranges", "bytes")
+				w.Header().Set("Content-Type", "audio/mpeg")
+				w.Header().Set("X-Transcoded-Bitrate", bRate)
+				http.ServeContent(w, r, filepath.Base(cacheFile), cStat.ModTime(), cFile)
+				return
 			}
-			cmdArgs = append(cmdArgs, "-i", song.FilePath, "-vn", "-c:a", "libmp3lame", "-b:a", bRate, "-f", "mp3", "pipe:1")
-
-			cmd := exec.CommandContext(r.Context(), execName, cmdArgs...)
-			w.Header().Set("Content-Type", "audio/mpeg")
-			w.Header().Set("Cache-Control", "no-cache, no-store")
-			w.Header().Set("X-Transcoded-Bitrate", bRate)
-
-			if flusher, ok := w.(http.Flusher); ok {
-				flusher.Flush()
-			}
-			cmd.Stdout = w
-			cmd.Stderr = os.Stderr
-			_ = cmd.Run()
-			return
 		}
 	}
 
