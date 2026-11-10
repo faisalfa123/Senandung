@@ -204,7 +204,7 @@
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
             <span>Unduh Musik</span>
           </button>
-          <button onclick="switchTab('karaoke')" id="nav-karaoke" class="nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#a7a7a7] hover:text-white hover:bg-white/[0.04] transition">
+          <button onclick="toggleKaraokeTab()" id="nav-karaoke" class="nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#a7a7a7] hover:text-white hover:bg-white/[0.04] transition">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg>
             <span>Karaoke Lirik</span>
           </button>
@@ -406,8 +406,22 @@
 
       <!-- ================= 3. TAB: KARAOKE LIRIK PENUH ================= -->
       <section id="view-karaoke" class="tab-view hidden h-full flex flex-col items-center justify-between py-4">
+        <!-- Top Navigation: Kembali ke Musik / Dashboard Toggle -->
+        <div class="w-full max-w-2xl flex items-center justify-between px-2 mb-3">
+          <button onclick="toggleKaraokeTab()" class="flex items-center gap-2 text-white/90 hover:text-white px-3.5 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 transition text-xs font-bold shadow-sm cursor-pointer group">
+            <svg class="w-4 h-4 text-[#1db954] transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+            </svg>
+            <span>Kembali ke Musik</span>
+          </button>
+          <span class="text-xs text-[#888] font-medium flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-[#1db954] animate-pulse"></span>
+            <span>Tampilan Karaoke</span>
+          </span>
+        </div>
+
         <div class="text-center space-y-1 max-w-lg mb-6">
-          <div class="text-xs uppercase font-bold tracking-widest text-[#1db954] flex items-center gap-1.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg><span>Sedang Menyanyikan</span></div>
+          <div class="text-xs uppercase font-bold tracking-widest text-[#1db954] flex items-center gap-1.5 justify-center"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg><span>Sedang Menyanyikan</span></div>
           <h1 id="karaokeMainTitle" class="text-2xl sm:text-3xl font-extrabold truncate text-white">Judul Lagu</h1>
           <p id="karaokeMainArtist" class="text-sm text-[#a7a7a7]">Nama Penyanyi</p>
           <div id="karaokeHiResBadge" class="inline-block mt-1"></div>
@@ -657,12 +671,22 @@
 
               <!-- Active Members in Room -->
               <div class="glass-card rounded-2xl p-4 space-y-3">
-                <div class="flex items-center justify-between text-xs">
+                <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
                   <span class="font-bold text-white flex items-center gap-2">
                     <svg class="w-4 h-4 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    <span>Anggota yang Online di Room Ini:</span>
+                    <span>Anggota Online di Room Ini:</span>
                   </span>
-                  <span id="activeListenersCount" class="text-[11px] text-[#1db954] font-mono font-bold">1 Perangkat Terhubung</span>
+                  <div class="flex items-center gap-2">
+                    <button onclick="copyPartyRoomLink()" class="px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-white/90 hover:text-white border border-white/10 transition text-[11px] font-semibold flex items-center gap-1.5 cursor-pointer" title="Salin link room untuk dibagikan ke HP/PC lain">
+                      <svg class="w-3.5 h-3.5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                      <span>Salin Link</span>
+                    </button>
+                    <button onclick="reconnectPartyWS()" class="px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-white/90 hover:text-white border border-white/10 transition text-[11px] font-semibold flex items-center gap-1.5 cursor-pointer" title="Sambungkan ulang ke server room">
+                      <svg class="w-3.5 h-3.5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                      <span>Sambung Ulang</span>
+                    </button>
+                    <span id="activeListenersCount" class="text-[11px] text-[#1db954] font-mono font-bold bg-[#1db954]/10 border border-[#1db954]/30 px-2 py-0.5 rounded-full">1 Perangkat</span>
+                  </div>
                 </div>
                 <div id="partyMembersList" class="flex flex-wrap gap-2">
                   <!-- Populated via JS renderPartyMembers() -->
@@ -763,7 +787,7 @@
       <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
       <span>Unduh</span>
     </button>
-    <button onclick="switchTab('karaoke')" id="mNav-karaoke" class="mNav-btn flex flex-col items-center gap-1 text-[#888] hover:text-white py-1 transition">
+    <button onclick="toggleKaraokeTab()" id="mNav-karaoke" class="mNav-btn flex flex-col items-center gap-1 text-[#888] hover:text-white py-1 transition">
       <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg>
       <span>Karaoke</span>
     </button>
@@ -850,7 +874,7 @@
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="11" x2="23" y2="13"/><polyline points="7 12 10 9 12 15 15 12"/></svg>
       </button>
 
-      <button onclick="switchTab('karaoke')" class="p-2 text-[#a7a7a7] hover:text-white hover:bg-white/[0.06] rounded-full transition" title="Buka Tab Karaoke Lirik">
+      <button onclick="toggleKaraokeTab()" class="p-2 text-[#a7a7a7] hover:text-white hover:bg-white/[0.06] rounded-full transition" title="Buka Tab Karaoke Lirik (Toggle)">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg>
       </button>
       <button onclick="cycleSpeed()" id="btnSpeed" class="text-[11px] font-bold bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 px-2 py-1 rounded text-[#bbb]" title="Kecepatan Pemutaran">
@@ -932,7 +956,7 @@
 
       <!-- Bottom Quick Actions: Lyrics & Audio Switcher & Solo Queue -->
       <div class="flex items-center justify-between pt-2 border-t border-white/10 text-xs">
-        <button onclick="closeFullscreenPlayer(); switchTab('karaoke');" class="text-[#1db954] hover:underline flex items-center gap-1.5 font-semibold">
+        <button onclick="closeFullscreenPlayer(); toggleKaraokeTab();" class="text-[#1db954] hover:underline flex items-center gap-1.5 font-semibold cursor-pointer">
           <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg><span>Lirik Karaoke</span>
         </button>
         <button onclick="openSoloQueueModal()" class="text-white hover:text-[#1db954] flex items-center gap-1 font-semibold">
@@ -1860,18 +1884,34 @@
         }
       }, 5000);
 
-      // Auto-restore last active room if previously inside party room
+      // Auto-join from URL parameter (misal: ?room=Kamar+Tidur) atau auto-restore room sebelumnya
       try {
-        const lastRoom = localStorage.getItem('senandung_active_room');
-        if (lastRoom && !isPartyMode) {
-          // Check if user reloaded while in room
-          console.log('[Presence] Restoring previous party room session:', lastRoom);
-          enterPartyRoom(lastRoom);
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryRoom = urlParams.get('room');
+        if (queryRoom && queryRoom.trim()) {
+          console.log('[Presence] Auto-joining room from URL query parameter:', queryRoom);
+          enterPartyRoom(queryRoom.trim());
+        } else {
+          const lastRoom = localStorage.getItem('senandung_active_room');
+          if (lastRoom && !isPartyMode) {
+            console.log('[Presence] Restoring previous party room session:', lastRoom);
+            enterPartyRoom(lastRoom);
+          }
         }
       } catch(e) {}
     }
 
+    let currentActiveTab = 'dashboard';
+    let previousActiveTab = 'dashboard';
+
     function switchTab(tabName) {
+      if (tabName !== currentActiveTab) {
+        if (currentActiveTab !== 'karaoke') {
+          previousActiveTab = currentActiveTab;
+        }
+        currentActiveTab = tabName;
+      }
+
       document.querySelectorAll('.tab-view').forEach(t => t.classList.add('hidden'));
       document.querySelectorAll('.nav-btn').forEach(b => {
         b.classList.remove('bg-[#282828]', 'text-white');
@@ -1899,6 +1939,16 @@
 
       if (tabName === 'karaoke') {
         renderKaraokeLyrics();
+      }
+    }
+
+    // Toggle Tab Karaoke 2-Arah: Jika di karaoke -> kembali ke tab musik sebelumnya, jika di luar karaoke -> buka karaoke
+    function toggleKaraokeTab() {
+      if (currentActiveTab === 'karaoke') {
+        const backTab = (previousActiveTab && previousActiveTab !== 'karaoke') ? previousActiveTab : 'dashboard';
+        switchTab(backTab);
+      } else {
+        switchTab('karaoke');
       }
     }
 
@@ -2633,10 +2683,9 @@
       const s = songs[currentSongIndex];
       currentTime = startPosition;
 
-      // Keepalive background audio & wake lock & WebAudio DSP
+      // Keepalive background audio & wake lock
       ensureBackgroundAudioKeepAlive();
       requestWakeLock();
-      initWebAudioEQ();
 
       // Putar file audio dengan bitrate adaptif / manual pilihan user
       const targetSrc = getAudioStreamUrl(s.id);
@@ -3700,6 +3749,14 @@
 
         sendPartyAction('ping', { client_time_ms: Date.now() });
 
+        // Minta snapshot state room terkini secara instan ke STB saat terhubung
+        try {
+          partyWs.send(JSON.stringify({
+            action: 'get_state',
+            room_id: currentPartyRoom
+          }));
+        } catch(e) {}
+
         if (pingInterval) clearInterval(pingInterval);
         pingInterval = setInterval(() => {
           if (partyWs && partyWs.readyState === WebSocket.OPEN) {
@@ -3794,6 +3851,11 @@
       }
 
       if (msg.action === 'sync_state') {
+        // Selalu perbarui anggota room online & antrean room agar langsung terdeteksi
+        renderPartyMembers(msg.members || []);
+        roomQueueSongs = msg.queue || [];
+        renderRoomQueue();
+
         if (!isPartyMode) return;
         handlePartyStateSync(msg);
         return;
@@ -4763,6 +4825,26 @@
 
     function changePartyRoom(roomName) {
       enterPartyRoom(roomName);
+    }
+
+    function copyPartyRoomLink() {
+      const roomName = currentPartyRoom || 'Ruang Tamu';
+      const shareUrl = `${location.origin}/?room=${encodeURIComponent(roomName)}`;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          showToast(`Tautan Room disalin: ${shareUrl}`, 'success');
+        }).catch(() => {
+          prompt('Salin tautan room ini untuk dibagikan:', shareUrl);
+        });
+      } else {
+        prompt('Salin tautan room ini untuk dibagikan:', shareUrl);
+      }
+    }
+
+    function reconnectPartyWS() {
+      showToast('Menyambungkan ulang ke server room...', 'success');
+      initPartyWebSocket();
+      refreshActiveRoomsList();
     }
 
     // ================= REAL PLAYLIST ENGINE WITH BACKEND & LOCALSTORAGE PERSISTENCE =================

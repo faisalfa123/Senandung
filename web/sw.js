@@ -1,5 +1,5 @@
-const CACHE_NAME = 'senandung-cache-v2';
-const AUDIO_CACHE = 'senandung-audio-v2';
+const CACHE_NAME = 'senandung-cache-v3';
+const AUDIO_CACHE = 'senandung-audio-v3';
 
 const STATIC_ASSETS = [
   '/',
