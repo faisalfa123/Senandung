@@ -6,10 +6,15 @@
   <title>Senandung - Hi-Res Lossless & Spotify Self-Hosted</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#121212">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Senandung">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
     :root {
@@ -1155,36 +1160,59 @@
 
   <!-- Modal: Equalizer 5-Band -->
   <div id="eqModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-[#242424] border border-[#333] rounded-2xl p-6 w-full max-w-md space-y-5 shadow-2xl">
-      <div class="flex justify-between items-center">
-        <h3 class="font-bold text-base flex items-center gap-2"><svg class="w-5 h-5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>Equalizer 5-Band & Bass Booster</span></h3>
+    <div class="glass-card border border-white/15 rounded-3xl p-6 w-full max-w-md space-y-5 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-white/10 pb-3">
+        <h3 class="font-bold text-base text-white flex items-center gap-2"><svg class="w-5 h-5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>Equalizer 5-Band Studio & DSP</span></h3>
         <button onclick="closeModal('eqModal')" class="text-sm text-[#888] hover:text-white">✕</button>
       </div>
-      <div class="flex justify-around items-center py-2">
-        <div class="flex flex-col items-center gap-2 text-[11px] text-[#aaa]">
-          <input type="range" min="-12" max="12" value="4" class="slider-vertical accent-[#1db954]" oninput="updateEQ(0, this.value)">
-          <span>60Hz (Sub)</span>
-        </div>
-        <div class="flex flex-col items-center gap-2 text-[11px] text-[#aaa]">
-          <input type="range" min="-12" max="12" value="2" class="slider-vertical accent-[#1db954]" oninput="updateEQ(1, this.value)">
-          <span>250Hz (Bass)</span>
-        </div>
-        <div class="flex flex-col items-center gap-2 text-[11px] text-[#aaa]">
-          <input type="range" min="-12" max="12" value="0" class="slider-vertical accent-[#1db954]" oninput="updateEQ(2, this.value)">
-          <span>1kHz (Mid)</span>
-        </div>
-        <div class="flex flex-col items-center gap-2 text-[11px] text-[#aaa]">
-          <input type="range" min="-12" max="12" value="3" class="slider-vertical accent-[#1db954]" oninput="updateEQ(3, this.value)">
-          <span>4kHz (Presence)</span>
-        </div>
-        <div class="flex flex-col items-center gap-2 text-[11px] text-[#aaa]">
-          <input type="range" min="-12" max="12" value="5" class="slider-vertical accent-[#1db954]" oninput="updateEQ(4, this.value)">
-          <span>16kHz (Treble)</span>
+
+      <!-- Quick DSP Presets -->
+      <div>
+        <label class="text-[10px] font-bold text-[#888] uppercase tracking-wider block mb-2">Preset DSP Cepat</label>
+        <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+          <button onclick="applyEqPreset('flat')" class="px-2 py-1.5 rounded-lg text-[11px] font-semibold bg-white/[0.06] hover:bg-white/[0.12] text-white/90 transition text-center cursor-pointer">Flat</button>
+          <button onclick="applyEqPreset('bass')" class="px-2 py-1.5 rounded-lg text-[11px] font-semibold bg-white/[0.06] hover:bg-white/[0.12] text-[#1db954] transition text-center cursor-pointer">Bass Boost</button>
+          <button onclick="applyEqPreset('vocal')" class="px-2 py-1.5 rounded-lg text-[11px] font-semibold bg-white/[0.06] hover:bg-white/[0.12] text-[#3ea6ff] transition text-center cursor-pointer">Vocal</button>
+          <button onclick="applyEqPreset('treble')" class="px-2 py-1.5 rounded-lg text-[11px] font-semibold bg-white/[0.06] hover:bg-white/[0.12] text-amber-300 transition text-center cursor-pointer">Treble</button>
+          <button onclick="applyEqPreset('acoustic')" class="px-2 py-1.5 rounded-lg text-[11px] font-semibold bg-white/[0.06] hover:bg-white/[0.12] text-purple-300 transition text-center cursor-pointer">Acoustic</button>
         </div>
       </div>
-      <div class="flex justify-between items-center pt-2">
-        <button onclick="resetEQ()" class="text-xs text-[#888] hover:text-white">Reset Flat</button>
-        <button onclick="closeModal('eqModal')" class="px-5 py-2 rounded-lg text-xs font-bold bg-[#1db954] text-black">Terapkan</button>
+
+      <div class="flex justify-around items-center py-4 bg-black/30 rounded-2xl border border-white/5">
+        <div class="flex flex-col items-center gap-2 text-[11px] text-[#aaa]">
+          <input type="range" id="eqSlider0" min="-12" max="12" value="0" class="slider-vertical accent-[#1db954]" oninput="updateEQ(0, this.value)">
+          <span id="eqVal0" class="font-mono text-[9px] text-[#888]">0dB</span>
+          <span class="font-bold text-[10px] text-white">60Hz</span>
+          <span class="text-[8px] text-[#777]">Sub-Bass</span>
+        </div>
+        <div class="flex flex-col items-center gap-2 text-[11px] text-[#aaa]">
+          <input type="range" id="eqSlider1" min="-12" max="12" value="0" class="slider-vertical accent-[#1db954]" oninput="updateEQ(1, this.value)">
+          <span id="eqVal1" class="font-mono text-[9px] text-[#888]">0dB</span>
+          <span class="font-bold text-[10px] text-white">250Hz</span>
+          <span class="text-[8px] text-[#777]">Bass</span>
+        </div>
+        <div class="flex flex-col items-center gap-2 text-[11px] text-[#aaa]">
+          <input type="range" id="eqSlider2" min="-12" max="12" value="0" class="slider-vertical accent-[#1db954]" oninput="updateEQ(2, this.value)">
+          <span id="eqVal2" class="font-mono text-[9px] text-[#888]">0dB</span>
+          <span class="font-bold text-[10px] text-white">1kHz</span>
+          <span class="text-[8px] text-[#777]">Mid/Vocal</span>
+        </div>
+        <div class="flex flex-col items-center gap-2 text-[11px] text-[#aaa]">
+          <input type="range" id="eqSlider3" min="-12" max="12" value="0" class="slider-vertical accent-[#1db954]" oninput="updateEQ(3, this.value)">
+          <span id="eqVal3" class="font-mono text-[9px] text-[#888]">0dB</span>
+          <span class="font-bold text-[10px] text-white">4kHz</span>
+          <span class="text-[8px] text-[#777]">Presence</span>
+        </div>
+        <div class="flex flex-col items-center gap-2 text-[11px] text-[#aaa]">
+          <input type="range" id="eqSlider4" min="-12" max="12" value="0" class="slider-vertical accent-[#1db954]" oninput="updateEQ(4, this.value)">
+          <span id="eqVal4" class="font-mono text-[9px] text-[#888]">0dB</span>
+          <span class="font-bold text-[10px] text-white">16kHz</span>
+          <span class="text-[8px] text-[#777]">Treble</span>
+        </div>
+      </div>
+      <div class="flex justify-between items-center pt-2 border-t border-white/10">
+        <button onclick="applyEqPreset('flat')" class="text-xs text-[#888] hover:text-white cursor-pointer">Reset Flat</button>
+        <button onclick="closeModal('eqModal')" class="px-5 py-2 rounded-xl text-xs font-bold bg-[#1db954] text-black hover:bg-[#1ed760] transition cursor-pointer">Tutup & Terapkan</button>
       </div>
     </div>
   </div>
@@ -1824,11 +1852,13 @@
       initMediaSessionActionHandlers();
       setTimeout(checkServerHealth, 1500);
 
-      // Multi-Device Auto-Sync Presence Polling (Paritas PC & Mobile)
+      // Multi-Device Auto-Sync Presence: hemat CPU STB dengan tidak polling jika sudah di dalam Party Room WebSocket
       if (activeRoomSyncInterval) clearInterval(activeRoomSyncInterval);
       activeRoomSyncInterval = setInterval(() => {
-        refreshActiveRoomsList();
-      }, 4000);
+        if (!isPartyMode && document.visibilityState === 'visible') {
+          refreshActiveRoomsList();
+        }
+      }, 5000);
 
       // Auto-restore last active room if previously inside party room
       try {
@@ -2603,9 +2633,10 @@
       const s = songs[currentSongIndex];
       currentTime = startPosition;
 
-      // Keepalive background audio & wake lock
+      // Keepalive background audio & wake lock & WebAudio DSP
       ensureBackgroundAudioKeepAlive();
       requestWakeLock();
+      initWebAudioEQ();
 
       // Putar file audio dengan bitrate adaptif / manual pilihan user
       const targetSrc = getAudioStreamUrl(s.id);
@@ -2627,6 +2658,21 @@
           realAudio.addEventListener('loadedmetadata', applyInitialSeek, { once: true });
           realAudio.addEventListener('canplay', applyInitialSeek, { once: true });
         }
+      }
+
+      // Smooth Crossfade: fade-in audio saat lagu berganti (hanya di mode Solo agar tidak mengganggu party sync)
+      const targetVolume = currentVolumeSetting !== undefined ? currentVolumeSetting : 0.8;
+      if (!isPartyMode && startPosition === 0) {
+        realAudio.volume = 0.05;
+        let fadeStep = 0;
+        const fadeInterval = setInterval(() => {
+          fadeStep++;
+          const newVol = 0.05 + ((targetVolume - 0.05) * (fadeStep / 12));
+          if (realAudio) realAudio.volume = Math.min(targetVolume, newVol);
+          if (fadeStep >= 12) clearInterval(fadeInterval);
+        }, 100);
+      } else {
+        if (realAudio) realAudio.volume = targetVolume;
       }
 
       realAudio.play().then(() => {
@@ -3712,17 +3758,27 @@
     let roomQueueSongs = [];
     let pendingResumeState = null;
 
+    // Rolling Window NTP Clock Offset Filter (menolak network jitter)
+    let ntpOffsetHistory = [];
+
     function handlePartyServerMessage(msg) {
       if (msg.action === 'pong') {
         const now = Date.now();
         const rtt = now - msg.client_time_ms;
-        serverClockOffset = msg.server_time_ms - (msg.client_time_ms + rtt / 2);
+        const currentOffset = msg.server_time_ms - (msg.client_time_ms + rtt / 2);
+        
+        ntpOffsetHistory.push({ offset: currentOffset, rtt: rtt });
+        if (ntpOffsetHistory.length > 8) ntpOffsetHistory.shift();
+
+        // Pilih sampel offset dengan RTT terkecil (paling akurat tanpa noise antrian router)
+        const bestSample = ntpOffsetHistory.reduce((best, s) => s.rtt < best.rtt ? s : best, ntpOffsetHistory[0]);
+        serverClockOffset = bestSample.offset;
         
         // Display precision clock drift in UI
         const driftBadge = document.getElementById('roomClockDriftBadge');
         if (driftBadge) {
-          const rttDisplay = Math.max(1, Math.round(rtt));
-          driftBadge.innerText = `RTT: ${rttDisplay}ms • Precision Sync Lock`;
+          const rttDisplay = Math.max(1, Math.round(bestSample.rtt));
+          driftBadge.innerText = `RTT: ${rttDisplay}ms • Sub-15ms Lock`;
         }
         return;
       }
@@ -3826,28 +3882,26 @@
       // Jangan hitung drift jika audio belum siap (menghindari false seek loop saat buffering)
       if (realAudio.readyState < 1) return;
 
-      // 4. Smooth Crystal-Clock Drift Compensation (No stuttering/patah-patah):
-      // Mengeliminasi seek berulang saat client baru bergabung.
-      // Hanya lakukan hard seek jika deviasi waktu sangat jauh (> 1.2 detik).
-      // Untuk drift di bawah 1.2 detik, gunakan dynamic pitch-preserving micro rate (0.97x - 1.03x)
-      // sehingga audio mengalir mulus tanpa henti/buffer patah-patah.
+      // 4. Smooth Crystal-Clock Drift Compensation (Zero Auditory Delay & Stutter-Free):
+      // Mengeliminasi keterlambatan suara antar perangkat di ruangan yang sama.
+      // - Hard seek: hanya jika selisih > 0.4 detik (misal baru pertama kali join).
+      // - Micro pitch-preserving adjustment:
+      //   * Selisih 80ms - 400ms: penyesuaian 3.5% (1.035x / 0.965x)
+      //   * Selisih 15ms - 80ms: penyesuaian halus 1.2% (1.012x / 0.988x) — tidak terdengar beda nada oleh telinga
+      //   * Selisih < 15ms: kecepatan normal 1.0x (Precision Lock)
       const drift = realAudio.currentTime - targetPos;
       const absDrift = Math.abs(drift);
 
-      if (absDrift > 1.2) {
-        // Hard sync hanya saat pertama kali join atau lagging parah
+      if (absDrift > 0.4) {
+        // Hard sync saat baru join atau perbedaan besar
         realAudio.currentTime = targetPos;
         realAudio.playbackRate = 1.0;
-      } else if (absDrift > 0.04) { // > 40ms
-        if (drift < 0) {
-          // Sedikit tertinggal dari server -> percepat halus 2.5%
-          realAudio.playbackRate = 1.025;
-        } else {
-          // Sedikit mendahului server -> perlambat halus 2.5%
-          realAudio.playbackRate = 0.975;
-        }
+      } else if (absDrift > 0.08) { // 80ms - 400ms
+        realAudio.playbackRate = (drift < 0) ? 1.035 : 0.965;
+      } else if (absDrift > 0.015) { // 15ms - 80ms (Sub-audible micro adjustment)
+        realAudio.playbackRate = (drift < 0) ? 1.012 : 0.988;
       } else {
-        // Presisi < 40ms -> kecepatan normal 1.0x tanpa interupsi
+        // Presisi ketat < 15ms -> kecepatan normal 1.0x tanpa jeda
         realAudio.playbackRate = 1.0;
       }
 
@@ -5206,16 +5260,96 @@
         });
     }
 
+    let currentVolumeSetting = 0.8;
     function changeVolume(v) {
-      if (realAudio) realAudio.volume = parseFloat(v);
+      currentVolumeSetting = parseFloat(v);
+      if (realAudio) realAudio.volume = currentVolumeSetting;
+    }
+
+    // ================= REAL WEB AUDIO 5-BAND EQUALIZER & DSP =================
+    let eqAudioCtx = null;
+    let eqSourceNode = null;
+    let eqFilters = [];
+    const eqFrequencies = [60, 250, 1000, 4000, 16000];
+    const eqTypes = ['lowshelf', 'peaking', 'peaking', 'peaking', 'highshelf'];
+    let eqGains = [0, 0, 0, 0, 0];
+
+    try {
+      const savedGains = localStorage.getItem('senandung_eq_gains');
+      if (savedGains) eqGains = JSON.parse(savedGains);
+    } catch(e) {}
+
+    function initWebAudioEQ() {
+      if (eqAudioCtx) return;
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        eqAudioCtx = new AudioCtx();
+        eqSourceNode = eqAudioCtx.createMediaElementSource(realAudio);
+
+        let lastNode = eqSourceNode;
+        eqFilters = eqFrequencies.map((freq, idx) => {
+          const filter = eqAudioCtx.createBiquadFilter();
+          filter.type = eqTypes[idx];
+          filter.frequency.value = freq;
+          filter.gain.value = eqGains[idx] || 0;
+          lastNode.connect(filter);
+          lastNode = filter;
+          return filter;
+        });
+
+        lastNode.connect(eqAudioCtx.destination);
+        syncEqUIValues();
+      } catch(err) {
+        console.warn('[WebAudio EQ] MediaElementSource init fallback:', err);
+      }
+    }
+
+    function syncEqUIValues() {
+      eqGains.forEach((g, idx) => {
+        const slider = document.getElementById(`eqSlider${idx}`);
+        const valDisp = document.getElementById(`eqVal${idx}`);
+        if (slider) slider.value = g;
+        if (valDisp) valDisp.innerText = `${g > 0 ? '+' : ''}${g}dB`;
+      });
     }
 
     function updateEQ(band, val) {
-      console.log("EQ Band " + band + " changed to " + val + " dB");
+      const v = parseFloat(val);
+      eqGains[band] = v;
+      if (eqAudioCtx && eqAudioCtx.state === 'suspended') {
+        eqAudioCtx.resume().catch(() => {});
+      }
+      if (eqFilters[band]) {
+        eqFilters[band].gain.setValueAtTime(v, eqAudioCtx ? eqAudioCtx.currentTime : 0);
+      }
+      const valDisp = document.getElementById(`eqVal${band}`);
+      if (valDisp) valDisp.innerText = `${v > 0 ? '+' : ''}${v}dB`;
+      try {
+        localStorage.setItem('senandung_eq_gains', JSON.stringify(eqGains));
+      } catch(e) {}
+    }
+
+    function applyEqPreset(name) {
+      initWebAudioEQ();
+      const presets = {
+        'flat': [0, 0, 0, 0, 0],
+        'bass': [6, 4, 1, 0, 0],
+        'vocal': [-1, 1, 4, 3, 1],
+        'treble': [-2, 0, 1, 4, 6],
+        'acoustic': [3, 2, 0, 2, 4]
+      };
+      const target = presets[name] || presets['flat'];
+      target.forEach((g, idx) => {
+        updateEQ(idx, g);
+        const slider = document.getElementById(`eqSlider${idx}`);
+        if (slider) slider.value = g;
+      });
+      showToast(`Preset EQ diaktifkan: ${name.toUpperCase()}`, 'success');
     }
 
     function resetEQ() {
-      document.querySelectorAll('.slider-vertical').forEach(s => s.value = 0);
+      applyEqPreset('flat');
     }
 
     function toggleShuffle() {
@@ -5268,7 +5402,9 @@
 
     init();
     fetchSysInfo();
-    setInterval(fetchSysInfo, 10000);
+    setInterval(() => {
+      if (document.visibilityState === 'visible') fetchSysInfo();
+    }, 15000);
   </script>
 </body>
 </html>
