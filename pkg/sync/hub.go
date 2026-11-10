@@ -92,7 +92,7 @@ func NewHub() *Hub {
 }
 
 func (h *Hub) Run() {
-	ticker := time.NewTicker(2 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	for {
