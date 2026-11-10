@@ -802,9 +802,14 @@
 
     <!-- Right: Quality Switcher, Karaoke, Speed, EQ, Offline -->
     <div class="flex items-center justify-end gap-3 w-1/3">
-      <!-- Quality Switcher: Standar 128kbps vs Hi-Res Lossless FLAC -->
-      <button onclick="toggleAudioQuality()" id="btnQualityToggle" class="badge-hires-gold px-2 py-1 rounded text-[10px] font-black cursor-pointer hover:scale-105 transition" title="Ganti Kualitas Audio">
-        ✨ HI-RES FLAC
+      <!-- Quality Switcher: Auto Adaptive vs Manual Bitrate -->
+      <button onclick="openQualityModal()" id="btnQualityToggle" class="badge-hires-gold px-2.5 py-1 rounded text-[10px] font-black cursor-pointer hover:scale-105 transition flex items-center gap-1.5" title="Kualitas Audio & Bitrate Streaming">
+        <span>⚡</span><span>Auto (128k)</span>
+      </button>
+
+      <!-- Mobile/Screen-Off Keep-Alive Info Button -->
+      <button onclick="openModal('bgKeepAliveModal')" class="p-2 text-[#a7a7a7] hover:text-[#1db954] hover:bg-white/[0.06] rounded-full transition" title="Bantuan Putar Layar Mati & Latar Belakang (Android/iOS)">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="11" x2="23" y2="13"/><polyline points="7 12 10 9 12 15 15 12"/></svg>
       </button>
 
       <button onclick="switchTab('karaoke')" class="p-2 text-[#a7a7a7] hover:text-white hover:bg-white/[0.06] rounded-full transition" title="Buka Tab Karaoke Lirik">
@@ -895,8 +900,12 @@
         <button onclick="openSoloQueueModal()" class="text-white hover:text-[#1db954] flex items-center gap-1 font-semibold">
           <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Antrean Solo</span>
         </button>
-        <button onclick="toggleAudioQuality()" id="fsBtnQuality" class="badge-hires-gold px-2.5 py-1 rounded text-[10px] font-black">
-          ✨ HI-RES FLAC
+        <button onclick="openModal('bgKeepAliveModal')" class="text-[#bbb] hover:text-[#1db954] flex items-center gap-1 font-semibold" title="Panduan Layar Mati & Background">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="11" x2="23" y2="13"/><polyline points="7 12 10 9 12 15 15 12"/></svg><span>Layar Mati</span>
+        </button>
+        <button onclick="openQualityModal()" id="fsBtnQuality" class="badge-hires-gold px-2.5 py-1 rounded text-[10px] font-black flex items-center gap-1 cursor-pointer">
+          <span id="fsBtnQualityIcon">⚡</span>
+          <span id="fsBtnQualityText">Auto</span>
         </button>
       </div>
     </div>
@@ -1124,6 +1133,98 @@
       <div class="flex justify-between items-center pt-2">
         <button onclick="resetEQ()" class="text-xs text-[#888] hover:text-white">Reset Flat</button>
         <button onclick="closeModal('eqModal')" class="px-5 py-2 rounded-lg text-xs font-bold bg-[#1db954] text-black">Terapkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Quality Selector & Dynamic Bitrate (YouTube Style) -->
+  <div id="audioQualityModal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+    <div class="glass-card border border-white/15 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl flex flex-col">
+      <div class="flex justify-between items-center border-b border-white/10 pb-3">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <div>
+            <h3 class="font-bold text-base text-white">Kualitas Audio & Bitrate</h3>
+            <p class="text-[11px] text-[#aaa]">Pilih manual atau adaptif otomatis sesuai sinyal</p>
+          </div>
+        </div>
+        <button onclick="closeModal('audioQualityModal')" class="text-sm text-[#888] hover:text-white px-2 py-1 cursor-pointer">✕</button>
+      </div>
+
+      <!-- Network status live banner -->
+      <div id="qualityNetworkBanner" class="bg-white/[0.04] border border-white/10 rounded-xl p-3 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2">
+          <span id="qualityNetDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="qualityNetText" class="text-white/90 font-medium">Jaringan: WiFi Lokal / Seluler</span>
+        </div>
+        <span id="qualityEffectiveBitrateBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1db954]/20 text-[#1db954] border border-[#1db954]/40">128 kbps</span>
+      </div>
+
+      <!-- Quality Options List -->
+      <div class="space-y-2 pt-1" id="qualityOptionsContainer">
+        <!-- Rendered dynamically by renderQualityOptions() -->
+      </div>
+
+      <div class="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-[#888]">
+        <span>⚡ Utamakan kelancaran anti-lag, lalu kualitas suara</span>
+        <button onclick="closeModal('audioQualityModal')" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-[#1db954] text-black hover:bg-[#1ed760] transition shadow cursor-pointer">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Mobile Screen-Off & Background Playback Guide -->
+  <div id="bgKeepAliveModal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+    <div class="glass-card border border-white/15 rounded-3xl p-6 w-full max-w-lg space-y-4 shadow-2xl flex flex-col max-h-[88vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-white/10 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-full bg-emerald-500/20 text-[#1db954] flex items-center justify-center">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="11" x2="23" y2="13"/><polyline points="7 12 10 9 12 15 15 12"/></svg>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-white">Pemutaran Latar Belakang & Layar Mati</h3>
+            <p class="text-[11px] text-[#aaa]">Agar musik terus berputar mulus saat ponsel dikunci</p>
+          </div>
+        </div>
+        <button onclick="closeModal('bgKeepAliveModal')" class="text-sm text-[#888] hover:text-white px-2 py-1 cursor-pointer">✕</button>
+      </div>
+
+      <!-- Built-in Hook Status -->
+      <div class="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-3.5 space-y-1.5 text-xs">
+        <div class="flex items-center gap-2 text-emerald-400 font-bold">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Fitur Anti-Tidur Otomatis Aktif di Senandung:</span>
+        </div>
+        <ul class="text-[#bbb] space-y-1 pl-6 list-disc text-[11px]">
+          <li><strong>Web Audio Keep-Alive Anchor:</strong> Menjaga jalur audio OS hardware tetap terbuka di latar belakang saat jeda lagu.</li>
+          <li><strong>Media Session API:</strong> Kontrol tombol play/pause/next langsung dari Layar Kunci & Notifikasi.</li>
+          <li><strong>Screen Wake Lock:</strong> Mencegah layar redup saat aktif membaca lirik karaoke.</li>
+        </ul>
+      </div>
+
+      <!-- OS Specific Instructions -->
+      <div class="space-y-3 text-xs">
+        <h4 class="font-bold text-white flex items-center gap-1.5 text-xs">
+          <span>📱 Tips Penghemat Baterai Android (Xiaomi, Samsung, Oppo, Vivo):</span>
+        </h4>
+        <div class="bg-white/[0.04] border border-white/10 rounded-xl p-3.5 space-y-2 text-[#ccc] text-[11px] leading-relaxed">
+          <p>Jika musik terhenti setelah beberapa menit layar mati, sistem operasi ponsel Anda membekukan background browser. Lakukan langkah ini sekali:</p>
+          <ol class="list-decimal pl-5 space-y-1.5 text-[#ddd]">
+            <li>Buka <strong>Pengaturan Ponsel</strong> &gt; <strong>Aplikasi</strong> &gt; cari <strong>Chrome</strong> (atau browser yang Anda pakai / Senandung PWA).</li>
+            <li>Pilih menu <strong>Baterai (Battery)</strong> &gt; ubah dari <em>Dioptimalkan</em> ke <strong>Tidak Dibatasi (Unrestricted)</strong>.</li>
+            <li>(Untuk Xiaomi / MIUI / HyperOS): Buka <em>Penghemat Baterai</em> &gt; pilih <strong>"Tidak ada pembatasan"</strong> dan aktifkan <em>Autostart</em>.</li>
+          </ol>
+        </div>
+
+        <h4 class="font-bold text-white flex items-center gap-1.5 text-xs">
+          <span>🍎 Tips untuk Pengguna iOS (iPhone / iPad):</span>
+        </h4>
+        <div class="bg-white/[0.04] border border-white/10 rounded-xl p-3.5 space-y-2 text-[#ccc] text-[11px] leading-relaxed">
+          <p>Di iPhone Safari, kunci layar setelah musik mulai diputar. Musik akan terus berjalan di Dynamic Island dan Layar Kunci. Pastikan Low Power Mode tidak mematikan background audio.</p>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-white/10 flex justify-end">
+        <button onclick="closeModal('bgKeepAliveModal')" class="px-5 py-2 rounded-xl text-xs font-bold bg-[#1db954] text-black hover:bg-[#1ed760] transition shadow cursor-pointer">Mengerti</button>
       </div>
     </div>
   </div>
@@ -1385,10 +1486,174 @@
     let currentJoinedRoom = null;
     let soloQueue = [];
     let activeFilter = 'all';
-    let isHighResMode = false; // Default: Standar MP3 320kbps (hemat penyimpanan & memori, renyah didengar)
     let favorites = new Set();
     let offlineSongs = new Set();
     let pendingDownloadedSong = null;
+
+    // ================= BACKGROUND AUDIO & SCREEN-OFF PERSISTENCE =================
+    let bgAudioCtx = null;
+    let bgKeepAliveNode = null;
+    let wakeLockSentinel = null;
+
+    function ensureBackgroundAudioKeepAlive() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+
+        if (!bgAudioCtx) {
+          bgAudioCtx = new AudioCtx();
+        }
+        if (bgAudioCtx.state === 'suspended') {
+          bgAudioCtx.resume().catch(() => {});
+        }
+        if (!bgKeepAliveNode && bgAudioCtx) {
+          // Inaudible silent buffer anchor at 44.1kHz to prevent mobile OS audio hardware sleep
+          const buffer = bgAudioCtx.createBuffer(1, bgAudioCtx.sampleRate * 2, bgAudioCtx.sampleRate);
+          bgKeepAliveNode = bgAudioCtx.createBufferSource();
+          bgKeepAliveNode.buffer = buffer;
+          bgKeepAliveNode.loop = true;
+
+          const gain = bgAudioCtx.createGain();
+          gain.gain.value = 0.0001; // virtually silent, prevents audio hardware suspension
+          bgKeepAliveNode.connect(gain);
+          gain.connect(bgAudioCtx.destination);
+          bgKeepAliveNode.start(0);
+        }
+      } catch (err) {
+        console.warn('Background audio keep-alive not supported:', err);
+      }
+    }
+
+    async function requestWakeLock() {
+      if ('wakeLock' in navigator && !wakeLockSentinel) {
+        try {
+          wakeLockSentinel = await navigator.wakeLock.request('screen');
+          wakeLockSentinel.addEventListener('release', () => {
+            wakeLockSentinel = null;
+          });
+        } catch (err) {
+          // Battery saver may quietly reject screen wakeLock
+        }
+      }
+    }
+
+    function releaseWakeLock() {
+      if (wakeLockSentinel) {
+        wakeLockSentinel.release().catch(() => {});
+        wakeLockSentinel = null;
+      }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && isPlaying) {
+        requestWakeLock();
+      }
+      if (bgAudioCtx && bgAudioCtx.state === 'suspended' && isPlaying) {
+        bgAudioCtx.resume().catch(() => {});
+      }
+    });
+
+    // ================= ADAPTIVE BITRATE & QUALITY MANAGER =================
+    let selectedQualityMode = localStorage.getItem('senandung_audio_quality') || 'auto';
+    let dynamicDetectedBitrate = '128k';
+    let bufferStallCount = 0;
+    let lastStallTimestamp = 0;
+
+    function evaluateAutoQuality() {
+      if (navigator.connection) {
+        const conn = navigator.connection;
+        if (conn.saveData) {
+          dynamicDetectedBitrate = '64k';
+          return;
+        }
+        const type = conn.effectiveType;
+        const downlink = conn.downlink || 10;
+        const rtt = conn.rtt || 50;
+
+        if (type === 'slow-2g' || type === '2g' || downlink < 0.6 || rtt > 600) {
+          dynamicDetectedBitrate = '64k';
+        } else if (type === '3g' || downlink < 2.0 || rtt > 300) {
+          dynamicDetectedBitrate = '128k';
+        } else if (downlink >= 6 && rtt <= 80) {
+          dynamicDetectedBitrate = 'lossless';
+        } else {
+          dynamicDetectedBitrate = '128k';
+        }
+      } else {
+        dynamicDetectedBitrate = '128k';
+      }
+    }
+
+    function getEffectiveBitrate() {
+      if (selectedQualityMode === 'auto') {
+        return dynamicDetectedBitrate;
+      }
+      return selectedQualityMode; // '64k', '128k', '320k', 'lossless'
+    }
+
+    function getAudioStreamUrl(songId, positionSec = 0) {
+      const eff = getEffectiveBitrate();
+      let url = `/api/stream/${encodeURIComponent(songId)}`;
+      const params = [];
+      if (eff !== 'lossless') {
+        params.push(`bitrate=${eff}`);
+      }
+      if (positionSec > 0) {
+        params.push(`ss=${positionSec.toFixed(1)}`);
+      }
+      if (params.length > 0) {
+        url += '?' + params.join('&');
+      }
+      return url;
+    }
+
+    function handleBufferStall() {
+      if (!isPlaying) return;
+      const now = Date.now();
+      if (now - lastStallTimestamp < 15000) {
+        bufferStallCount++;
+      } else {
+        bufferStallCount = 1;
+      }
+      lastStallTimestamp = now;
+
+      if (selectedQualityMode === 'auto' && bufferStallCount >= 2) {
+        if (dynamicDetectedBitrate === 'lossless') {
+          dynamicDetectedBitrate = '128k';
+          showToast('⚡ Sinyal fluktuatif: Menyesuaikan ke 128 kbps (Anti-Lag)', 'success');
+          applyBitrateChangeMidTrack();
+        } else if (dynamicDetectedBitrate === '128k' || dynamicDetectedBitrate === '320k') {
+          dynamicDetectedBitrate = '64k';
+          showToast('📶 Sinyal melemah: Menyesuaikan ke 64 kbps (Anti-Lag)', 'success');
+          applyBitrateChangeMidTrack();
+        }
+        bufferStallCount = 0;
+      }
+    }
+
+    function applyBitrateChangeMidTrack() {
+      if (currentSongIndex < 0 || !songs[currentSongIndex]) return;
+      const s = songs[currentSongIndex];
+      const curPos = realAudio.currentTime || 0;
+      const wasPlaying = !realAudio.paused;
+
+      realAudio.src = getAudioStreamUrl(s.id, curPos);
+      realAudio.currentTime = curPos;
+      if (wasPlaying) {
+        realAudio.play().catch(e => console.warn(e));
+      }
+      updateQualityUI();
+    }
+
+    if (navigator.connection) {
+      navigator.connection.addEventListener('change', () => {
+        evaluateAutoQuality();
+        if (selectedQualityMode === 'auto') {
+          updateQualityUI();
+        }
+      });
+    }
+    evaluateAutoQuality();
 
     // Real HTML5 Audio Player
     const realAudio = new Audio();
@@ -1414,13 +1679,23 @@
       }
     });
 
+    realAudio.addEventListener('waiting', () => {
+      handleBufferStall();
+    });
+    realAudio.addEventListener('stalled', () => {
+      handleBufferStall();
+    });
+
     realAudio.addEventListener('ended', () => {
+      ensureBackgroundAudioKeepAlive();
+
       if (isRepeatActive && currentSongIndex >= 0) {
         // Repeat mode: ulangi lagu yang sedang diputar dari detik 0
         realAudio.currentTime = 0;
         realAudio.play().then(() => {
           isPlaying = true;
           updatePlayerUI();
+          updateQualityUI();
         }).catch(e => console.warn(e));
         return;
       }
@@ -1445,12 +1720,17 @@
 
     realAudio.addEventListener('play', () => {
       isPlaying = true;
+      ensureBackgroundAudioKeepAlive();
+      requestWakeLock();
       updatePlayerUI();
+      updateQualityUI();
     });
 
     realAudio.addEventListener('pause', () => {
       isPlaying = false;
+      releaseWakeLock();
       updatePlayerUI();
+      updateQualityUI();
     });
 
     realAudio.addEventListener('error', (e) => {
@@ -1467,6 +1747,7 @@
       renderDownloadQueue();
       updateQueueBadge();
       updatePlayerUI();
+      updateQualityUI();
       applyDynamicTheme();
       fetchSongsFromBackend();
       refreshActiveRoomsList();
@@ -2256,13 +2537,18 @@
       const s = songs[currentSongIndex];
       currentTime = 0;
 
-      // Putar file audio fisik asli dari server STB
-      realAudio.src = `/api/stream/${encodeURIComponent(s.id)}`;
+      // Keepalive background audio & wake lock
+      ensureBackgroundAudioKeepAlive();
+      requestWakeLock();
+
+      // Putar file audio dengan bitrate adaptif / manual pilihan user
+      realAudio.src = getAudioStreamUrl(s.id);
       realAudio.playbackRate = playbackSpeed;
       realAudio.play().then(() => {
         isPlaying = true;
         hideIosPrompt();
         updatePlayerUI();
+        updateQualityUI();
       }).catch(err => {
         console.warn('Gagal memutar audio stream:', err);
         if (fromPartySync) {
@@ -2271,6 +2557,7 @@
       });
 
       updatePlayerUI();
+      updateQualityUI();
       applyDynamicTheme();
       renderDashboardSongs();
       renderKaraokeLyrics();
@@ -2299,10 +2586,13 @@
         return;
       }
       if (realAudio.paused) {
+        ensureBackgroundAudioKeepAlive();
+        requestWakeLock();
         realAudio.play().then(() => {
           isPlaying = true;
           hideIosPrompt();
           updatePlayerUI();
+          updateQualityUI();
           if (isPartyMode && !fromPartySync) {
             sendPartyAction('play', { position_sec: realAudio.currentTime || 0 });
           }
@@ -2313,7 +2603,9 @@
       } else {
         realAudio.pause();
         isPlaying = false;
+        releaseWakeLock();
         updatePlayerUI();
+        updateQualityUI();
         if (isPartyMode && !fromPartySync) {
           sendPartyAction('pause', { position_sec: realAudio.currentTime || 0 });
         }
@@ -2623,32 +2915,164 @@
       }
     }
 
-    // Quality Switcher Button
-    function toggleAudioQuality() {
-      isHighResMode = !isHighResMode;
-      const btn = document.getElementById('btnQualityToggle');
-      const song = songs[currentSongIndex];
+    // ================= YOUTUBE-STYLE QUALITY & BITRATE UI =================
+    function openQualityModal() {
+      renderQualityOptions();
+      openModal('audioQualityModal');
+    }
 
-      if (isHighResMode) {
-        btn.className = "badge-hires-gold px-2 py-1 rounded text-[10px] font-black cursor-pointer hover:scale-105 transition";
-        btn.innerHTML = `<svg class="w-3.5 h-3.5 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>HI-RES FLAC</span>`;
-        song.isHiRes = true;
-        song.codec = "FLAC";
-        song.bitDepth = 24;
-        song.sampleRate = "96 kHz";
-        song.bitrate = "1411 kbps";
-        alert("Beralih ke KUALITAS TINGGI: Hi-Res Lossless FLAC 24-bit/96kHz (1411 kbps)!");
-      } else {
-        btn.className = "bg-[#282828] border border-[#444] text-[#aaa] px-2 py-1 rounded text-[10px] font-bold cursor-pointer hover:scale-105 transition";
-        btn.innerHTML = `<svg class="w-3.5 h-3.5 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg><span>STANDAR MP3</span>`;
-        song.isHiRes = false;
-        song.codec = "MP3";
-        song.bitDepth = 16;
-        song.sampleRate = "44.1 kHz";
-        song.bitrate = "320 kbps";
-        alert("Beralih ke KUALITAS STANDAR: Hemat RAM / Bandwidth 320 kbps.");
+    function renderQualityOptions() {
+      const container = document.getElementById('qualityOptionsContainer');
+      const eff = getEffectiveBitrate();
+      const effBadge = document.getElementById('qualityEffectiveBitrateBadge');
+      if (effBadge) {
+        effBadge.innerText = eff === 'lossless' ? 'Hi-Res Lossless' : `${eff} (Anti-Lag)`;
       }
-      updatePlayerUI();
+
+      const options = [
+        {
+          id: 'auto',
+          icon: '⚡',
+          title: 'Otomatis (Rekomendasi)',
+          desc: 'Beradaptasi dinamis dengan kualitas sinyal & WiFi. Prioritas kelancaran anti-lag tanpa putus.',
+          badge: `Aktif: ${eff === 'lossless' ? 'Hi-Res' : eff}`
+        },
+        {
+          id: '64k',
+          icon: '📉',
+          title: 'Hemat Kuota / Sinyal Lemah (64 kbps)',
+          desc: 'Sangat ringan & hemat bandwidth, anti-buffering saat sinyal ponsel minim 1-2 bar.',
+          badge: 'Ultra Ringan'
+        },
+        {
+          id: '128k',
+          icon: '🎵',
+          title: 'Kualitas Seimbang (128 kbps)',
+          desc: 'Kualitas standar streaming web. Suara jernih, transparan, dan hemat konsumsi data.',
+          badge: 'Standar'
+        },
+        {
+          id: '320k',
+          icon: '✨',
+          title: 'Kualitas Tinggi (320 kbps)',
+          desc: 'Detail suara instrumen tajam dengan bitrate MP3 maksimal 320 kbps.',
+          badge: 'HQ MP3'
+        },
+        {
+          id: 'lossless',
+          icon: '💎',
+          title: 'Hi-Res Lossless Asli (Source Direct)',
+          desc: 'Streaming file audio fisik asli dari server STB (FLAC/ALAC/WAV) tanpa re-encoding.',
+          badge: 'Original'
+        }
+      ];
+
+      if (!container) return;
+      container.innerHTML = options.map(opt => {
+        const isSelected = selectedQualityMode === opt.id;
+        return `
+          <div onclick="setAudioQuality('${opt.id}')" 
+               class="p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
+                 isSelected 
+                   ? 'bg-[#1db954]/10 border-[#1db954] text-white shadow-sm' 
+                   : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.07] text-[#ccc]'
+               }">
+            <div class="flex items-start gap-3 flex-1 pr-3">
+              <span class="text-xl mt-0.5">${opt.icon}</span>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-xs ${isSelected ? 'text-[#1db954]' : 'text-white'}">${opt.title}</span>
+                  <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-[#aaa]">${opt.badge}</span>
+                </div>
+                <p class="text-[11px] text-[#888] mt-0.5 leading-snug">${opt.desc}</p>
+              </div>
+            </div>
+            <div class="w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+              isSelected ? 'border-[#1db954] bg-[#1db954] text-black font-bold text-xs' : 'border-white/30 text-transparent'
+            }">
+              ✓
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function setAudioQuality(mode) {
+      selectedQualityMode = mode;
+      localStorage.setItem('senandung_audio_quality', mode);
+      evaluateAutoQuality();
+      applyBitrateChangeMidTrack();
+      renderQualityOptions();
+      updateQualityUI();
+      closeModal('audioQualityModal');
+
+      const labels = {
+        'auto': 'Otomatis (Adaptif Sinyal & Anti-Lag)',
+        '64k': 'Hemat Kuota / Sinyal Lemah (64 kbps)',
+        '128k': 'Kualitas Seimbang (128 kbps)',
+        '320k': 'Kualitas Tinggi (320 kbps)',
+        'lossless': 'Hi-Res Lossless Asli'
+      };
+      showToast(`Kualitas Audio diatur ke: ${labels[mode] || mode}`, 'success');
+    }
+
+    function updateQualityUI() {
+      const eff = getEffectiveBitrate();
+      const btn = document.getElementById('btnQualityToggle');
+      const fsBtn = document.getElementById('fsBtnQuality');
+      const inspector = document.getElementById('playerBitrateInspector');
+
+      let labelText = '';
+      let fsLabelText = '';
+      let icon = '';
+      let isGold = false;
+
+      if (selectedQualityMode === 'auto') {
+        icon = '⚡';
+        labelText = `Auto (${eff === 'lossless' ? 'Hi-Res' : eff})`;
+        fsLabelText = `Auto (${eff === 'lossless' ? 'Hi-Res' : eff})`;
+        isGold = (eff === 'lossless');
+      } else if (selectedQualityMode === '64k') {
+        icon = '📉';
+        labelText = 'Hemat (64k)';
+        fsLabelText = '64k';
+      } else if (selectedQualityMode === '128k') {
+        icon = '🎵';
+        labelText = 'Standar (128k)';
+        fsLabelText = '128k';
+      } else if (selectedQualityMode === '320k') {
+        icon = '✨';
+        labelText = 'Tinggi (320k)';
+        fsLabelText = '320k';
+      } else if (selectedQualityMode === 'lossless') {
+        icon = '💎';
+        labelText = 'Lossless Asli';
+        fsLabelText = 'Lossless';
+        isGold = true;
+      }
+
+      if (btn) {
+        btn.className = isGold 
+          ? "badge-hires-gold px-2.5 py-1 rounded text-[10px] font-black cursor-pointer hover:scale-105 transition flex items-center gap-1.5"
+          : "bg-[#282828] border border-[#444] text-[#aaa] hover:text-white hover:border-[#666] px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer hover:scale-105 transition flex items-center gap-1.5";
+        btn.innerHTML = `<span>${icon}</span><span>${labelText}</span>`;
+      }
+
+      if (fsBtn) {
+        fsBtn.className = isGold
+          ? "badge-hires-gold px-2.5 py-1 rounded text-[10px] font-black flex items-center gap-1 cursor-pointer"
+          : "bg-[#282828] border border-[#444] text-[#aaa] px-2.5 py-1 rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer";
+        fsBtn.innerHTML = `<span>${icon}</span><span>${fsLabelText}</span>`;
+      }
+
+      if (inspector && currentSongIndex >= 0 && songs[currentSongIndex]) {
+        const s = songs[currentSongIndex];
+        if (eff === 'lossless') {
+          inspector.innerText = `${s.codec || 'FLAC'} • Direct Stream (Lossless)`;
+        } else {
+          inspector.innerText = `MP3 ${eff} • Dynamic Anti-Lag Stream`;
+        }
+      }
     }
 
     // Save All Offline
