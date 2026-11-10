@@ -97,15 +97,21 @@ func (s *Server) handleSongByID(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(song)
 
-	case http.MethodPut:
+	case http.MethodPut, http.MethodPost:
 		var update struct {
-			Lyrics string `json:"lyrics"`
+			Lyrics      *string  `json:"lyrics"`
+			LyricOffset *float64 `json:"lyric_offset"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		_ = s.db.UpdateLyrics(id, update.Lyrics)
+		if update.Lyrics != nil {
+			_ = s.db.UpdateLyrics(id, *update.Lyrics)
+		}
+		if update.LyricOffset != nil {
+			_ = s.db.UpdateLyricOffset(id, *update.LyricOffset)
+		}
 		w.WriteHeader(http.StatusOK)
 
 	case http.MethodDelete:
