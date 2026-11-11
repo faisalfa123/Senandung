@@ -9,12 +9,14 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Senandung">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/svg+xml" href="/icons/logo.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png">
   <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
     :root {
@@ -150,6 +152,15 @@
     /* Indicator TV Mode Status Pill */
     .tv-focus-badge {
       animation: pulseAura 4s infinite ease-in-out;
+    }
+
+    /* Mobile Text Input & Keyboard Usability Guarantee */
+    input, textarea {
+      -webkit-user-select: text !important;
+      -moz-user-select: text !important;
+      -ms-user-select: text !important;
+      user-select: text !important;
+      touch-action: manipulation;
     }
   </style>
 </head>
@@ -373,28 +384,34 @@
 
             <!-- Search Input Container with Pill style -->
             <div class="relative flex-1">
-              <div class="flex items-center bg-[#242424] border border-[#333] focus-within:border-[#3ea6ff] rounded-full px-3 py-1.5 transition shadow-inner">
+              <div class="flex items-center bg-[#242424] border border-[#333] focus-within:border-[#3ea6ff] rounded-full px-3 py-1.5 transition shadow-inner cursor-text" onclick="document.getElementById('musicSearchInput').focus()">
                 <!-- Red YouTube/Music Icon -->
-                <div class="w-6 h-6 rounded-md bg-[#ff0000] flex items-center justify-center text-white shrink-0 mr-2 shadow-sm">
+                <div class="w-6 h-6 rounded-md bg-[#ff0000] flex items-center justify-center text-white shrink-0 mr-2 shadow-sm pointer-events-none">
                   <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M8 5v14l11-7z"/>
                   </svg>
                 </div>
                 <!-- Input field -->
-                <input type="text" id="musicSearchInput" 
+                <input type="search" id="musicSearchInput" 
                        value=""
+                       autocomplete="off"
+                       autocorrect="off"
+                       autocapitalize="none"
+                       spellcheck="false"
+                       inputmode="search"
+                       enterkeyhint="search"
                        onfocus="showSearchHistoryDropdown()"
                        onblur="hideSearchHistoryDropdownWithDelay()"
                        oninput="handleSearchInputChange(this.value)"
                        onkeydown="if(event.key==='Enter') executeMusicSearch()" 
                        placeholder="Cari lagu bebas di YouTube (misal: 'Dewa 19', 'Before You Go')..." 
-                       class="w-full bg-transparent text-sm text-white placeholder-[#888] focus:outline-none">
+                       class="w-full bg-transparent text-sm text-white placeholder-[#888] focus:outline-none select-text">
                 
                 <!-- Clear Button ✕ -->
-                <button onclick="clearMusicSearchInput()" id="btnMusicSearchClear" class="text-[#888] hover:text-white px-1.5 text-xs transition" style="visibility: hidden;">✕</button>
+                <button type="button" onclick="event.stopPropagation(); clearMusicSearchInput()" id="btnMusicSearchClear" class="text-[#888] hover:text-white px-1.5 text-xs transition" style="visibility: hidden;">✕</button>
 
                 <!-- Search Action Blue Pill -->
-                <button onclick="executeMusicSearch()" class="bg-[#263850] hover:bg-[#3ea6ff] hover:text-black text-[#3ea6ff] p-1.5 rounded-full ml-1 transition shrink-0" title="Cari">
+                <button type="button" onclick="event.stopPropagation(); executeMusicSearch()" class="bg-[#263850] hover:bg-[#3ea6ff] hover:text-black text-[#3ea6ff] p-1.5 rounded-full ml-1 transition shrink-0" title="Cari">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                   </svg>
@@ -547,6 +564,10 @@
               </div>
             </div>
             <div class="flex items-center gap-2">
+              <button onclick="playEntirePlaylist(currentOpenPlaylistId)" class="btn-neon-green text-black text-xs font-bold px-3.5 py-1.5 rounded-full flex items-center gap-1.5 transition cursor-pointer shadow" title="Putar semua lagu dalam playlist ini">
+                <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                <span>Putar Semua</span>
+              </button>
               <button onclick="deleteCurrentOpenPlaylist()" class="text-xs px-3 py-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1.5 transition cursor-pointer" title="Hapus playlist ini">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 <span>Hapus Playlist</span>
@@ -1741,6 +1762,8 @@
     let favorites = new Set();
     let offlineSongs = new Set();
     let pendingDownloadedSong = null;
+    let activePlaylistId = null; // Menyimpan id playlist yang sedang diputar jika lagu berasal dari playlist
+    let activePlaylistSongIndex = -1; // Indeks lagu dalam playlist yang sedang aktif
 
     // ================= BACKGROUND AUDIO & SCREEN-OFF PERSISTENCE =================
     let bgAudioCtx = null;
@@ -2540,9 +2563,11 @@
           </div>
           <button onclick="removeSearchHistoryItem(${index}, event)" class="text-[#666] hover:text-white text-xs px-1.5 py-0.5 rounded transition" title="Hapus">✕</button>
         `;
-        row.onmousedown = (e) => {
-          e.preventDefault();
+        row.onclick = () => {
           selectSearchHistoryItem(item);
+        };
+        row.onpointerdown = (e) => {
+          e.preventDefault();
         };
         container.appendChild(row);
       });
@@ -3388,6 +3413,34 @@
 
     function nextSong() {
       if (songs.length === 0) return;
+
+      // 1. Jika sedang memutar dari Playlist
+      if (activePlaylistId) {
+        const pl = playlists.find(p => p.id === activePlaylistId);
+        if (pl && pl.songs && pl.songs.length > 0) {
+          if (activePlaylistSongIndex + 1 < pl.songs.length) {
+            // Lanjutkan ke lagu berikutnya dalam playlist tersebut
+            activePlaylistSongIndex++;
+            const nextSongId = pl.songs[activePlaylistSongIndex];
+            const targetIdx = songs.findIndex(s => s.id === nextSongId);
+            if (targetIdx !== -1) {
+              playSongAt(targetIdx);
+              showToast(`Lagu berikutnya di playlist "${pl.name}" (${activePlaylistSongIndex + 1}/${pl.songs.length})`, 'success');
+              return;
+            }
+          } else {
+            // Playlist sudah habis: lanjutkan ke koleksi library STB
+            showToast(`Playlist "${pl.name}" selesai. Melanjutkan dari seluruh koleksi STB...`, 'success');
+            activePlaylistId = null;
+            activePlaylistSongIndex = -1;
+          }
+        } else {
+          activePlaylistId = null;
+          activePlaylistSongIndex = -1;
+        }
+      }
+
+      // 2. Pemutaran dari Koleksi Library Biasa
       if (isShuffleActive && songs.length > 1) {
         let randIdx = currentSongIndex;
         while (randIdx === currentSongIndex) {
@@ -3409,6 +3462,21 @@
         updateProgressUI();
         return;
       }
+
+      // Jika sedang dalam playlist
+      if (activePlaylistId) {
+        const pl = playlists.find(p => p.id === activePlaylistId);
+        if (pl && pl.songs && pl.songs.length > 0 && activePlaylistSongIndex > 0) {
+          activePlaylistSongIndex--;
+          const prevSongId = pl.songs[activePlaylistSongIndex];
+          const targetIdx = songs.findIndex(s => s.id === prevSongId);
+          if (targetIdx !== -1) {
+            playSongAt(targetIdx);
+            return;
+          }
+        }
+      }
+
       if (isShuffleActive && songs.length > 1) {
         let randIdx = currentSongIndex;
         while (randIdx === currentSongIndex) {
@@ -5564,7 +5632,7 @@
           const pThumb = getCoverHtml(s, "w-full h-full object-cover rounded-lg", "w-full h-full rounded-lg", "text-xs");
 
           row.innerHTML = `
-            <div class="flex items-center gap-3 min-w-0 flex-1 cursor-pointer pr-2" onclick="playSongAt(songs.findIndex(x => x.id === '${s.id}'))">
+            <div class="flex items-center gap-3 min-w-0 flex-1 cursor-pointer pr-2" onclick="playPlaylistSongAt('${pl.id}', ${idx})">
               <span class="text-[11px] text-[#777] font-mono w-4 text-center shrink-0">${idx + 1}</span>
               <div class="w-9 h-9 rounded-lg bg-[#222] flex items-center justify-center shrink-0 overflow-hidden shadow">
                 ${pThumb}
@@ -5578,7 +5646,7 @@
               </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-              <button onclick="playSongAt(songs.findIndex(x => x.id === '${s.id}'))" class="text-xs font-bold text-[#1db954] hover:text-[#1ed760] px-3 py-1 rounded-full bg-[#1db954]/10 border border-[#1db954]/30 hover:bg-[#1db954]/20 transition">
+              <button onclick="playPlaylistSongAt('${pl.id}', ${idx})" class="text-xs font-bold text-[#1db954] hover:text-[#1ed760] px-3 py-1 rounded-full bg-[#1db954]/10 border border-[#1db954]/30 hover:bg-[#1db954]/20 transition">
                 Putar
               </button>
               <button onclick="removeSongFromPlaylist('${pl.id}', '${s.id}')" class="text-[#666] hover:text-red-400 p-1 transition" title="Hapus dari playlist">
@@ -5592,6 +5660,27 @@
 
       view.classList.remove('hidden');
       view.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function playPlaylistSongAt(playlistId, plSongIndex) {
+      const pl = playlists.find(p => p.id === playlistId);
+      if (!pl || !pl.songs || pl.songs.length === 0) return;
+      if (plSongIndex < 0 || plSongIndex >= pl.songs.length) return;
+      
+      const songId = pl.songs[plSongIndex];
+      const targetIdx = songs.findIndex(x => x.id === songId);
+      if (targetIdx !== -1) {
+        activePlaylistId = playlistId;
+        activePlaylistSongIndex = plSongIndex;
+        playSongAt(targetIdx);
+        showToast(`Memutar playlist "${pl.name}" (${plSongIndex + 1}/${pl.songs.length})`, 'success');
+      } else {
+        showToast('Berkas lagu tidak ditemukan di koleksi STB.', 'error');
+      }
+    }
+
+    function playEntirePlaylist(playlistId) {
+      playPlaylistSongAt(playlistId, 0);
     }
 
     function removeSongFromPlaylist(playlistId, songId) {

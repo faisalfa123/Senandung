@@ -1,10 +1,15 @@
-const CACHE_NAME = 'senandung-cache-v4';
-const AUDIO_CACHE = 'senandung-audio-v4';
+const CACHE_NAME = 'senandung-cache-v5';
+const AUDIO_CACHE = 'senandung-audio-v5';
 
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/favicon.ico',
+  '/icons/logo.svg',
+  '/icons/favicon-32.png',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png'
 ];
 
 self.addEventListener('install', (e) => {
