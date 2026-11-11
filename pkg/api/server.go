@@ -59,8 +59,9 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/download/status", s.handleDownloadStatus)
 	mux.HandleFunc("/api/scan", s.handleScan)
 
-	// Real Linux STB System Information
+	// Real Linux STB System Information & Service Management
 	mux.HandleFunc("/api/sysinfo", s.handleSysInfo)
+	mux.HandleFunc("/api/restart", s.handleRestartService)
 
 	// WebSockets Audio Sync & Multi-Room Party API
 	mux.HandleFunc("/api/rooms", s.syncHub.HandleGetRooms)
@@ -492,4 +493,33 @@ func (s *Server) handleSysInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = json.NewEncoder(w).Encode(info)
+}
+
+func (s *Server) handleRestartService(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed. Gunakan POST.", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Instruksi restart diterima. Service Senandung sedang dimuat ulang...",
+		"restarting": true,
+	})
+
+	// Jalankan restart di background goroutine agar respons HTTP selesai terkirim ke klien
+	go func() {
+		time.Sleep(700 * time.Millisecond)
+		// Coba restart via systemctl
+		cmd := exec.Command("systemctl", "restart", "senandung")
+		if err := cmd.Start(); err == nil {
+			_ = cmd.Wait()
+			return
+		}
+
+		// Fallback: jika dijalankan sebagai supervisor atau process manager langsung
+		time.Sleep(500 * time.Millisecond)
+		os.Exit(0)
+	}()
 }
