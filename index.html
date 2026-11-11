@@ -116,6 +116,41 @@
     .app-main-content {
       padding-bottom: calc(130px + max(var(--sab), 12px)) !important;
     }
+
+    /* Android TV Focus & Leanback Engine */
+    :focus-visible, .dpad-focused {
+      outline: 3px solid #1db954 !important;
+      outline-offset: 3px !important;
+      box-shadow: 0 0 25px rgba(29, 185, 84, 0.8) !important;
+      transform: scale(1.04) !important;
+      transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1), outline 0.18s, box-shadow 0.18s !important;
+      z-index: 40 !important;
+    }
+    body.tv-mode-active {
+      font-size: 16px;
+    }
+    body.tv-mode-active .app-header {
+      height: 70px;
+    }
+    body.tv-mode-active .app-main-content {
+      padding-bottom: 160px !important;
+    }
+    body.tv-mode-active .nav-btn {
+      padding-top: 14px;
+      padding-bottom: 14px;
+      font-size: 16px;
+    }
+    body.tv-mode-active #view-karaoke h1 {
+      font-size: 2.75rem;
+    }
+    body.tv-mode-active #view-karaoke .karaoke-lyric-line {
+      font-size: 2rem !important;
+      line-height: 2.75rem !important;
+    }
+    /* Indicator TV Mode Status Pill */
+    .tv-focus-badge {
+      animation: pulseAura 4s infinite ease-in-out;
+    }
   </style>
 </head>
 <body id="appBody" class="bg-[#121212] text-white font-sans antialiased select-none h-screen flex flex-col overflow-hidden relative">
@@ -155,11 +190,18 @@
   <!-- Top Header Navigation -->
   <header class="app-header px-4 sm:px-6 bg-[#000000]/80 backdrop-blur-md border-b border-[#222] flex items-center justify-between shrink-0 z-30">
     <div class="flex items-center gap-3 sm:gap-6 flex-1 max-w-xl">
-      <div onclick="switchTab('dashboard')" class="flex items-center gap-2 text-[#1db954] text-xl font-bold tracking-tight cursor-pointer">
-        <svg class="w-7 h-7 sm:w-8 sm:h-8 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.563.387-.857.207-2.35-1.434-5.308-1.758-8.793-.963-.335.077-.67-.133-.746-.468-.077-.334.132-.67.467-.746 3.808-.87 7.076-.506 9.722 1.113.294.18.386.563.207.857zm1.226-2.724c-.226.367-.709.482-1.075.257-2.69-1.653-6.79-2.131-9.97-1.165-.413.125-.85-.108-.975-.521-.125-.413.108-.85.521-.975 3.633-1.102 8.147-.568 11.242 1.33.366.225.481.708.257 1.074zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71c-.494.15-1.016-.129-1.166-.623-.149-.495.13-1.016.624-1.166 3.532-1.073 9.404-.866 13.115 1.338.445.264.59.838.327 1.282-.264.444-.838.59-1.282.327z"/>
-        </svg>
-        <span class="text-white hidden sm:inline">Senandung</span>
+      <!-- Original Senandung Logo (Harmonic S-Wave Mark) -->
+      <div onclick="switchTab('dashboard')" class="flex items-center gap-2.5 text-[#1db954] text-xl font-black tracking-tight cursor-pointer group" title="Senandung Home">
+        <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-[#1db954]/20 to-[#0a2318] border border-[#1db954]/40 flex items-center justify-center p-1 shadow-md shadow-[#1db954]/20 group-hover:scale-105 transition-transform shrink-0">
+          <svg class="w-full h-full" viewBox="0 0 512 512" fill="none">
+            <circle cx="256" cy="256" r="185" stroke="#10b981" stroke-width="6" stroke-opacity="0.3" stroke-dasharray="16 12"/>
+            <path d="M 335 155 C 275 125, 175 145, 175 220 C 175 295, 335 255, 335 330 C 335 405, 230 420, 175 385" stroke="#1db954" stroke-width="46" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M 305 188 C 265 168, 205 180, 205 224 C 205 275, 305 250, 305 296 C 305 348, 245 358, 205 340" stroke="#6ee7b7" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="335" cy="155" r="14" fill="#ffd700"/>
+            <circle cx="175" cy="385" r="14" fill="#1db954"/>
+          </svg>
+        </div>
+        <span class="text-white hidden sm:inline tracking-tight font-black text-lg">Senandung</span>
       </div>
 
       <div class="relative w-full max-w-sm hidden sm:block">
@@ -169,8 +211,20 @@
       </div>
     </div>
 
-    <!-- Header Right Buttons: Unduh Musik & Status Mode -->
-    <div class="flex items-center gap-2 sm:gap-3">
+    <!-- Header Right Buttons: Unduh Musik, Mode TV, Restart, & Status Mode -->
+    <div class="flex items-center gap-2 sm:gap-2.5">
+      <!-- Android TV Leanback Mode Toggle Button -->
+      <button onclick="toggleTvLeanbackMode()" id="btnTvModeToggle" class="bg-[#181818] hover:bg-[#252525] border border-white/10 text-white/90 hover:text-white px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition hover:border-[#1db954]/50 shadow-sm cursor-pointer" title="Mode Layar Lebar & Android TV (Fokus Remote D-Pad)">
+        <svg class="w-3.5 h-3.5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
+        <span class="hidden md:inline" id="txtTvModeBtn">Mode TV</span>
+      </button>
+
+      <!-- Restart App & Service Button -->
+      <button onclick="openRestartModal()" class="bg-[#181818] hover:bg-[#252525] border border-white/10 text-white/90 hover:text-white px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition hover:border-amber-400/50 shadow-sm cursor-pointer" title="Restart Aplikasi / Layanan Senandung STB">
+        <svg class="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        <span class="hidden md:inline">Restart</span>
+      </button>
+
       <!-- One-Click Open Unduh Musik Tab -->
       <button onclick="switchTab('ytsearch')" class="bg-[#181818] hover:bg-[#252525] border border-white/10 text-white/90 hover:text-white px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 transition hover:border-[#1db954]/50 shadow-sm">
         <svg class="w-3.5 h-3.5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
@@ -1478,11 +1532,102 @@
     </div>
   </div>
 
-  <!-- Modal / Floating Banner: Network & Server Offline Diagnostics (Requirement #5) -->
-  <div id="networkDiagnosticModal" class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-[#1e1e1e] border-2 border-red-500/80 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl relative">
+  <!-- Modal: Dialog Restart Aplikasi & Service Senandung STB (Pilihan Pengguna) -->
+  <div id="restartAppModal" class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-[#1e1e1e] border border-white/10 rounded-2xl p-6 w-full max-w-md space-y-5 shadow-2xl relative animate-fade-in">
       <div class="flex items-center gap-3">
-        <div id="diagIconBox" class="w-12 h-12 rounded-xl bg-red-500/20 border border-red-500/50 flex items-center justify-center text-2xl shrink-0">
+        <div class="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0 shadow-lg">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        </div>
+        <div>
+          <h3 class="font-bold text-base text-white">Restart & Muat Ulang Senandung</h3>
+          <p class="text-xs text-[#888]">Pilih jenis pembaruan yang ingin dilakukan</p>
+        </div>
+      </div>
+
+      <!-- Option Cards -->
+      <div class="space-y-3">
+        <!-- Opsi 1: Muat Ulang Halaman Web (Cepat) -->
+        <button onclick="executeReloadWebUI()" class="w-full text-left p-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-white/20 transition flex items-start gap-3 cursor-pointer group">
+          <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+          </div>
+          <div>
+            <div class="text-xs font-bold text-white group-hover:text-blue-300 transition">1. Muat Ulang Halaman Web (Client-Side)</div>
+            <div class="text-[11px] text-[#aaa] mt-0.5 leading-relaxed">Menyegarkan tampilan PWA dan membersihkan memori browser tanpa menghentikan musik di STB.</div>
+          </div>
+        </button>
+
+        <!-- Opsi 2: Restart Service STB (Backend) -->
+        <button onclick="showConfirmRestartSTBService()" class="w-full text-left p-4 rounded-xl bg-amber-500/[0.06] hover:bg-amber-500/[0.12] border border-amber-500/30 hover:border-amber-500/60 transition flex items-start gap-3 cursor-pointer group">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+          </div>
+          <div>
+            <div class="text-xs font-bold text-amber-300 group-hover:text-amber-200 transition">2. Restart Service STB (systemctl restart)</div>
+            <div class="text-[11px] text-[#bbb] mt-0.5 leading-relaxed">Merestart proses binary Go di STB DietPi. Membutuhkan waktu ~2-3 detik untuk kembali online.</div>
+          </div>
+        </button>
+      </div>
+
+      <!-- Bottom Close -->
+      <div class="pt-2 border-t border-white/10 flex justify-end">
+        <button onclick="closeModal('restartAppModal')" class="px-5 py-2 rounded-xl text-xs font-semibold bg-white/[0.06] hover:bg-white/[0.1] text-[#ccc] hover:text-white transition cursor-pointer">
+          Batal
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Dialog Konfirmasi Keamanan Restart Service STB -->
+  <div id="confirmRestartSTBModal" class="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-[#1e1e1e] border-2 border-amber-400/80 rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-2xl relative text-center animate-fade-in">
+      <div class="w-14 h-14 rounded-full bg-amber-400/15 border border-amber-400/60 flex items-center justify-center text-amber-400 mx-auto shadow-lg">
+        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div>
+        <h3 class="font-bold text-base text-white">Konfirmasi Restart STB</h3>
+        <p class="text-xs text-[#aaa] mt-1">Apakah Anda yakin ingin memuat ulang service Senandung di STB DietPi?</p>
+      </div>
+      <div class="bg-black/40 p-3 rounded-xl border border-white/10 text-[11px] text-[#888] leading-relaxed">
+        Musik yang sedang diputar akan berhenti sejenak dan tersambung otomatis saat service kembali aktif.
+      </div>
+      <div class="grid grid-cols-2 gap-3 pt-1">
+        <button onclick="closeModal('confirmRestartSTBModal')" class="bg-white/[0.08] hover:bg-white/[0.15] text-white py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer">
+          Batal
+        </button>
+        <button onclick="executeRestartSTBService()" id="btnConfirmRestartSTB" class="bg-amber-400 hover:bg-amber-300 text-black py-2.5 rounded-xl text-xs font-black shadow-lg transition cursor-pointer">
+          Ya, Restart Service
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Layar Progres Restarting & Auto-Reconnect Spinner -->
+  <div id="restartingProgressOverlay" class="fixed inset-0 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 z-[9999] hidden">
+    <div class="bg-[#181818] border border-white/15 rounded-3xl p-8 w-full max-w-sm space-y-5 shadow-2xl text-center relative animate-fade-in">
+      <div class="relative w-20 h-20 mx-auto flex items-center justify-center">
+        <div class="w-full h-full rounded-full border-4 border-white/10 border-t-[#1db954] animate-spin"></div>
+        <div class="absolute inset-0 flex items-center justify-center text-[#1db954]">
+          <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        </div>
+      </div>
+      <div class="space-y-1">
+        <h3 class="text-lg font-black text-white" id="restartProgressTitle">Memuat Ulang STB...</h3>
+        <p class="text-xs text-[#aaa]" id="restartProgressDesc">Mengirim instruksi restart ke systemd. Menghubungkan ulang secara otomatis...</p>
+      </div>
+      <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+        <div id="restartProgressBar" class="h-full bg-gradient-to-r from-[#1db954] to-emerald-400 w-1/4 transition-all duration-300"></div>
+      </div>
+      <div class="text-[11px] font-mono text-[#777]" id="restartCountdownText">Mencoba kembali dalam 3 detik</div>
+    </div>
+  </div>
+
+  <!-- Modal / Floating Banner: Custom Network & Server Error / 404 Diagnostics -->
+  <div id="networkDiagnosticModal" class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-[#1e1e1e] border-2 border-red-500/80 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl relative animate-fade-in">
+      <div class="flex items-center gap-3">
+        <div id="diagIconBox" class="w-12 h-12 rounded-xl bg-red-500/20 border border-red-500/50 flex items-center justify-center text-2xl shrink-0 shadow-lg">
           ⚠️
         </div>
         <div>
@@ -1496,10 +1641,13 @@
       </div>
 
       <div class="space-y-2 pt-1">
-        <button onclick="retryNetworkCheck()" class="w-full bg-[#1db954] hover:bg-[#1ed760] text-black font-extrabold py-2.5 rounded-xl text-xs transition shadow flex items-center justify-center gap-2">
+        <button onclick="retryNetworkCheck()" class="w-full bg-[#1db954] hover:bg-[#1ed760] text-black font-extrabold py-2.5 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-pointer">
           <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg><span>Coba Sambungkan Kembali</span>
         </button>
-        <button onclick="closeModal('networkDiagnosticModal')" class="w-full bg-[#2a2a2a] hover:bg-[#333] text-[#aaa] hover:text-white py-2 rounded-xl text-xs font-semibold transition">
+        <button onclick="openRestartModal()" class="w-full bg-white/[0.08] hover:bg-white/[0.12] text-amber-400 py-2 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg><span>Buka Opsi Restart</span>
+        </button>
+        <button onclick="closeModal('networkDiagnosticModal')" class="w-full bg-[#2a2a2a] hover:bg-[#333] text-[#aaa] hover:text-white py-2 rounded-xl text-xs font-semibold transition cursor-pointer">
           Tutup Sementara
         </button>
       </div>
@@ -1853,7 +2001,25 @@
 
     realAudio.addEventListener('error', (e) => {
       console.warn('Audio playback error:', e);
-      checkServerHealth();
+      const currentSrc = realAudio.src;
+      if (currentSrc) {
+        // Coba periksa status endpoint stream menggunakan HEAD/GET
+        fetch(currentSrc, { method: 'HEAD' })
+          .then(res => {
+            if (res.status === 404) {
+              showNetworkDiagnosticAlert('not_found_404');
+            } else if (res.status >= 500) {
+              showNetworkDiagnosticAlert('server_error_500');
+            } else {
+              checkServerHealth();
+            }
+          })
+          .catch(() => {
+            checkServerHealth();
+          });
+      } else {
+        checkServerHealth();
+      }
     });
 
     function init() {
@@ -1867,6 +2033,7 @@
       updatePlayerUI();
       updateQualityUI();
       applyDynamicTheme();
+      applyTvModeUI();
       fetchSongsFromBackend();
       refreshActiveRoomsList();
       renderAddRoomSongList();
@@ -1951,6 +2118,187 @@
         switchTab('karaoke');
       }
     }
+
+    // ================= ANDROID TV LEANBACK & SPATIAL D-PAD REMOTE ENGINE =================
+    let isTvMode = false;
+    try {
+      isTvMode = localStorage.getItem('senandung_tv_mode') === 'true';
+    } catch(e) {}
+
+    function toggleTvLeanbackMode(force) {
+      if (typeof force === 'boolean') {
+        isTvMode = force;
+      } else {
+        isTvMode = !isTvMode;
+      }
+      try {
+        localStorage.setItem('senandung_tv_mode', isTvMode ? 'true' : 'false');
+      } catch(e) {}
+
+      applyTvModeUI();
+      if (isTvMode) {
+        showToast('Mode Layar Lebar & Android TV Aktif (Navigasi Remote D-Pad)', 'success');
+        focusInitialTvElement();
+      } else {
+        showToast('Mode TV dinonaktifkan. Kembali ke mode standar.', 'success');
+      }
+    }
+
+    function applyTvModeUI() {
+      const body = document.getElementById('appBody');
+      const btn = document.getElementById('btnTvModeToggle');
+      const txt = document.getElementById('txtTvModeBtn');
+
+      if (isTvMode) {
+        if (body) body.classList.add('tv-mode-active');
+        if (btn) {
+          btn.className = "bg-[#1db954] text-black px-3 py-1.5 rounded-full text-xs font-black flex items-center gap-1.5 shadow-lg shadow-[#1db954]/25 transition cursor-pointer";
+        }
+        if (txt) txt.innerText = 'TV: ON';
+      } else {
+        if (body) body.classList.remove('tv-mode-active');
+        if (btn) {
+          btn.className = "bg-[#181818] hover:bg-[#252525] border border-white/10 text-white/90 hover:text-white px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition hover:border-[#1db954]/50 shadow-sm cursor-pointer";
+        }
+        if (txt) txt.innerText = 'Mode TV';
+      }
+    }
+
+    function getFocusableElements() {
+      // Dapatkan semua elemen interaktif yang sedang terlihat di layar
+      const selector = 'button:not([disabled]), input:not([disabled]), [tabindex="0"], a[href], .song-row, .party-card';
+      const all = Array.from(document.querySelectorAll(selector));
+      return all.filter(el => {
+        return el.offsetParent !== null && !el.closest('.hidden');
+      });
+    }
+
+    function focusInitialTvElement() {
+      const playBtn = document.getElementById('btnPlay');
+      if (playBtn) {
+        playBtn.focus();
+        return;
+      }
+      const focusables = getFocusableElements();
+      if (focusables.length > 0) focusables[0].focus();
+    }
+
+    // Spatial D-Pad Keyboard Handler (Android TV Remote KeyCodes: 19=Up, 20=Down, 21=Left, 22=Right, 13/23=OK, 27/4=Back)
+    window.addEventListener('keydown', (e) => {
+      const activeEl = document.activeElement;
+      const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+
+      // 1. Back Button Remote (Escape / Android Back Keycode 4 or 27)
+      if (e.key === 'Escape' || e.keyCode === 27 || e.keyCode === 4) {
+        // Tutup modal aktif jika ada
+        const openModals = document.querySelectorAll('.fixed:not(.hidden)');
+        let closedModal = false;
+        openModals.forEach(m => {
+          if (m.id && m.id.endsWith('Modal')) {
+            closeModal(m.id);
+            closedModal = true;
+          }
+        });
+        if (closedModal) {
+          e.preventDefault();
+          return;
+        }
+
+        // Jika sedang di tab karaoke, toggle kembali ke musik
+        if (currentActiveTab === 'karaoke') {
+          e.preventDefault();
+          toggleKaraokeTab();
+          return;
+        }
+
+        // Jika bukan di dashboard, kembali ke dashboard
+        if (currentActiveTab !== 'dashboard') {
+          e.preventDefault();
+          switchTab('dashboard');
+          return;
+        }
+      }
+
+      // Jangan cegah panah jika user sedang mengetik di input pencarian kecuali ditekan Down/Up
+      if (isInput && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        return;
+      }
+
+      // 2. Navigasi Spasial Panah D-Pad Remote
+      const isDpadKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) || [19, 20, 21, 22].includes(e.keyCode);
+      if (isDpadKey) {
+        const focusables = getFocusableElements();
+        if (focusables.length === 0) return;
+
+        if (!activeEl || !focusables.includes(activeEl)) {
+          e.preventDefault();
+          focusables[0].focus();
+          return;
+        }
+
+        const currentRect = activeEl.getBoundingClientRect();
+        const currentCenter = {
+          x: currentRect.left + currentRect.width / 2,
+          y: currentRect.top + currentRect.height / 2
+        };
+
+        let bestCandidate = null;
+        let bestDistance = Infinity;
+
+        focusables.forEach(candidate => {
+          if (candidate === activeEl) return;
+          const rect = candidate.getBoundingClientRect();
+          const center = {
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2
+          };
+
+          const dx = center.x - currentCenter.x;
+          const dy = center.y - currentCenter.y;
+
+          let isMatchDirection = false;
+          let primaryDiff = 0;
+          let secondaryDiff = 0;
+
+          if (e.key === 'ArrowUp' || e.keyCode === 19) {
+            isMatchDirection = dy < -10;
+            primaryDiff = Math.abs(dy);
+            secondaryDiff = Math.abs(dx);
+          } else if (e.key === 'ArrowDown' || e.keyCode === 20) {
+            isMatchDirection = dy > 10;
+            primaryDiff = Math.abs(dy);
+            secondaryDiff = Math.abs(dx);
+          } else if (e.key === 'ArrowLeft' || e.keyCode === 21) {
+            isMatchDirection = dx < -10;
+            primaryDiff = Math.abs(dx);
+            secondaryDiff = Math.abs(dy);
+          } else if (e.key === 'ArrowRight' || e.keyCode === 22) {
+            isMatchDirection = dx > 10;
+            primaryDiff = Math.abs(dx);
+            secondaryDiff = Math.abs(dy);
+          }
+
+          if (isMatchDirection) {
+            // Bobot jarak: lebih mengutamakan yang berada di garis lurus vektor
+            const distance = primaryDiff + (secondaryDiff * 2.2);
+            if (distance < bestDistance) {
+              bestDistance = distance;
+              bestCandidate = candidate;
+            }
+          }
+        });
+
+        if (bestCandidate) {
+          e.preventDefault();
+          bestCandidate.focus();
+          if (bestCandidate.scrollIntoViewIfNeeded) {
+            bestCandidate.scrollIntoViewIfNeeded({ behavior: 'smooth', block: 'nearest' });
+          } else {
+            bestCandidate.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }
+      }
+    });
 
     function applyDynamicTheme() {
       const song = (currentSongIndex >= 0 && songs[currentSongIndex]) ? songs[currentSongIndex] : null;
@@ -4429,6 +4777,30 @@
           <p class="text-xs text-[#aaa] leading-relaxed">Koneksi ke server mengalami timeout atau ponsel Anda sedang berada di luar jangkauan sinyal.</p>
           <p class="text-xs text-[#ffd700] leading-relaxed">Silakan berpindah ke area dengan <strong>Wi-Fi atau sinyal seluler yang lebih stabil</strong>.</p>
         `;
+      } else if (type === 'not_found_404') {
+        iconBox.innerHTML = '<svg class="w-6 h-6 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>';
+        iconBox.className = 'w-12 h-12 rounded-2xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center shrink-0 shadow-lg';
+        titleEl.innerText = '404 - File / Endpoint Tidak Ditemukan';
+        msgBox.innerHTML = `
+          <div class="text-white font-bold text-sm flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded bg-purple-500/30 text-purple-300 font-mono text-[10px] font-black">HTTP 404</span>
+            <span>Berkas Musik atau URL Tidak Ada</span>
+          </div>
+          <p class="text-xs text-[#aaa] leading-relaxed">File audio yang diminta tidak lagi ditemukan di penyimpanan STB (mungkin telah dihapus atau dipindahkan dari folder musik).</p>
+          <p class="text-xs text-purple-300 leading-relaxed">Solusi: Jalankan <strong>Pindai Ulang STB</strong> di dashboard untuk memperbarui daftar lagu atau unduh kembali musik tersebut.</p>
+        `;
+      } else if (type === 'server_error_500') {
+        iconBox.innerHTML = '<svg class="w-6 h-6 text-rose-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+        iconBox.className = 'w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center shrink-0 shadow-lg';
+        titleEl.innerText = '500 - Server Internal Error';
+        msgBox.innerHTML = `
+          <div class="text-white font-bold text-sm flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded bg-rose-500/30 text-rose-300 font-mono text-[10px] font-black">HTTP 500</span>
+            <span>Kendala Proses Internal STB</span>
+          </div>
+          <p class="text-xs text-[#aaa] leading-relaxed">Server STB mengalami kendala saat membaca metadata audio atau memproses stream database SQLite.</p>
+          <p class="text-xs text-rose-300 leading-relaxed">Solusi: Silakan gunakan tombol <strong>Restart Service STB</strong> di bawah ini untuk memuat ulang service secara bersih.</p>
+        `;
       } else {
         iconBox.innerHTML = '<svg class="w-6 h-6 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
         iconBox.className = 'w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center shrink-0 shadow-lg';
@@ -4449,6 +4821,91 @@
     function retryNetworkCheck() {
       showToast('Memeriksa kembali sambungan...', 'success');
       checkServerHealth();
+    }
+
+    // ================= RESTART APPLICATION & STB SERVICE ENGINE =================
+    function openRestartModal() {
+      const modal = document.getElementById('restartAppModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function executeReloadWebUI() {
+      closeModal('restartAppModal');
+      showToast('Memuat ulang antarmuka web Senandung...', 'success');
+      setTimeout(() => {
+        window.location.reload();
+      }, 300);
+    }
+
+    function showConfirmRestartSTBService() {
+      closeModal('restartAppModal');
+      const confirmModal = document.getElementById('confirmRestartSTBModal');
+      if (confirmModal) confirmModal.classList.remove('hidden');
+    }
+
+    function executeRestartSTBService() {
+      closeModal('confirmRestartSTBModal');
+      const overlay = document.getElementById('restartingProgressOverlay');
+      const bar = document.getElementById('restartProgressBar');
+      const title = document.getElementById('restartProgressTitle');
+      const desc = document.getElementById('restartProgressDesc');
+      const countEl = document.getElementById('restartCountdownText');
+      if (overlay) overlay.classList.remove('hidden');
+
+      if (bar) bar.style.width = '30%';
+
+      // Kirim perintah restart ke endpoint backend Go
+      fetch('/api/restart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(res => res.json())
+      .catch(() => {
+        // Jika server langsung exit/restart, fetch bisa throw error network yang memang diharapkan
+      });
+
+      // Animasi progress bar & auto-reconnect loop
+      let step = 0;
+      let countdown = 5;
+      const progressTimer = setInterval(() => {
+        step++;
+        if (bar) bar.style.width = `${Math.min(95, 30 + (step * 12))}%`;
+        if (countEl) countEl.innerText = `Menghubungkan kembali... (${countdown}s)`;
+        countdown--;
+
+        if (step >= 4) {
+          // Mulai ping kesehatan server STB
+          fetch('/api/sysinfo', { cache: 'no-store' })
+            .then(res => {
+              if (res.ok) {
+                clearInterval(progressTimer);
+                if (bar) bar.style.width = '100%';
+                if (title) title.innerText = 'Service Berhasil Dimuat Ulang!';
+                if (desc) desc.innerText = 'STB Senandung kembali online. Menyinkronkan data...';
+                setTimeout(() => {
+                  if (overlay) overlay.classList.add('hidden');
+                  showToast('Service Senandung STB telah berhasil direstart!', 'success');
+                  fetchSongsFromBackend();
+                  refreshActiveRoomsList();
+                  if (isPartyMode) initPartyWebSocket();
+                }, 800);
+              }
+            })
+            .catch(() => {
+              // Masih proses booting
+            });
+        }
+
+        if (step > 15) {
+          // Timeout limit jika restart memakan waktu lama
+          clearInterval(progressTimer);
+          if (title) title.innerText = 'Memeriksa Akhir...';
+          setTimeout(() => {
+            if (overlay) overlay.classList.add('hidden');
+            window.location.reload();
+          }, 1000);
+        }
+      }, 900);
     }
 
     // Pasang listener online / offline bawaan browser
