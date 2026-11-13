@@ -8,9 +8,12 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: write
+
 jobs:
   build:
-    name: Build Multi-Arch Binaries
+    name: Build Multi-Arch Binaries & Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -21,25 +24,39 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Install ARM cross-compilers
+      - name: Build Binaries (Pure Go Static)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf
+          mkdir -p dist
+          # AMD64 / x86_64
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/senandung-linux-x86_64 .
+          # ARM64 (Mastermind required asset)
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/senandung-linux-arm64 .
+          # ARM64 compatibility alias
+          cp dist/senandung-linux-arm64 dist/senandung-linux-aarch64
+          # ARMv7 32-bit SBCs
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 go build -ldflags="-s -w" -o dist/senandung-linux-armv7l .
 
-      - name: Build AMD64 Binary
+      - name: Generate Checksums
         run: |
-          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/senandung-linux-amd64 .
-
-      - name: Build ARM64 Binary (STB HG680P / Odroid C2)
-        run: |
-          CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/senandung-linux-arm64 .
-
-      - name: Build ARMv7 Binary (32-bit SBCs)
-        run: |
-          CGO_ENABLED=1 CC=arm-linux-gnueabihf-gcc GOOS=linux GOARCH=arm GOARM=7 go build -ldflags="-s -w" -o dist/senandung-linux-armv7 .
+          cd dist
+          sha256sum senandung-linux-arm64 senandung-linux-aarch64 senandung-linux-armv7l senandung-linux-x86_64 > checksums.txt
+          cat checksums.txt
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: senandung-binaries
           path: dist/*
+
+      - name: Publish GitHub Release Assets
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/senandung-linux-arm64
+            dist/senandung-linux-aarch64
+            dist/senandung-linux-armv7l
+            dist/senandung-linux-x86_64
+            dist/checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
