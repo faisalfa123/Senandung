@@ -1,0 +1,21 @@
+[app]
+id = "senandung"
+repo = "faisalfa123/Senandung"
+asset = "senandung-linux-arm64"
+language = "go"
+description = "Spotify-like PWA self-hosted dengan sinkronisasi multi-device & karaoke"
+
+[run]
+port = 8080
+priority = 50
+
+[limits]
+memory_max_mb = 96
+cpu_quota_pct = 50
+tasks_max = 64
+
+[permissions]
+paths_rw = ["/mnt/hdd1/senandung"]
+paths_ro = []
+outbound = []
+tools = ["yt-dlp", "ffmpeg"]

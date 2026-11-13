@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -510,8 +511,17 @@ func (s *Server) handleRestartService(w http.ResponseWriter, r *http.Request) {
 
 	// Jalankan restart di background goroutine agar respons HTTP selesai terkirim ke klien
 	go func() {
-		time.Sleep(700 * time.Millisecond)
-		// Coba restart via systemctl
+		time.Sleep(600 * time.Millisecond)
+		// Cek apakah berjalan di bawah Mastermind / systemd sandbox (DynamicUser=yes)
+		if os.Getenv("INVOCATION_ID") != "" || os.Getenv("STATE_DIRECTORY") != "" {
+			// Systemd Mastermind memiliki 'Restart=always' dan RestartSec=3s
+			// Keluar secara bersih (exit 0) akan membuat systemd memicu restart instan tanpa butuh akses root ke D-Bus systemctl
+			log.Printf("[Senandung] Restart via native systemd supervisor triggered (exit 0)...")
+			os.Exit(0)
+			return
+		}
+
+		// Jika standalone di DietPi/Linux biasa, coba restart via systemctl
 		cmd := exec.Command("systemctl", "restart", "senandung")
 		if err := cmd.Start(); err == nil {
 			_ = cmd.Wait()
@@ -519,7 +529,7 @@ func (s *Server) handleRestartService(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Fallback: jika dijalankan sebagai supervisor atau process manager langsung
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(400 * time.Millisecond)
 		os.Exit(0)
 	}()
 }

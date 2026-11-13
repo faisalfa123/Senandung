@@ -25,12 +25,12 @@ import (
 //go:embed web/*
 var webFS embed.FS
 
-const AppVersion = "v0.1.0-beta"
+const AppVersion = "v1.1.0"
 
 func main() {
-	port := flag.Int("port", 8989, "Port server Senandung")
+	port := flag.Int("port", 8080, "Port server Senandung")
 	dataDir := flag.String("data-dir", "./data", "Direktori penyimpanan database, cover, dan riwayat")
-	musicDir := flag.String("music-dir", "./data/music", "Direktori file audio lagu")
+	musicDir := flag.String("music-dir", "/mnt/hdd1/senandung", "Direktori file audio lagu")
 	flag.Parse()
 
 	log.Printf("=====================================================")
@@ -146,6 +146,38 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func loadEnvConfig(port *int, dataDir, musicDir *string) {
+	// 1. Baca Environment Variables (disuntikkan oleh Mastermind systemd unit atau Docker/CLI)
+	if envPort := os.Getenv("PORT"); envPort != "" {
+		if val, err := strconv.Atoi(envPort); err == nil {
+			*port = val
+			log.Printf("[Senandung] Port diatur dari environment PORT: %d", *port)
+		}
+	}
+	if stateDir := os.Getenv("STATE_DIRECTORY"); stateDir != "" {
+		// Mastermind injects StateDirectory=mastermind/senandung -> /var/lib/mastermind/senandung
+		if *dataDir == "./data" {
+			*dataDir = stateDir
+			log.Printf("[Senandung] Direktori data diarahkan ke StateDirectory Mastermind: %s", *dataDir)
+		}
+	}
+	if envData := os.Getenv("DATA_DIR"); envData != "" {
+		*dataDir = envData
+		log.Printf("[Senandung] Direktori data diatur dari environment DATA_DIR: %s", *dataDir)
+	}
+	if envMusic := os.Getenv("MUSIC_DIR"); envMusic != "" {
+		*musicDir = envMusic
+		log.Printf("[Senandung] Direktori musik diatur dari environment MUSIC_DIR: %s", *musicDir)
+	} else if *musicDir == "/mnt/hdd1/senandung" {
+		// Jika path default /mnt/hdd1/senandung tidak ada di filesystem (misal ditest di PC / dev container tanpa HDD eksternal),
+		// gunakan fallback otomatis ke ./data/music agar tidak gagal start
+		if _, err := os.Stat("/mnt/hdd1/senandung"); os.IsNotExist(err) {
+			fallbackMusic := filepath.Join(*dataDir, "music")
+			log.Printf("[Senandung] Info: /mnt/hdd1/senandung belum terpasang, memakai fallback lokal: %s", fallbackMusic)
+			*musicDir = fallbackMusic
+		}
+	}
+
+	// 2. Baca file konfigurasi /etc/senandung/senandung.conf jika ada
 	paths := []string{"/etc/senandung/senandung.conf", "./senandung.conf"}
 	for _, p := range paths {
 		data, err := os.ReadFile(p)
@@ -163,15 +195,15 @@ func loadEnvConfig(port *int, dataDir, musicDir *string) {
 			v := strings.Trim(strings.TrimSpace(parts[1]), "\"")
 			switch k {
 			case "PORT":
-				if val, err := strconv.Atoi(v); err == nil && *port == 8989 {
+				if val, err := strconv.Atoi(v); err == nil {
 					*port = val
 				}
 			case "DATA_DIR":
-				if *dataDir == "./data" && v != "" {
+				if v != "" {
 					*dataDir = v
 				}
 			case "MUSIC_DIR":
-				if *musicDir == "./data/music" && v != "" {
+				if v != "" {
 					*musicDir = v
 				}
 			}
