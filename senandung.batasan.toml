@@ -17,5 +17,5 @@ tasks_max = 64
 [permissions]
 paths_rw = ["/mnt/hdd1/senandung"]
 paths_ro = []
-outbound = []
-tools = ["yt-dlp", "ffmpeg"]
+outbound = ["youtube.com", "googlevideo.com"]
+tools = ["yt-dlp", "ffmpeg", "python3"]

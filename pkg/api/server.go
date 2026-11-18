@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -345,16 +346,67 @@ func (s *Server) handleSearchLive(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	w.Header().Set("Content-Type", "application/json")
 	if q == "" {
-		_ = json.NewEncoder(w).Encode([]searcher.SearchResult{})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"results": []searcher.SearchResult{},
+			"offline": false,
+		})
 		return
 	}
 
 	results, err := searcher.SearchYouTube(q)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("[Senandung Search] YouTube offline/unreachable (%v), fallback ke koleksi lokal...", err)
+		// Fallback pencarian ke pustaka lokal
+		allSongs, _ := s.db.GetAllSongs()
+		localResults := []searcher.SearchResult{}
+		qLower := strings.ToLower(q)
+
+		for _, song := range allSongs {
+			titleLower := strings.ToLower(song.Title)
+			artistLower := strings.ToLower(song.Artist)
+			albumLower := strings.ToLower(song.Album)
+			if strings.Contains(titleLower, qLower) || strings.Contains(artistLower, qLower) || strings.Contains(albumLower, qLower) {
+				channel := song.Artist
+				if channel == "" {
+					channel = "Koleksi Lokal STB"
+				}
+				durStr := "-"
+				if song.Duration > 0 {
+					mins := int(song.Duration) / 60
+					secs := int(song.Duration) % 60
+					durStr = fmt.Sprintf("%d:%02d", mins, secs)
+				}
+				cover := song.CoverURL
+				if cover == "" {
+					cover = "/favicon.ico"
+				}
+
+				localResults = append(localResults, searcher.SearchResult{
+					ID:        song.ID,
+					Title:     song.Title,
+					Channel:   channel,
+					Duration:  durStr,
+					Views:     "Lokal",
+					Date:      song.CreatedAt.Format("02 Jan 2006"),
+					Thumbnail: cover,
+				})
+			}
+		}
+
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"results": localResults,
+			"offline": true,
+			"source":  "local",
+			"message": "YouTube tidak dapat dijangkau (Mode Offline Mastermind). Menampilkan lagu dari penyimpanan lokal STB.",
+		})
 		return
 	}
-	_ = json.NewEncoder(w).Encode(results)
+
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"results": results,
+		"offline": false,
+		"source":  "youtube",
+	})
 }
 
 func cleanSongTitle(raw string) string {

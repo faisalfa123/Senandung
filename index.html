@@ -2792,20 +2792,39 @@
           if (!res.ok) throw new Error('HTTP ' + res.status);
           return res.json();
         })
-        .then(liveResults => {
-          if (Array.isArray(liveResults) && liveResults.length > 0) {
-            musicSearchResults = liveResults;
-            showToast(`Ditemukan ${liveResults.length} hasil live untuk "${q}"`, 'success');
+        .then(data => {
+          let items = [];
+          let isOffline = false;
+          let bannerMsg = '';
+
+          if (Array.isArray(data)) {
+            items = data;
+          } else if (data && typeof data === 'object') {
+            items = Array.isArray(data.results) ? data.results : [];
+            isOffline = Boolean(data.offline);
+            bannerMsg = data.message || '';
+          }
+
+          musicSearchResults = items;
+          if (items.length > 0) {
+            if (isOffline) {
+              showToast(bannerMsg || `Ditemukan ${items.length} lagu lokal untuk "${q}" (Mode Offline)`, 'warning');
+            } else {
+              showToast(`Ditemukan ${items.length} hasil untuk "${q}"`, 'success');
+            }
           } else {
-            musicSearchResults = [];
-            showToast(`Tidak ada hasil live ditemukan untuk "${q}".`, 'error');
+            if (isOffline) {
+              showToast(bannerMsg || `Tidak ada lagu lokal yang cocok dengan "${q}".`, 'warning');
+            } else {
+              showToast(`Tidak ada hasil ditemukan untuk "${q}".`, 'info');
+            }
           }
           renderMusicSearchCards();
         })
         .catch(err => {
           musicSearchResults = [];
           renderMusicSearchCards();
-          showToast(`Gagal menghubungi server pencari STB: ${err.message}`, 'error');
+          showToast(`Mode Offline: Tidak dapat menghubungi server pencari (${err.message})`, 'warning');
         });
     }
 

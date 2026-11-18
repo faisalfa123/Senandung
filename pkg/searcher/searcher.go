@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -49,29 +50,47 @@ func SearchYouTube(query string) ([]SearchResult, error) {
 	}
 	body := string(bodyBytes)
 
-	idx := strings.Index(body, "var ytInitialData = ")
-	if idx == -1 {
-		idx = strings.Index(body, "ytInitialData = ")
-		if idx == -1 {
-			return nil, fmt.Errorf("ytInitialData tidak ditemukan")
+	// Cari objek ytInitialData dengan pattern regex fleksibel
+	var rawJSON string
+	patterns := []string{
+		`var ytInitialData\s*=\s*({.+?});</script>`,
+		`ytInitialData\s*=\s*({.+?});</script>`,
+		`var ytInitialData\s*=\s*({.+?});`,
+		`ytInitialData\s*=\s*({.+?});`,
+	}
+	for _, p := range patterns {
+		re := regexp.MustCompile(p)
+		if match := re.FindStringSubmatch(body); len(match) > 1 {
+			rawJSON = match[1]
+			break
 		}
-		idx += len("ytInitialData = ")
-	} else {
-		idx += len("var ytInitialData = ")
 	}
 
-	endIdx := strings.Index(body[idx:], ";</script>")
-	if endIdx == -1 {
-		endIdx = strings.Index(body[idx:], ";")
-		if endIdx == -1 {
-			return nil, fmt.Errorf("penutup script ytInitialData tidak ditemukan")
+	if rawJSON == "" {
+		idx := strings.Index(body, "var ytInitialData = ")
+		if idx == -1 {
+			idx = strings.Index(body, "ytInitialData = ")
+			if idx == -1 {
+				return nil, fmt.Errorf("ytInitialData tidak ditemukan dalam respons YouTube")
+			}
+			idx += len("ytInitialData = ")
+		} else {
+			idx += len("var ytInitialData = ")
 		}
+
+		endIdx := strings.Index(body[idx:], ";</script>")
+		if endIdx == -1 {
+			endIdx = strings.Index(body[idx:], ";")
+			if endIdx == -1 {
+				return nil, fmt.Errorf("penutup script ytInitialData tidak ditemukan")
+			}
+		}
+		rawJSON = body[idx : idx+endIdx]
 	}
-	rawJSON := body[idx : idx+endIdx]
 
 	var root map[string]interface{}
 	if err := json.Unmarshal([]byte(rawJSON), &root); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("gagal parse JSON ytInitialData: %w", err)
 	}
 
 	var results []SearchResult
