@@ -25,7 +25,7 @@ import (
 //go:embed web/*
 var webFS embed.FS
 
-const AppVersion = "v1.1.0"
+const AppVersion = "v2.1.0"
 
 func main() {
 	port := flag.Int("port", 8080, "Port server Senandung")
