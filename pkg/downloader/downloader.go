@@ -34,15 +34,22 @@ func NewQueue(database *db.DB, musicDir, coverDir string) *Queue {
 	_ = os.MkdirAll(coverDir, 0755)
 
 	ytDlp := "yt-dlp"
-	if p, err := exec.LookPath("yt-dlp"); err == nil {
-		ytDlp = p
-	} else if _, err := os.Stat("/usr/local/bin/yt-dlp"); err == nil {
-		ytDlp = "/usr/local/bin/yt-dlp"
+	candidates := []string{"/usr/bin/yt-dlp", "/usr/local/bin/yt-dlp", "yt-dlp"}
+	for _, c := range candidates {
+		if p, err := exec.LookPath(c); err == nil {
+			ytDlp = p
+			break
+		} else if _, err := os.Stat(c); err == nil {
+			ytDlp = c
+			break
+		}
 	}
 
 	ffmpeg := "ffmpeg"
 	if p, err := exec.LookPath("ffmpeg"); err == nil {
 		ffmpeg = p
+	} else if _, err := os.Stat("/usr/bin/ffmpeg"); err == nil {
+		ffmpeg = "/usr/bin/ffmpeg"
 	}
 
 	q := &Queue{
@@ -147,9 +154,9 @@ func (q *Queue) processJob(job *models.DownloadJob) {
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, q.ytDlpBinary, args...)
-	if _, err := exec.LookPath("nice"); err == nil {
+	if nicePath, err := exec.LookPath("nice"); err == nil {
 		niceArgs := append([]string{"-n", "19", q.ytDlpBinary}, args...)
-		cmd = exec.CommandContext(ctx, "nice", niceArgs...)
+		cmd = exec.CommandContext(ctx, nicePath, niceArgs...)
 	}
 
 	stdout, err := cmd.StdoutPipe()

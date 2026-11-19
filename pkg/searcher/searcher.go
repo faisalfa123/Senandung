@@ -1,6 +1,7 @@
 package searcher
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,20 +23,94 @@ type SearchResult struct {
 	Thumbnail string `json:"thumbnail"`
 }
 
-// SearchYouTube mencari langsung data live dari YouTube tanpa API Key
+// SearchYouTube mencari langsung data live dari YouTube menggunakan multi-tier strategy
 func SearchYouTube(query string) ([]SearchResult, error) {
 	cleanQuery := strings.TrimSpace(query)
 	if cleanQuery == "" {
 		return []SearchResult{}, nil
 	}
 
-	searchURL := "https://www.youtube.com/results?search_query=" + url.QueryEscape(cleanQuery)
+	// Tier 1: YouTube Innertube JSON API (format terstruktur resmi tanpa scraping HTML)
+	results, err := searchViaInnertube(cleanQuery)
+	if err == nil && len(results) > 0 {
+		return results, nil
+	}
+
+	// Tier 2: Fallback ke HTML scraping jika Innertube API terkendala
+	results, htmlErr := searchViaHTMLScrape(cleanQuery)
+	if htmlErr == nil && len(results) > 0 {
+		return results, nil
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("innertube error: %v, html error: %v", err, htmlErr)
+	}
+	return nil, htmlErr
+}
+
+// searchViaInnertube memanggil endpoint resmi internal YouTube untuk hasil cepat dan stabil
+func searchViaInnertube(query string) ([]SearchResult, error) {
+	apiURL := "https://www.youtube.com/youtubei/v1/search?prettyPrint=false"
+
+	payload := map[string]interface{}{
+		"context": map[string]interface{}{
+			"client": map[string]interface{}{
+				"clientName":    "WEB",
+				"clientVersion": "2.20240313.01.00",
+				"hl":            "id",
+				"gl":            "ID",
+			},
+		},
+		"query": query,
+	}
+
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{Timeout: 6 * time.Second}
+	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+	req.Header.Set("Accept-Language", "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("innertube status code: %d", resp.StatusCode)
+	}
+
+	resBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var root map[string]interface{}
+	if err := json.Unmarshal(resBytes, &root); err != nil {
+		return nil, err
+	}
+
+	return parseYouTubeContents(root)
+}
+
+// searchViaHTMLScrape fallback mengambil data via HTML pencarian YouTube
+func searchViaHTMLScrape(query string) ([]SearchResult, error) {
+	searchURL := "https://www.youtube.com/results?search_query=" + url.QueryEscape(query)
 	client := &http.Client{Timeout: 8 * time.Second}
 	req, err := http.NewRequest("GET", searchURL, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
 	req.Header.Set("Accept-Language", "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7")
 
 	resp, err := client.Do(req)
@@ -93,6 +168,10 @@ func SearchYouTube(query string) ([]SearchResult, error) {
 		return nil, fmt.Errorf("gagal parse JSON ytInitialData: %w", err)
 	}
 
+	return parseYouTubeContents(root)
+}
+
+func parseYouTubeContents(root map[string]interface{}) ([]SearchResult, error) {
 	var results []SearchResult
 	contents, ok := root["contents"].(map[string]interface{})
 	if !ok {

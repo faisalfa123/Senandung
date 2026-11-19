@@ -162,6 +162,39 @@
       user-select: text !important;
       touch-action: manipulation;
     }
+
+    /* Client Mode (Desktop vs Mobile) Explicit Overrides */
+    body.mode-force-desktop aside {
+      display: flex !important;
+    }
+    body.mode-force-desktop .app-bottom-nav {
+      display: none !important;
+    }
+    body.mode-force-desktop footer {
+      display: flex !important;
+    }
+    body.mode-force-desktop .app-mini-player {
+      display: none !important;
+    }
+    body.mode-force-desktop .app-main-content {
+      padding-bottom: 110px !important;
+    }
+
+    body.mode-force-mobile aside {
+      display: none !important;
+    }
+    body.mode-force-mobile .app-bottom-nav {
+      display: flex !important;
+    }
+    body.mode-force-mobile footer {
+      display: none !important;
+    }
+    body.mode-force-mobile .app-mini-player {
+      display: flex !important;
+    }
+    body.mode-force-mobile .app-main-content {
+      padding-bottom: calc(130px + max(var(--sab), 12px)) !important;
+    }
   </style>
 </head>
 <body id="appBody" class="bg-[#121212] text-white font-sans antialiased select-none h-screen flex flex-col overflow-hidden relative">
@@ -222,32 +255,49 @@
       </div>
     </div>
 
-    <!-- Header Right Buttons: Unduh Musik, Mode TV, Restart, & Status Mode -->
-    <div class="flex items-center gap-2 sm:gap-2.5">
+    <!-- Header Right Buttons: Client Mode, Unduh Musik, Mode TV, Restart, & Status Mode -->
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      <!-- Client Mode Toggle Button (Desktop vs Mobile, pure SVG outline icons only) -->
+      <button onclick="toggleClientModeManual()" id="btnClientModeToggle" class="min-h-[44px] min-w-[44px] bg-[#181818] hover:bg-[#252525] border border-white/10 text-white/90 hover:text-white px-2.5 py-1.5 rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 transition hover:border-[#1db954]/50 shadow-sm cursor-pointer" title="Ganti Tampilan Desktop / Ponsel">
+        <span id="clientModeIconMonitor" class="flex items-center justify-center">
+          <svg class="w-4 h-4 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="20" height="14" x="2" y="3" rx="2"/>
+            <line x1="8" x2="16" y1="21" y2="21"/>
+            <line x1="12" x2="12" y1="17" y2="21"/>
+          </svg>
+        </span>
+        <span id="clientModeIconPhone" class="hidden items-center justify-center">
+          <svg class="w-4 h-4 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+            <path d="M12 18h.01"/>
+          </svg>
+        </span>
+      </button>
+
       <!-- Android TV Leanback Mode Toggle Button -->
-      <button onclick="toggleTvLeanbackMode()" id="btnTvModeToggle" class="bg-[#181818] hover:bg-[#252525] border border-white/10 text-white/90 hover:text-white px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition hover:border-[#1db954]/50 shadow-sm cursor-pointer" title="Mode Layar Lebar & Android TV (Fokus Remote D-Pad)">
-        <svg class="w-3.5 h-3.5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
-        <span class="hidden md:inline" id="txtTvModeBtn">Mode TV</span>
+      <button onclick="toggleTvLeanbackMode()" id="btnTvModeToggle" class="min-h-[44px] min-w-[44px] bg-[#181818] hover:bg-[#252525] border border-white/10 text-white/90 hover:text-white px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 transition hover:border-[#1db954]/50 shadow-sm cursor-pointer" title="Mode Layar Lebar & Android TV (Fokus Remote D-Pad)">
+        <svg class="w-4 h-4 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
+        <span class="hidden lg:inline" id="txtTvModeBtn">Mode TV</span>
       </button>
 
       <!-- Restart App & Service Button -->
-      <button onclick="openRestartModal()" class="bg-[#181818] hover:bg-[#252525] border border-white/10 text-white/90 hover:text-white px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition hover:border-amber-400/50 shadow-sm cursor-pointer" title="Restart Aplikasi / Layanan Senandung STB">
-        <svg class="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-        <span class="hidden md:inline">Restart</span>
+      <button onclick="openRestartModal()" class="min-h-[44px] min-w-[44px] bg-[#181818] hover:bg-[#252525] border border-white/10 text-white/90 hover:text-white px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 transition hover:border-amber-400/50 shadow-sm cursor-pointer" title="Restart Aplikasi / Layanan Senandung STB">
+        <svg class="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        <span class="hidden lg:inline">Restart</span>
       </button>
 
       <!-- One-Click Open Unduh Musik Tab -->
-      <button onclick="switchTab('ytsearch')" class="bg-[#181818] hover:bg-[#252525] border border-white/10 text-white/90 hover:text-white px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 transition hover:border-[#1db954]/50 shadow-sm">
-        <svg class="w-3.5 h-3.5 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-        <span class="hidden xs:inline">Unduh Musik</span>
+      <button onclick="switchTab('ytsearch')" class="min-h-[44px] bg-[#181818] hover:bg-[#252525] border border-white/10 text-white/90 hover:text-white px-3 py-1.5 rounded-full text-xs font-medium flex items-center justify-center gap-2 transition hover:border-[#1db954]/50 shadow-sm cursor-pointer">
+        <svg class="w-4 h-4 text-[#1db954]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        <span class="hidden sm:inline">Unduh Musik</span>
       </button>
 
       <!-- Active Mode Pill (Click to switch Party / Solo) -->
-      <button onclick="togglePlaybackMode()" id="headerModePill" class="bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 px-3 py-1.5 rounded-full text-xs text-white/90 font-medium flex items-center gap-2 hover:scale-[1.02] transition cursor-pointer shadow-sm">
+      <button onclick="togglePlaybackMode()" id="headerModePill" class="min-h-[44px] bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 px-3 py-1.5 rounded-full text-xs text-white/90 font-medium flex items-center justify-center gap-2 hover:scale-[1.02] transition cursor-pointer shadow-sm">
         <span id="headerModeDot" class="w-2 h-2 rounded-full bg-[#1db954] animate-pulse"></span>
         <span id="txtHeaderMode" class="flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
-          <span>Solo</span>
+          <svg class="w-4 h-4 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+          <span class="hidden sm:inline">Solo</span>
         </span>
       </button>
     </div>
@@ -382,12 +432,12 @@
               <span>Search</span>
             </button>
 
-            <!-- Search Input Container with Pill style -->
+            <!-- Search Input Container with Spotify Clean Pill style -->
             <div class="relative flex-1">
-              <div class="flex items-center bg-[#242424] border border-[#333] focus-within:border-[#3ea6ff] rounded-full px-3 py-1.5 transition shadow-inner cursor-text" onclick="document.getElementById('musicSearchInput').focus()">
-                <!-- Red YouTube/Music Icon -->
-                <div class="w-6 h-6 rounded-md bg-[#ff0000] flex items-center justify-center text-white shrink-0 mr-2 shadow-sm pointer-events-none">
-                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+              <div class="flex items-center min-h-[44px] bg-[#222222] hover:bg-[#282828] border border-[#333333] focus-within:border-[#1db954] focus-within:ring-1 focus-within:ring-[#1db954] rounded-full px-3.5 py-1.5 transition shadow-sm cursor-text" onclick="document.getElementById('musicSearchInput').focus()">
+                <!-- YouTube Music Red Icon -->
+                <div class="w-7 h-7 rounded-full bg-[#ff0000] flex items-center justify-center text-white shrink-0 mr-2.5 shadow-sm pointer-events-none">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M8 5v14l11-7z"/>
                   </svg>
                 </div>
@@ -404,16 +454,16 @@
                        onblur="hideSearchHistoryDropdownWithDelay()"
                        oninput="handleSearchInputChange(this.value)"
                        onkeydown="if(event.key==='Enter') executeMusicSearch()" 
-                       placeholder="Cari lagu bebas di YouTube (misal: 'Dewa 19', 'Before You Go')..." 
+                       placeholder="Cari lagu bebas di YouTube (misal: 'Dewa 19', 'Nadhif Basalamah')..." 
                        class="w-full bg-transparent text-sm text-white placeholder-[#888] focus:outline-none select-text">
                 
                 <!-- Clear Button ✕ -->
-                <button type="button" onclick="event.stopPropagation(); clearMusicSearchInput()" id="btnMusicSearchClear" class="text-[#888] hover:text-white px-1.5 text-xs transition" style="visibility: hidden;">✕</button>
+                <button type="button" onclick="event.stopPropagation(); clearMusicSearchInput()" id="btnMusicSearchClear" class="min-w-[32px] min-h-[32px] flex items-center justify-center text-[#888] hover:text-white px-1 text-xs transition cursor-pointer" style="visibility: hidden;" title="Hapus teks">✕</button>
 
-                <!-- Search Action Blue Pill -->
-                <button type="button" onclick="event.stopPropagation(); executeMusicSearch()" class="bg-[#263850] hover:bg-[#3ea6ff] hover:text-black text-[#3ea6ff] p-1.5 rounded-full ml-1 transition shrink-0" title="Cari">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                <!-- Search Action Button -->
+                <button type="button" onclick="event.stopPropagation(); executeMusicSearch()" class="min-w-[38px] min-h-[38px] bg-[#1db954] hover:bg-[#1ed760] text-black p-2 rounded-full ml-1.5 transition shrink-0 flex items-center justify-center shadow-md active:scale-95 cursor-pointer" title="Cari Musik">
+                  <svg class="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                   </svg>
                 </button>
               </div>
@@ -422,7 +472,7 @@
               <div id="searchHistoryDropdown" class="absolute left-0 right-0 top-full mt-1.5 bg-[#1f1f1f] border border-[#333] rounded-2xl shadow-2xl p-2 z-40 hidden space-y-1">
                 <div class="flex items-center justify-between px-3 py-1 text-[11px] font-bold text-[#888] uppercase tracking-wider">
                   <div class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Riwayat Pencarian</span></div>
-                  <button onclick="clearAllSearchHistory()" class="text-[10px] text-[#3ea6ff] hover:underline normal-case">Hapus Semua</button>
+                  <button onclick="clearAllSearchHistory()" class="text-[10px] text-[#1db954] hover:underline normal-case">Hapus Semua</button>
                 </div>
                 <div id="searchHistoryList" class="space-y-0.5 max-h-56 overflow-y-auto custom-scroll">
                   <!-- History items populated via JS -->
@@ -432,19 +482,19 @@
 
             <!-- Global Filter Dropdown -->
             <div class="relative shrink-0">
-              <button onclick="toggleGlobalFilterMenu()" class="flex items-center gap-1 bg-[#1e1e1e] hover:bg-[#282828] border border-[#333] px-3 py-2 rounded-full text-xs font-medium text-white transition">
+              <button onclick="toggleGlobalFilterMenu()" class="min-h-[44px] flex items-center gap-1.5 bg-[#1e1e1e] hover:bg-[#282828] border border-[#333] px-3.5 py-2 rounded-full text-xs font-semibold text-white transition cursor-pointer">
                 <span id="txtGlobalFilter">Global</span>
                 <span class="text-[10px] text-[#888]">⌄</span>
               </button>
               <div id="globalFilterMenu" class="absolute right-0 top-full mt-1 bg-[#1e1e1e] border border-[#333] rounded-xl shadow-xl p-1 z-30 hidden min-w-[130px] text-xs">
-                <button onclick="setGlobalFilter('Global')" class="w-full text-left px-3 py-1.5 hover:bg-[#2a2a2a] rounded-lg text-white">Global (Semua)</button>
-                <button onclick="setGlobalFilter('Videos')" class="w-full text-left px-3 py-1.5 hover:bg-[#2a2a2a] rounded-lg text-[#aaa] hover:text-white">Video & Musik</button>
-                <button onclick="setGlobalFilter('Playlists')" class="w-full text-left px-3 py-1.5 hover:bg-[#2a2a2a] rounded-lg text-[#aaa] hover:text-white">Playlists</button>
+                <button onclick="setGlobalFilter('Global')" class="w-full text-left px-3 py-2 hover:bg-[#2a2a2a] rounded-lg text-white">Global (Semua)</button>
+                <button onclick="setGlobalFilter('Videos')" class="w-full text-left px-3 py-2 hover:bg-[#2a2a2a] rounded-lg text-[#aaa] hover:text-white">Video & Musik</button>
+                <button onclick="setGlobalFilter('Playlists')" class="w-full text-left px-3 py-2 hover:bg-[#2a2a2a] rounded-lg text-[#aaa] hover:text-white">Playlists</button>
               </div>
             </div>
 
             <!-- Queue Drawer Toggle Button -->
-            <button onclick="openDownloadQueueModal()" class="relative bg-[#1e1e1e] hover:bg-[#282828] border border-[#333] p-2 rounded-full text-white transition shrink-0" title="Buka Antrean Download">
+            <button onclick="openDownloadQueueModal()" class="min-h-[44px] min-w-[44px] relative bg-[#1e1e1e] hover:bg-[#282828] border border-[#333] p-2.5 rounded-full text-white transition shrink-0 flex items-center justify-center cursor-pointer" title="Buka Antrean Download">
               <svg class="w-5 h-5 text-[#1db954]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
               </svg>
@@ -2689,7 +2739,7 @@
         const activeJob = downloadQueueJobs.find(j => j.trackId === item.id && (j.status === 'downloading' || j.status === 'pending'));
 
         const card = document.createElement('div');
-        card.className = "bg-[#181818] hover:bg-[#202020] border border-[#262626] rounded-2xl p-2.5 sm:p-3 flex items-center gap-3.5 transition group shadow-sm";
+        card.className = "bg-[#181818] hover:bg-[#222222] border border-white/[0.06] hover:border-white/20 rounded-2xl p-3 flex items-center gap-3.5 transition group shadow-sm";
         
         // Thumbnail riil YouTube atau fallback
         const thumbUrl = item.thumbnail || `https://i.ytimg.com/vi/${item.id}/mqdefault.jpg`;
@@ -2699,27 +2749,27 @@
         if (activeJob) {
           rightButtonsHtml = `
             <button onclick="openDownloadQueueModal()" 
-                    class="h-8 px-3 rounded-full bg-[#3ea6ff]/15 hover:bg-[#3ea6ff]/25 border border-[#3ea6ff]/50 flex items-center gap-1.5 text-[#3ea6ff] font-bold text-xs shadow-sm transition animate-pulse"
+                    class="min-h-[44px] px-3.5 rounded-full bg-[#1db954]/15 hover:bg-[#1db954]/25 border border-[#1db954]/50 flex items-center justify-center gap-2 text-[#1db954] font-bold text-xs shadow-sm transition animate-pulse cursor-pointer"
                     title="Sedang diunduh ke STB. Klik untuk melihat progress antrean">
-              <span>⏳</span>
-              <span class="text-[10px] font-semibold">Mengunduh ${activeJob.percent || 0}%</span>
+              <span class="w-2 h-2 rounded-full bg-[#1db954] animate-ping"></span>
+              <span class="text-xs font-semibold">Mengunduh ${activeJob.percent || 0}%</span>
             </button>
           `;
         } else if (isDownloaded) {
           rightButtonsHtml = `
             <button onclick="handleTrackAction('${item.id}', '${safeTitle}', true)" 
-                    class="h-8 px-3 rounded-full bg-[#1db954] hover:bg-[#1ed760] flex items-center gap-1.5 text-black font-extrabold text-xs shadow-md transition hover:scale-105 active:scale-95" 
+                    class="min-h-[44px] px-4 rounded-full bg-[#1db954] hover:bg-[#1ed760] flex items-center justify-center gap-2 text-black font-extrabold text-xs shadow-md transition hover:scale-105 active:scale-95 cursor-pointer" 
                     title="Putar lagu sekarang dari penyimpanan STB">
-              <span>▶</span>
-              <span class="text-[10px]">Putar Sekarang</span>
+              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+              <span>Putar</span>
             </button>
-            <span class="h-8 px-2.5 rounded-full bg-[#1db954]/15 border border-[#1db954]/40 flex items-center gap-1 text-[#1db954] font-bold text-[10px]" title="Tersimpan di Server STB">
-              <span>✓</span> <span class="hidden sm:inline">Tersimpan</span>
+            <span class="hidden sm:inline-flex min-h-[44px] px-3 rounded-full bg-[#1db954]/15 border border-[#1db954]/40 items-center gap-1.5 text-[#1db954] font-bold text-xs" title="Tersimpan di Server STB">
+              <span>✓</span> <span>Tersimpan</span>
             </span>
             <button onclick="openFormatPickerForTrack('${item.id}', '${safeTitle}')"
-                    class="w-8 h-8 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] flex items-center justify-center text-[#aaa] hover:text-white transition shadow text-xs"
+                    class="min-h-[44px] min-w-[44px] rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] flex items-center justify-center text-[#aaa] hover:text-white transition shadow cursor-pointer"
                     title="Unduh ulang dengan format audio lain">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
               </svg>
             </button>
@@ -2727,19 +2777,26 @@
         } else {
           rightButtonsHtml = `
             <button onclick="handleTrackAction('${item.id}', '${safeTitle}', false)" 
-                    class="w-8 h-8 rounded-full bg-[#242424] hover:bg-[#333] border border-[#383838] hover:border-[#1db954] flex items-center justify-center text-white/90 hover:text-white transition shadow hover:scale-105 active:scale-95" 
+                    class="min-h-[44px] min-w-[44px] px-3 sm:px-4 rounded-full bg-[#242424] hover:bg-[#1db954] hover:text-black border border-[#383838] hover:border-[#1db954] flex items-center justify-center gap-2 text-white/90 font-bold text-xs transition shadow hover:scale-105 active:scale-95 cursor-pointer" 
                     title="Unduh Musik ke Server STB">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+              <svg class="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24" stroke-width="2.2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
               </svg>
+              <span class="hidden xs:inline">Unduh</span>
             </button>
           `;
         }
 
         card.innerHTML = `
           <!-- Thumbnail Asli 16:9 dengan durasi -->
-          <div class="relative w-28 sm:w-36 aspect-video rounded-xl overflow-hidden shrink-0 shadow bg-[#111] flex items-center justify-center select-none">
-            <img src="${thumbUrl}" alt="Thumbnail" class="w-full h-full object-cover group-hover:scale-105 transition" onerror="this.onerror=null; this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 9%22><rect width=%2216%22 height=%229%22 fill=%22%23222%22/></svg>';">
+          <div class="relative w-28 sm:w-36 aspect-video rounded-xl overflow-hidden shrink-0 shadow bg-[#111] flex items-center justify-center select-none group/thumb cursor-pointer" onclick="handleTrackAction('${item.id}', '${safeTitle}', ${isDownloaded})">
+            <img src="${thumbUrl}" alt="Thumbnail" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.onerror=null; this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 9%22><rect width=%2216%22 height=%229%22 fill=%22%23222%22/></svg>';">
+            <!-- Play Overlay on Hover -->
+            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+              <div class="w-8 h-8 rounded-full bg-[#1db954] text-black flex items-center justify-center shadow-lg">
+                <svg class="w-4 h-4 fill-current ml-0.5" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+              </div>
+            </div>
             <!-- Duration Pill in bottom-right corner -->
             <span class="absolute bottom-1 right-1 bg-black/85 text-white font-semibold text-[10px] px-1.5 py-0.5 rounded-md tracking-tight">
               ${escapeHtml(item.duration || '-')}
@@ -2748,10 +2805,10 @@
 
           <!-- Middle: Metadata 3 lines -->
           <div class="flex-1 min-w-0 pr-1">
-            <h4 class="font-bold text-xs sm:text-sm text-white line-clamp-2 leading-snug group-hover:text-white transition">
+            <h4 class="font-bold text-xs sm:text-sm text-white line-clamp-2 leading-snug group-hover:text-[#1db954] transition cursor-pointer" onclick="handleTrackAction('${item.id}', '${safeTitle}', ${isDownloaded})">
               ${escapeHtml(item.title)}
             </h4>
-            <p class="text-[11px] sm:text-xs text-[#8e8e8e] font-medium truncate mt-1">
+            <p class="text-[11px] sm:text-xs text-[#a0a0a0] font-medium truncate mt-1">
               ${escapeHtml(item.channel || 'YouTube Audio')}
             </p>
             <p class="text-[10px] sm:text-[11px] text-[#717171] truncate mt-0.5">
@@ -4384,7 +4441,7 @@
       // - Hard seek: hanya jika selisih > 0.4 detik (misal baru pertama kali join).
       // - Micro pitch-preserving adjustment:
       //   * Selisih 80ms - 400ms: penyesuaian 3.5% (1.035x / 0.965x)
-      //   * Selisih 15ms - 80ms: penyesuaian halus 1.2% (1.012x / 0.988x) — tidak terdengar beda nada oleh telinga
+      //   * Selisih 15ms - 80ms: penyesuaian halus 1.2% (1.012x / 0.988x), tidak terdengar beda nada oleh telinga
       //   * Selisih < 15ms: kecepatan normal 1.0x (Precision Lock)
       const drift = realAudio.currentTime - targetPos;
       const absDrift = Math.abs(drift);
@@ -6047,6 +6104,87 @@
       return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
     }
 
+    // ================= CLIENT MODE AUTO-DETECTION & TOGGLE =================
+    // Auto-detect desktop vs mobile client based on viewport width & touch capability
+    let currentClientMode = 'auto'; // 'auto', 'desktop', 'mobile'
+
+    function detectClientEnvironment() {
+      const isMobileQuery = window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+      const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+      return (isMobileQuery || hasTouch) ? 'mobile' : 'desktop';
+    }
+
+    function applyClientMode(mode, savePref = false) {
+      if (savePref) {
+        try {
+          localStorage.setItem('senandung_client_mode', mode);
+        } catch(e) {}
+      }
+      currentClientMode = mode;
+
+      const effectiveMode = (mode === 'auto') ? detectClientEnvironment() : mode;
+      const body = document.getElementById('appBody') || document.body;
+      const iconMonitor = document.getElementById('clientModeIconMonitor');
+      const iconPhone = document.getElementById('clientModeIconPhone');
+      const toggleBtn = document.getElementById('btnClientModeToggle');
+
+      if (effectiveMode === 'desktop') {
+        body.classList.remove('mode-force-mobile');
+        body.classList.add('mode-force-desktop');
+        if (iconMonitor && iconPhone) {
+          iconMonitor.classList.remove('hidden');
+          iconMonitor.classList.add('flex');
+          iconPhone.classList.remove('flex');
+          iconPhone.classList.add('hidden');
+        }
+        if (toggleBtn) {
+          toggleBtn.title = "Mode Desktop Aktif (Klik untuk beralih ke Mode Ponsel)";
+        }
+      } else {
+        body.classList.remove('mode-force-desktop');
+        body.classList.add('mode-force-mobile');
+        if (iconMonitor && iconPhone) {
+          iconMonitor.classList.remove('flex');
+          iconMonitor.classList.add('hidden');
+          iconPhone.classList.remove('hidden');
+          iconPhone.classList.add('flex');
+        }
+        if (toggleBtn) {
+          toggleBtn.title = "Mode Ponsel Aktif (Klik untuk beralih ke Mode Desktop)";
+        }
+      }
+    }
+
+    function toggleClientModeManual() {
+      const activeEffective = document.body.classList.contains('mode-force-desktop') ? 'desktop' : 'mobile';
+      const nextMode = (activeEffective === 'desktop') ? 'mobile' : 'desktop';
+      applyClientMode(nextMode, true);
+      showToast(nextMode === 'desktop' ? 'Beralih ke Tampilan Desktop' : 'Beralih ke Tampilan Ponsel', 'success');
+    }
+
+    function initClientMode() {
+      let saved = null;
+      try {
+        saved = localStorage.getItem('senandung_client_mode');
+      } catch(e) {}
+      if (saved === 'desktop' || saved === 'mobile') {
+        applyClientMode(saved, false);
+      } else {
+        applyClientMode('auto', false);
+      }
+
+      // Responsive listener if on auto
+      window.addEventListener('resize', () => {
+        try {
+          const pref = localStorage.getItem('senandung_client_mode');
+          if (!pref || pref === 'auto') {
+            applyClientMode('auto', false);
+          }
+        } catch(e) {}
+      });
+    }
+
+    initClientMode();
     init();
     fetchSysInfo();
     setInterval(() => {
