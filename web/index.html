@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f0f0f">
+  <meta name="description" content="Senandung v3.0.1 Nightly Dev: Self-Hosted Live Room Music Server dengan Sinkronisasi Audio Multi-Perangkat">
+  <title>Senandung: Live Room Audio Sync</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="desktop">
+  <header class="top-header" role="banner">
+    <div class="brand-group">
+      <div class="brand-logo" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="28" height="28" rx="6" fill="#ff0000"/>
+          <path d="M7 17V11M11.5 20V8M16.5 18V10M21 15V13" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1 class="brand-title">SENANDUNG</h1>
+        <span class="brand-version" id="server-version-badge">v3.0.1-nightly-dev</span>
+      </div>
+    </div>
+
+    <nav class="header-controls" aria-label="Kontrol Ruangan dan Tampilan">
+      <div class="room-selector-bar">
+        <label for="room-input" class="visually-hidden">Nama Live Room</label>
+        <span class="live-dot" id="ws-status-dot" title="Status Koneksi Live Room"></span>
+        <input
+          type="text"
+          id="room-input"
+          class="room-input"
+          value="Lobby"
+          maxlength="32"
+          aria-label="Nama Live Room aktif"
+          placeholder="Nama Room..."
+        >
+        <button type="button" id="btn-join-room" class="btn-secondary" title="Pindah atau Buat Live Room">
+          Gabung Room
+        </button>
+      </div>
+
+      <div class="action-utilities">
+        <button
+          type="button"
+          id="btn-view-toggle"
+          class="btn-icon"
+          aria-label="Alihkan Mode Tampilan Desktop atau Ponsel"
+          title="Alihkan Mode Tampilan (Desktop / Mobile)"
+        >
+          <svg id="icon-view-desktop" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="2" y="3" width="20" height="14" rx="2"/>
+            <path d="M8 21h8M12 17v4"/>
+          </svg>
+          <svg id="icon-view-mobile" class="hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="6" y="2" width="12" height="20" rx="2"/>
+            <circle cx="12" cy="18" r="1"/>
+          </svg>
+          <span class="utility-label" id="view-mode-label">Desktop</span>
+        </button>
+
+        <button
+          type="button"
+          id="btn-device-profile"
+          class="btn-device"
+          aria-label="Ubah Nama Perangkat"
+          title="Klik untuk mengubah nama perangkat ini"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5Zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5Z"/>
+          </svg>
+          <span id="device-name-display">Memuat...</span>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main class="workspace-grid" id="main-content">
+    <!-- Left / Primary Stage: Active Live Room & Synchronized Playlist -->
+    <section class="live-room-stage" aria-labelledby="room-heading">
+      <div class="stage-banner">
+        <div class="stage-now-playing">
+          <div class="artwork-frame">
+            <img
+              id="now-playing-artwork"
+              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Crect width='160' height='160' fill='%23181818'/%3E%3Ccircle cx='80' cy='80' r='34' stroke='%23ff0000' stroke-width='4' fill='none'/%3E%3Ccircle cx='80' cy='80' r='10' fill='%23f1f1f1'/%3E%3C/svg%3E"
+              alt="Sampul album lagu yang sedang diputar"
+              width="120"
+              height="120"
+              fetchpriority="high"
+            >
+          </div>
+          <div class="now-playing-meta">
+            <div class="room-pill-row">
+              <span class="room-tag" id="room-heading">LIVE ROOM: <strong id="active-room-label">Lobby</strong></span>
+              <span class="sync-offset-tag" id="ntp-offset-badge" title="Selisih waktu NTP terhadap server">NTP: 0ms</span>
+            </div>
+            <h2 class="track-main-title" id="now-playing-title">Belum Ada Lagu Diputar</h2>
+            <p class="track-main-artist" id="now-playing-artist">Pilih atau unduh lagu dari pencarian YouTube untuk memulai Live Room</p>
+            <div class="storage-indicator" id="storage-status-bar">
+              Penyimpanan: Memeriksa jalur disk...
+            </div>
+          </div>
+        </div>
+
+        <div class="connected-listeners-box" aria-label="Perangkat yang terhubung di room ini">
+          <div class="listeners-header">
+            <span>Perangkat Tersinkronisasi</span>
+            <span class="listener-count" id="listener-count-badge">1</span>
+          </div>
+          <ul class="listener-chips" id="connected-users-list">
+            <li class="listener-chip">Menghubungkan ke server...</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Synchronized Room Playlist Section -->
+      <div class="playlist-container">
+        <div class="section-header-row">
+          <div>
+            <h3 class="section-title">Antrean Playlist Room</h3>
+            <p class="section-subtitle">Urutan lagu dikontrol penuh oleh server untuk seluruh perangkat di room ini</p>
+          </div>
+          <span class="queue-count-label" id="playlist-count-label">0 lagu</span>
+        </div>
+
+        <!-- UI State: Error Banner -->
+        <div id="room-error-banner" class="state-banner state-error hidden" role="alert">
+          <span id="room-error-text">Terjadi gangguan koneksi.</span>
+          <button type="button" id="btn-retry-ws" class="btn-inline">Hubungkan Ulang</button>
+        </div>
+
+        <!-- UI State: Download Queue Active Banner -->
+        <div id="download-status-banner" class="state-banner state-loading hidden" role="status" aria-live="polite">
+          <span class="spinner-dot" aria-hidden="true"></span>
+          <span id="download-status-text">Mengunduh lagu ke penyimpanan server...</span>
+        </div>
+
+        <!-- UI State: Empty Playlist -->
+        <div id="playlist-empty-state" class="empty-box">
+          <p class="empty-title">Playlist Live Room Masih Kosong</p>
+          <p class="empty-desc">Cari lagu di panel pencarian YouTube atau tambahkan dari koleksi tersimpan di server.</p>
+        </div>
+
+        <ol class="playlist-list" id="room-playlist-list" aria-label="Daftar putar Live Room"></ol>
+      </div>
+    </section>
+
+    <!-- Right / Secondary Stage: YouTube Search & Server Disk Library -->
+    <aside class="discovery-sidebar" aria-labelledby="discovery-heading">
+      <div class="search-card">
+        <h2 id="discovery-heading" class="section-title">Cari &amp; Unduh Lagu YouTube</h2>
+        <p class="section-subtitle">Diunduh via antrean latar belakang (MP3 128K, nice 19) agar aman untuk CPU STB</p>
+
+        <form id="search-form" class="search-form" role="search">
+          <label for="search-input" class="visually-hidden">Kata kunci judul lagu atau penyanyi</label>
+          <input
+            type="search"
+            id="search-input"
+            class="search-input"
+            placeholder="Ketik judul lagu atau nama artis..."
+            autocomplete="off"
+            required
+          >
+          <button type="submit" id="btn-search-submit" class="btn-primary">
+            Cari Lagu
+          </button>
+        </form>
+
+        <!-- Search UI States: Empty, Loading, Error, Results -->
+        <div id="search-loading-state" class="state-banner state-loading hidden" role="status">
+          <span class="spinner-dot" aria-hidden="true"></span>
+          <span>Mencari di YouTube...</span>
+        </div>
+
+        <div id="search-error-state" class="state-banner state-error hidden" role="alert">
+          <span id="search-error-text">Gagal memuat hasil pencarian.</span>
+        </div>
+
+        <div id="search-empty-state" class="empty-box compact">
+          <p class="empty-desc">Masukkan kata kunci di atas untuk mencari lagu dari YouTube dan mengunduhnya ke Live Room.</p>
+        </div>
+
+        <ul class="search-results-list" id="search-results-list" aria-label="Hasil pencarian YouTube"></ul>
+      </div>
+
+      <div class="library-card">
+        <div class="section-header-row">
+          <div>
+            <h3 class="section-title">Koleksi Tersimpan di Disk</h3>
+            <p class="section-subtitle">Lagu yang sudah terunduh dapat langsung dimasukkan ke room</p>
+          </div>
+          <button type="button" id="btn-refresh-library" class="btn-secondary btn-small">
+            Segarkan
+          </button>
+        </div>
+
+        <div id="library-empty-state" class="empty-box compact">
+          <p class="empty-desc">Belum ada file MP3 tersimpan di disk server.</p>
+        </div>
+
+        <ul class="library-list" id="server-library-list" aria-label="Koleksi lagu di penyimpanan server"></ul>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Bottom Persistent Player Dock with Grey Buffering Bar & Red Progress Bar -->
+  <footer class="player-dock" role="contentinfo" aria-label="Kontrol Pemutar Audio Live Room">
+    <div class="progress-rail-wrapper">
+      <div
+        class="progress-rail"
+        id="progress-rail"
+        role="slider"
+        tabindex="0"
+        aria-label="Posisi pemutaran lagu"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="0"
+      >
+        <!-- Grey Buffering Indicator Bar (rgba(255, 255, 255, 0.3)) -->
+        <div class="progress-buffered-bar" id="progress-buffered-bar"></div>
+        <!-- Red Played Progress Bar (#ff0000) -->
+        <div class="progress-played-bar" id="progress-played-bar"></div>
+      </div>
+      <div class="time-readout">
+        <span id="time-current">0:00</span>
+        <span id="buffer-percent-label" class="buffer-readout" title="Persentase audio yang telah di-buffer browser">Buffer: 0%</span>
+        <span id="time-duration">0:00</span>
+      </div>
+    </div>
+
+    <div class="player-controls-row">
+      <div class="dock-track-summary">
+        <span class="dock-track-index" id="dock-track-index">#-</span>
+        <div class="dock-track-text">
+          <strong id="dock-track-title">Siap Memutar</strong>
+          <span id="dock-track-artist">Live Room Sync Aktif</span>
+        </div>
+      </div>
+
+      <div class="transport-buttons">
+        <button
+          type="button"
+          id="btn-play-toggle"
+          class="btn-transport btn-play-main"
+          aria-label="Putar atau Jeda Lagu di Live Room"
+          disabled
+        >
+          <svg id="icon-play" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M8 5v14l11-7L8 5Z"/>
+          </svg>
+          <svg id="icon-pause" class="hidden" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M6 5h4v14H6V5Zm8 0h4v14h-4V5Z"/>
+          </svg>
+          <span id="btn-play-label">Putar</span>
+        </button>
+
+        <button
+          type="button"
+          id="btn-next-track"
+          class="btn-transport"
+          aria-label="Lagu Berikutnya di Playlist Server"
+          title="Lagu Berikutnya"
+          disabled
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M6 18l8.5-6L6 6v12ZM16 6v12h2V6h-2Z"/>
+          </svg>
+          <span>Berikutnya</span>
+        </button>
+      </div>
+
+      <div class="volume-controls">
+        <label for="volume-slider" class="volume-label">Volume</label>
+        <input
+          type="range"
+          id="volume-slider"
+          class="volume-slider"
+          min="0"
+          max="1"
+          step="0.05"
+          value="0.9"
+          aria-label="Volume Audio Lokal"
+        >
+      </div>
+    </div>
+  </footer>
+
+  <!-- Device Name Modal (Accessible Dialog, closable with Escape) -->
+  <div
+    id="device-modal-backdrop"
+    class="modal-backdrop hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="device-modal-title"
+  >
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="device-modal-title" class="modal-title">Identitas Perangkat</h2>
+        <button type="button" id="btn-close-modal" class="btn-icon-only" aria-label="Tutup dialog">
+          ✕
+        </button>
+      </div>
+      <p class="modal-desc">
+        Nama ini ditampilkan ke semua pendengar di Live Room dan disimpan di perangkat Anda.
+      </p>
+      <form id="device-name-form" class="modal-form">
+        <label for="device-name-input" class="field-label">Nama Perangkat</label>
+        <input
+          type="text"
+          id="device-name-input"
+          class="text-field"
+          maxlength="36"
+          required
+        >
+        <div class="modal-actions">
+          <button type="button" id="btn-reset-device-name" class="btn-secondary">
+            Buat Nama Otomatis
+          </button>
+          <button type="submit" class="btn-primary">
+            Simpan Nama
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
