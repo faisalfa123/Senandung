@@ -98,14 +98,38 @@
     wsConnected: false,
     reconnectTimer: null,
     scheduledPlayTimer: null,
-    audioEl: new Audio()
+    audioEl: new Audio(),
+    audioUnlocked: false,
+    pendingPlayPromise: null
   };
 
-  // CRITICAL SOUND FIX: Do NOT set crossOrigin='anonymous' or route through suspended createMediaElementSource!
   // Direct HTML5 Audio output guarantees sound plays immediately on desktop, Android STB, and mobile browsers.
   state.audioEl.preload = 'auto';
   state.audioEl.volume = 0.95;
   state.audioEl.muted = false;
+
+  // Universal User Gesture Unlocker for iOS Safari and Mobile Chrome autoplay restrictions
+  function unlockAudioContextOnGesture() {
+    if (state.audioUnlocked) return;
+    state.audioUnlocked = true;
+    try {
+      const p = state.audioEl.play();
+      if (p !== undefined) {
+        p.then(() => {
+          if (!state.loadedTrackId) {
+            state.audioEl.pause();
+            state.audioEl.currentTime = 0;
+          }
+        }).catch(() => {});
+      }
+    } catch (_) {}
+    ['touchstart', 'touchend', 'click', 'keydown'].forEach((evt) => {
+      document.removeEventListener(evt, unlockAudioContextOnGesture, true);
+    });
+  }
+  ['touchstart', 'touchend', 'click', 'keydown'].forEach((evt) => {
+    document.addEventListener(evt, unlockAudioContextOnGesture, { capture: true, once: true });
+  });
 
   // DOM References
   const dom = {
@@ -484,6 +508,8 @@
   function playTrackDirectly(track, startSeekSec) {
     if (!track || !track.id) return;
 
+    state.audioUnlocked = true;
+    state.currentTrack = track;
     const streamUrl = `/api/v1/stream/${encodeURIComponent(track.id)}`;
     state.audioEl.muted = false;
     const sliderVol = parseFloat(dom.volumeSlider.value);
@@ -493,7 +519,6 @@
     if (needsLoad) {
       state.loadedTrackId = track.id;
       state.audioEl.src = streamUrl;
-      state.audioEl.load();
       dom.progressBufferedBar.style.width = '0%';
       dom.progressPlayedBar.style.width = '0%';
     }
@@ -507,21 +532,46 @@
     recordTrackToHistory(track);
     updateNowPlayingBar(track, true);
 
-    const playPromise = state.audioEl.play();
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          state.isPlaying = true;
-          dom.roomErrorBanner.classList.add('hidden');
-          updateTransportButtonsUI(true);
-          highlightActiveTrackRows(track.id);
-        })
-        .catch((err) => {
+    const executePlay = () => {
+      try {
+        const playPromise = state.audioEl.play();
+        if (playPromise !== undefined) {
+          state.pendingPlayPromise = playPromise;
+          playPromise
+            .then(() => {
+              state.pendingPlayPromise = null;
+              state.isPlaying = true;
+              dom.roomErrorBanner.classList.add('hidden');
+              updateTransportButtonsUI(true);
+              highlightActiveTrackRows(track.id);
+            })
+            .catch((err) => {
+              state.pendingPlayPromise = null;
+              // Ignore benign AbortError if another track or user action interrupted it
+              if (err.name === 'AbortError') {
+                return;
+              }
+              state.isPlaying = false;
+              updateTransportButtonsUI(false);
+              dom.roomErrorText.textContent = `Klik di sini atau tombol Putar (▶) untuk mengaktifkan audio (${err.message}).`;
+              dom.roomErrorBanner.classList.remove('hidden');
+            });
+        }
+      } catch (err) {
+        state.pendingPlayPromise = null;
+        if (err.name !== 'AbortError') {
           state.isPlaying = false;
           updateTransportButtonsUI(false);
-          dom.roomErrorText.textContent = `Klik tombol Putar (▶) untuk mengaktifkan output audio browser (${err.message}).`;
+          dom.roomErrorText.textContent = `Gagal memutar: ${err.message}`;
           dom.roomErrorBanner.classList.remove('hidden');
-        });
+        }
+      }
+    };
+
+    if (state.pendingPlayPromise) {
+      state.pendingPlayPromise.finally(executePlay);
+    } else {
+      executePlay();
     }
   }
 
@@ -778,15 +828,31 @@
       badge.textContent = String(tracksInAlbum.length);
       grid.appendChild(badge);
 
+      card.style.cursor = 'pointer';
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('role', 'button');
+      card.setAttribute('aria-label', `Putar Album ${albumTitle}`);
+
       const playOverlay = document.createElement('button');
       playOverlay.type = 'button';
       playOverlay.className = 'ytm-play-overlay-btn';
       playOverlay.setAttribute('aria-label', `Putar Album ${albumTitle}`);
       playOverlay.innerHTML = `<svg width="38" height="38" viewBox="0 0 24 24" fill="#ffffff"><path d="M8 5v14l11-7L8 5Z"/></svg>`;
-      playOverlay.addEventListener('click', () => {
+      playOverlay.addEventListener('click', (ev) => {
+        ev.stopPropagation();
         handleUserPlayTrack(tracksInAlbum[0], tracksInAlbum);
       });
       grid.appendChild(playOverlay);
+
+      card.addEventListener('click', () => {
+        handleUserPlayTrack(tracksInAlbum[0], tracksInAlbum);
+      });
+      card.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          handleUserPlayTrack(tracksInAlbum[0], tracksInAlbum);
+        }
+      });
 
       const titleEl = document.createElement('h3');
       titleEl.className = 'ytm-card-title';
@@ -1659,6 +1725,32 @@
     });
 
     dom.btnRefreshLibrary.addEventListener('click', fetchServerLibrary);
+
+    // Audio Error Banner & Retry Button (Instantly unlocks and plays on click)
+    const handleRetryAudio = () => {
+      dom.roomErrorBanner.classList.add('hidden');
+      state.audioUnlocked = true;
+      const targetTrack = state.currentTrack || state.soloQueue[state.soloTrackIndex] || state.libraryTracks[0];
+      if (targetTrack) {
+        playTrackDirectly(targetTrack, state.audioEl.currentTime || 0);
+      } else {
+        fetchServerLibrary().then(() => {
+          if (state.libraryTracks.length) {
+            playTrackDirectly(state.libraryTracks[0], 0);
+          }
+        });
+      }
+    };
+    if (dom.btnRetryWs) {
+      dom.btnRetryWs.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        handleRetryAudio();
+      });
+    }
+    if (dom.roomErrorBanner) {
+      dom.roomErrorBanner.style.cursor = 'pointer';
+      dom.roomErrorBanner.addEventListener('click', handleRetryAudio);
+    }
 
     // Topbar & Eksplorasi Search Forms
     dom.searchInput.addEventListener('input', () => {

@@ -1126,7 +1126,9 @@ input:disabled {
     order: 2;
   }
 
-  #btn-prev-track {
+  #btn-prev-track,
+  #btn-shuffle-toggle,
+  #btn-repeat-toggle {
     display: none;
   }
 
@@ -1156,7 +1158,9 @@ body.mobile .ytm-main-feed {
 
 body.mobile .ytm-time-text,
 body.mobile .ytm-player-right,
-body.mobile #btn-prev-track {
+body.mobile #btn-prev-track,
+body.mobile #btn-shuffle-toggle,
+body.mobile #btn-repeat-toggle {
   display: none;
 }
 

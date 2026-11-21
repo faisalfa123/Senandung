@@ -1,6 +1,6 @@
 [package]
 name = "senandung"
-version = "3.0.1-nightly-dev"
+version = "3.0.4"
 edition = "2021"
 authors = ["Fais-Alfa <faisalfa123@users.noreply.github.com>"]
 description = "Ultra-Lightweight Self-Hosted Spotify-like PWA with Multi-Device Audio Sync"
@@ -40,8 +40,14 @@ anyhow = "1"                     # Error handling
 thiserror = "1"                  # Error derive
 futures-util = "0.3"             # Untuk split WebSocket Sink/Stream
 
+[dev-dependencies]
+tempfile = "3"
+tower = { version = "0.4", features = ["util"] }
+http-body-util = "0.1"
+
 [profile.release]
 opt-level = 3
 lto = true
 codegen-units = 1
 strip = true                     # Strip debug symbols untuk binary kecil
+

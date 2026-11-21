@@ -11,7 +11,7 @@
     if ('caches' in window) {
       caches.keys().then(function(keys) {
         keys.forEach(function(k) {
-          if (k !== 'senandung-v3.0.3-remake') caches.delete(k);
+          if (k !== 'senandung-v3.0.4-remake') caches.delete(k);
         });
       });
     }
@@ -21,7 +21,7 @@
       });
     }
   </script>
-  <link rel="stylesheet" href="/style.css?v=3.0.3">
+  <link rel="stylesheet" href="/style.css?v=3.0.4">
 </head>
 <body class="desktop">
   <!-- Top Header Bar -->
@@ -212,7 +212,7 @@
           </div>
           <div class="ytm-sidebar-pl-item">
             <div class="ytm-pl-title" id="device-name-display">Memuat Device...</div>
-            <div class="ytm-pl-sub" id="server-version-badge">v3.0.1-nightly-dev</div>
+            <div class="ytm-pl-sub" id="server-version-badge">v3.0.4</div>
           </div>
         </div>
       </div>
@@ -728,6 +728,6 @@
     </div>
   </div>
 
-  <script src="/app.js?v=3.0.3" defer></script>
+  <script src="/app.js?v=3.0.4" defer></script>
 </body>
 </html>
