@@ -10,6 +10,7 @@ use crate::core::state::{
     AppState, DownloadTaskStatus, RoomBroadcastEvent, Track,
 };
 use crate::core::sync::current_epoch_ms;
+use crate::logging::safe_log_error;
 
 pub type DownloadSender = mpsc::Sender<DownloadJob>;
 
@@ -94,12 +95,9 @@ async fn process_single_job(state: &AppState, job: DownloadJob) {
                 return;
             }
             Err(e) => {
-                tracing::warn!(
-                    task_id = %job.task_id,
-                    youtube_id = %job.youtube_id,
-                    attempt = attempt,
-                    error = %e,
-                    "yt-dlp download attempt failed"
+                safe_log_error(
+                    &format!("yt-dlp download attempt {} failed for {}", attempt, job.youtube_id),
+                    &e,
                 );
                 last_err = Some(e.to_string());
             }

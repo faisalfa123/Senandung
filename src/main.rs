@@ -1,4 +1,5 @@
 mod core;
+mod logging;
 mod server;
 mod utils;
 
@@ -22,6 +23,7 @@ use crate::core::{
     db::Database,
     state::{AppState, RoomBroadcastEvent, DEFAULT_ROOM_ID},
 };
+use crate::logging::{init_logging, safe_log_error};
 use crate::server::{
     api::{
         download_status_handler, enqueue_download_handler, health_handler,
@@ -35,13 +37,7 @@ use crate::utils::system::AppConfig;
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() -> Result<()> {
-    // Default log level WARN to minimize SD Card writes (expanded in Phase 6)
-    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn"));
-    tracing_subscriber::fmt()
-        .with_env_filter(filter)
-        .with_writer(std::io::stderr)
-        .init();
+    init_logging();
 
     let config = AppConfig::from_env_and_args();
     let db = Arc::new(Database::open(&config.data_dir)?);
@@ -134,7 +130,11 @@ async fn shutdown_signal(state: AppState) {
     let rooms = state.rooms.read().await;
     for handle in rooms.values() {
         let r_state = handle.state.read().await;
-        let _ = state.db.save_room_state(&r_state);
+        if let Err(e) = state.db.save_room_state(&r_state) {
+            safe_log_error("Failed to save room state during shutdown", &e);
+        }
     }
-    let _ = state.db.flush_async().await;
+    if let Err(e) = state.db.flush_async().await {
+        safe_log_error("Failed to flush sled DB during shutdown", &e);
+    }
 }
