@@ -1,9 +1,12 @@
-# Binary
+# Senandung Configuration & Build Ignore (v3.0.1-nightly-dev)
+
+# Rust build artifacts
+/target/
 /senandung
 dist/
 !bin/senandung-linux-*
 
-# Data runtime & database
+# Runtime data & Sled embedded database
 data/
 *.db
 *.db-wal

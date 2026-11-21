@@ -1,21 +1,22 @@
 [app]
 id = "senandung"
+version = "3.0.1-nightly-dev"
 repo = "faisalfa123/Senandung"
 asset = "senandung-linux-arm64"
-language = "go"
-description = "Spotify-like PWA self-hosted dengan sinkronisasi multi-device & karaoke"
+language = "rust"
+description = "Ultra-Lightweight Self-Hosted Spotify-like PWA with Multi-Device Audio Sync"
 
 [run]
-port = 8080
+port = 8989
 priority = 50
 
 [limits]
-memory_max_mb = 96
+memory_max_mb = 48
 cpu_quota_pct = 50
 tasks_max = 64
 
 [permissions]
-paths_rw = ["/mnt/hdd1/senandung"]
+paths_rw = ["/mnt/hdd1/senandung", "/var/lib/senandung", "/var/cache/senandung", "/var/log/senandung"]
 paths_ro = []
-outbound = ["youtube.com", "googlevideo.com"]
-tools = ["yt-dlp", "ffmpeg", "python3"]
+outbound = ["youtube.com", "googlevideo.com", "ytimg.com"]
+tools = ["yt-dlp", "ffmpeg", "curl"]
