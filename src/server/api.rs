@@ -1,0 +1,297 @@
+use std::io::SeekFrom;
+use axum::{
+    body::Body,
+    extract::{Path, Query, State},
+    http::{header, HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
+    Json,
+};
+use serde::{Deserialize, Serialize};
+use tokio::fs::File;
+use tokio::io::{AsyncReadExt, AsyncSeekExt};
+use tokio_util::io::ReaderStream;
+use uuid::Uuid;
+
+use crate::core::state::{AppState, DownloadTaskStatus, DEFAULT_ROOM_ID};
+use crate::core::sync::current_epoch_ms;
+use crate::server::downloader::{search_youtube_async, DownloadJob};
+
+/// 8KB chunk size for audio streaming so audio never buffers inside server RAM.
+const STREAM_CHUNK_SIZE: usize = 8 * 1024;
+
+#[derive(Debug, Serialize)]
+pub struct HealthResponse {
+    pub status: &'static str,
+    pub version: &'static str,
+    pub arch: String,
+    pub db_path: String,
+    pub cache_dir: String,
+    pub music_storage_path: String,
+    pub music_storage_fallback: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SearchQuery {
+    pub q: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DownloadRequest {
+    pub youtube_id: String,
+    pub title: Option<String>,
+    pub artist: Option<String>,
+    pub duration_sec: Option<u64>,
+    pub thumbnail_url: Option<String>,
+    pub room_id: Option<String>,
+    pub requested_by: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DownloadEnqueueResponse {
+    pub task_id: String,
+    pub status: String,
+    pub room_id: String,
+}
+
+pub async fn health_handler(State(state): State<AppState>) -> impl IntoResponse {
+    let storage = state.config.resolve_music_storage();
+    Json(HealthResponse {
+        status: "ok",
+        version: "3.0.1-nightly-dev",
+        arch: state.config.arch.clone(),
+        db_path: state.db.db_path.to_string_lossy().to_string(),
+        cache_dir: state.config.cache_dir.to_string_lossy().to_string(),
+        music_storage_path: storage.active_path.to_string_lossy().to_string(),
+        music_storage_fallback: storage.is_fallback,
+    })
+}
+
+pub async fn search_handler(
+    Query(params): Query<SearchQuery>,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let query = params.q.unwrap_or_default();
+    if query.trim().is_empty() {
+        return Ok(Json(serde_json::json!({ "results": [] })));
+    }
+
+    match search_youtube_async(&query).await {
+        Ok(results) => Ok(Json(serde_json::json!({ "results": results }))),
+        Err(err) => Err((
+            StatusCode::BAD_GATEWAY,
+            Json(serde_json::json!({
+                "error": "Failed to search YouTube via yt-dlp",
+                "details": err.to_string()
+            })),
+        )),
+    }
+}
+
+pub async fn enqueue_download_handler(
+    State(state): State<AppState>,
+    Json(req): Json<DownloadRequest>,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let yt_id = req.youtube_id.trim().to_string();
+    if yt_id.is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "youtube_id is required" })),
+        ));
+    }
+
+    let task_id = Uuid::new_v4().to_string();
+    let room_id = req
+        .room_id
+        .filter(|r| !r.trim().is_empty())
+        .unwrap_or_else(|| DEFAULT_ROOM_ID.to_string());
+    let title = req
+        .title
+        .filter(|t| !t.trim().is_empty())
+        .unwrap_or_else(|| format!("Track {}", yt_id));
+    let artist = req
+        .artist
+        .filter(|a| !a.trim().is_empty())
+        .unwrap_or_else(|| "YouTube Music".to_string());
+    let requested_by = req
+        .requested_by
+        .filter(|u| !u.trim().is_empty())
+        .unwrap_or_else(|| "Listener".to_string());
+    let thumbnail_url = req
+        .thumbnail_url
+        .filter(|u| !u.trim().is_empty())
+        .unwrap_or_else(|| format!("https://i.ytimg.com/vi/{}/hqdefault.jpg", yt_id));
+
+    let job = DownloadJob {
+        task_id: task_id.clone(),
+        youtube_id: yt_id.clone(),
+        title: title.clone(),
+        artist,
+        duration_sec: req.duration_sec.unwrap_or(0),
+        thumbnail_url,
+        room_id: room_id.clone(),
+        requested_by: requested_by.clone(),
+    };
+
+    {
+        let mut downloads = state.downloads.write().await;
+        downloads.insert(
+            task_id.clone(),
+            DownloadTaskStatus {
+                task_id: task_id.clone(),
+                youtube_id: yt_id,
+                title,
+                room_id: room_id.clone(),
+                requested_by,
+                status: "queued".to_string(),
+                error: None,
+                track: None,
+                updated_at_ms: current_epoch_ms(),
+            },
+        );
+    }
+
+    if state.download_tx.send(job).await.is_err() {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": "Download worker queue is unavailable" })),
+        ));
+    }
+
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(DownloadEnqueueResponse {
+            task_id,
+            status: "queued".to_string(),
+            room_id,
+        }),
+    ))
+}
+
+pub async fn download_status_handler(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let downloads = state.downloads.read().await;
+    if let Some(status) = downloads.get(&id) {
+        Ok(Json(status.clone()))
+    } else {
+        Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "Download task not found" })),
+        ))
+    }
+}
+
+pub async fn list_tracks_handler(State(state): State<AppState>) -> impl IntoResponse {
+    let tracks = state.db.list_all_tracks().unwrap_or_default();
+    Json(serde_json::json!({ "tracks": tracks }))
+}
+
+/// Streams audio file from disk in 8KB chunks with HTTP Range support.
+/// Never loads full audio file into server RAM.
+pub async fn stream_track_handler(
+    State(state): State<AppState>,
+    Path(track_id): Path<String>,
+    headers: HeaderMap,
+) -> Response {
+    let clean_id: String = track_id
+        .trim_end_matches(".mp3")
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+        .collect();
+
+    let file_path = if let Ok(Some(track)) = state.db.get_track(&clean_id) {
+        track.file_path
+    } else {
+        let storage = state.config.resolve_music_storage();
+        let candidate = storage.active_path.join(format!("{}.mp3", clean_id));
+        if candidate.exists() {
+            candidate
+        } else {
+            state.config.fallback_music_dir.join(format!("{}.mp3", clean_id))
+        }
+    };
+
+    let mut file = match File::open(&file_path).await {
+        Ok(f) => f,
+        Err(_) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Audio file not found on storage" })),
+            )
+                .into_response();
+        }
+    };
+
+    let total_size = match file.metadata().await {
+        Ok(m) => m.len(),
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": "Failed to read audio metadata" })),
+            )
+                .into_response();
+        }
+    };
+
+    if total_size == 0 {
+        return (StatusCode::NO_CONTENT, Body::empty()).into_response();
+    }
+
+    // Parse optional Range header: "bytes=start-end"
+    if let Some(range_val) = headers.get(header::RANGE).and_then(|v| v.to_str().ok()) {
+        if let Some((start, end)) = parse_byte_range(range_val, total_size) {
+            if file.seek(SeekFrom::Start(start)).await.is_err() {
+                return StatusCode::RANGE_NOT_SATISFIABLE.into_response();
+            }
+            let length = end - start + 1;
+            let limited = file.take(length);
+            let stream = ReaderStream::with_capacity(limited, STREAM_CHUNK_SIZE);
+            let content_range = format!("bytes {}-{}/{}", start, end, total_size);
+
+            return Response::builder()
+                .status(StatusCode::PARTIAL_CONTENT)
+                .header(header::CONTENT_TYPE, "audio/mpeg")
+                .header(header::ACCEPT_RANGES, "bytes")
+                .header(header::CONTENT_LENGTH, length.to_string())
+                .header(header::CONTENT_RANGE, content_range)
+                .body(Body::from_stream(stream))
+                .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response());
+        }
+    }
+
+    let stream = ReaderStream::with_capacity(file, STREAM_CHUNK_SIZE);
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "audio/mpeg")
+        .header(header::ACCEPT_RANGES, "bytes")
+        .header(header::CONTENT_LENGTH, total_size.to_string())
+        .body(Body::from_stream(stream))
+        .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
+}
+
+fn parse_byte_range(header_val: &str, total_size: u64) -> Option<(u64, u64)> {
+    let prefix = "bytes=";
+    if !header_val.starts_with(prefix) {
+        return None;
+    }
+    let range_part = &header_val[prefix.len()..];
+    let mut parts = range_part.splitn(2, '-');
+    let start_str = parts.next()?.trim();
+    let end_str = parts.next()?.trim();
+
+    let start: u64 = start_str.parse().ok()?;
+    if start >= total_size {
+        return None;
+    }
+    let end: u64 = if end_str.is_empty() {
+        total_size - 1
+    } else {
+        end_str.parse::<u64>().ok()?.min(total_size - 1)
+    };
+
+    if start <= end {
+        Some((start, end))
+    } else {
+        None
+    }
+}

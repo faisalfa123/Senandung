@@ -1,0 +1,132 @@
+mod core;
+mod server;
+mod utils;
+
+use std::collections::HashMap;
+use std::net::SocketAddr;
+use std::sync::Arc;
+
+use anyhow::Result;
+use axum::{
+    routing::{get, post},
+    Router,
+};
+use tokio::sync::{broadcast, RwLock};
+use tower_http::{
+    compression::CompressionLayer,
+    cors::{Any, CorsLayer},
+};
+
+use crate::core::{
+    db::Database,
+    state::{AppState, RoomBroadcastEvent, DEFAULT_ROOM_ID},
+};
+use crate::server::{
+    api::{
+        download_status_handler, enqueue_download_handler, health_handler,
+        list_tracks_handler, search_handler, stream_track_handler,
+    },
+    downloader::{run_download_worker, spawn_download_worker},
+    ws::ws_handler,
+};
+use crate::utils::system::AppConfig;
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Default log level WARN to minimize SD Card writes (expanded in Phase 6)
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn"));
+    tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .with_writer(std::io::stderr)
+        .init();
+
+    let config = AppConfig::from_env_and_args();
+    let db = Arc::new(Database::open(&config.data_dir)?);
+
+    let (download_tx, download_rx) = spawn_download_worker();
+    let (global_tx, _) = broadcast::channel(32);
+
+    let app_state = AppState {
+        config: config.clone(),
+        db: db.clone(),
+        rooms: Arc::new(RwLock::new(HashMap::new())),
+        downloads: Arc::new(RwLock::new(HashMap::new())),
+        download_tx,
+        global_tx: global_tx.clone(),
+    };
+
+    // Pre-initialize default Lobby room from Sled DB
+    let _ = app_state.get_or_create_room(DEFAULT_ROOM_ID).await;
+
+    // Spawn single-worker background download queue (nice -n 19 ionice -c 3 yt-dlp)
+    let worker_state = app_state.clone();
+    tokio::spawn(async move {
+        run_download_worker(download_rx, worker_state).await;
+    });
+
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+
+    let app = Router::new()
+        .route("/api/v1/health", get(health_handler))
+        .route("/api/v1/search", get(search_handler))
+        .route("/api/v1/download", post(enqueue_download_handler))
+        .route("/api/v1/download/status/:id", get(download_status_handler))
+        .route("/api/v1/tracks", get(list_tracks_handler))
+        .route("/api/v1/stream/:track_id", get(stream_track_handler))
+        .route("/ws", get(ws_handler))
+        .layer(CompressionLayer::new())
+        .layer(cors)
+        .with_state(app_state.clone());
+
+    let addr = SocketAddr::from(([0, 0, 0, 0], config.port));
+    let listener = tokio::net::TcpListener::bind(addr).await?;
+
+    let shutdown_state = app_state.clone();
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal(shutdown_state))
+        .await?;
+
+    // Final DB flush after HTTP server drains connections
+    let _ = db.flush_async().await;
+    Ok(())
+}
+
+async fn shutdown_signal(state: AppState) {
+    let ctrl_c = async {
+        let _ = tokio::signal::ctrl_c().await;
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        if let Ok(mut sigterm) =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+        {
+            sigterm.recv().await;
+        }
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+
+    // Broadcast shutdown notification to all active WebSocket connections
+    let _ = state.global_tx.send(RoomBroadcastEvent::ServerShutdown {
+        message: "server shutting down".to_string(),
+    });
+
+    // Persist all active room states and flush Sled DB
+    let rooms = state.rooms.read().await;
+    for handle in rooms.values() {
+        let r_state = handle.state.read().await;
+        let _ = state.db.save_room_state(&r_state);
+    }
+    let _ = state.db.flush_async().await;
+}
