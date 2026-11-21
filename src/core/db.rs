@@ -26,8 +26,9 @@ impl Database {
         let db_path = data_dir.join("state.db");
         let db = sled::Config::new()
             .path(&db_path)
-            .cache_capacity(4 * 1024 * 1024) // 4MB cache capacity to keep total RAM < 20MB
-            .flush_every_ms(Some(5000))      // Batch writes every 5s to protect SD Card
+            .cache_capacity(256 * 1024) // 256KB page cache
+            .segment_size(8_192)        // 8KB segment size prevents 20MB+ IO buffer preallocation
+            .flush_every_ms(Some(5000)) // Batch writes every 5s to protect SD Card
             .open()
             .with_context(|| format!("Failed to open sled DB at {}", db_path.display()))?;
 

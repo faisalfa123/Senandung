@@ -2,8 +2,9 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use serde::{Deserialize, Serialize};
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{broadcast, Mutex, RwLock};
 
+use crate::core::cache::ThumbnailCache;
 use crate::core::db::Database;
 use crate::core::sync::{current_epoch_ms, target_server_play_timestamp};
 use crate::server::downloader::DownloadSender;
@@ -134,6 +135,7 @@ pub struct AppState {
     pub downloads: Arc<RwLock<HashMap<String, DownloadTaskStatus>>>,
     pub download_tx: DownloadSender,
     pub global_tx: broadcast::Sender<RoomBroadcastEvent>,
+    pub thumbnail_cache: Arc<Mutex<ThumbnailCache>>,
 }
 
 impl AppState {

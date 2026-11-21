@@ -295,3 +295,57 @@ fn parse_byte_range(header_val: &str, total_size: u64) -> Option<(u64, u64)> {
         None
     }
 }
+
+/// Tier 2 (HTTP Cache Delegation: Cache-Control max-age=86400, ETag, Last-Modified)
+/// backed by Tier 3 (LRU Disk Cache bounded to 50MB / 500 items).
+pub async fn thumbnail_handler(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    req_headers: HeaderMap,
+) -> Response {
+    let storage = state.config.resolve_music_storage();
+    let entry_res = {
+        let mut cache = state.thumbnail_cache.lock().await;
+        cache
+            .get_or_download(&id, &storage.active_path, &state.config.fallback_music_dir)
+            .await
+    };
+
+    let Ok(entry) = entry_res else {
+        // Fallback SVG placeholder when offline or video has no remote thumbnail
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="#181818"/><circle cx="80" cy="80" r="34" stroke="#ff0000" stroke-width="4" fill="none"/><circle cx="80" cy="80" r="10" fill="#f1f1f1"/></svg>"##;
+        return Response::builder()
+            .status(StatusCode::OK)
+            .header(header::CONTENT_TYPE, "image/svg+xml")
+            .header(header::CACHE_CONTROL, "public, max-age=86400")
+            .body(Body::from(svg))
+            .unwrap_or_else(|_| StatusCode::NOT_FOUND.into_response());
+    };
+
+    if let Some(if_none_match) = req_headers
+        .get(header::IF_NONE_MATCH)
+        .and_then(|v| v.to_str().ok())
+    {
+        if if_none_match.trim() == entry.etag {
+            return Response::builder()
+                .status(StatusCode::NOT_MODIFIED)
+                .header(header::CACHE_CONTROL, "public, max-age=86400")
+                .header(header::ETAG, entry.etag)
+                .header(header::LAST_MODIFIED, entry.last_modified_http)
+                .body(Body::empty())
+                .unwrap_or_else(|_| StatusCode::NOT_MODIFIED.into_response());
+        }
+    }
+
+    match tokio::fs::read(&entry.path).await {
+        Ok(bytes) => Response::builder()
+            .status(StatusCode::OK)
+            .header(header::CONTENT_TYPE, "image/jpeg")
+            .header(header::CACHE_CONTROL, "public, max-age=86400")
+            .header(header::ETAG, entry.etag)
+            .header(header::LAST_MODIFIED, entry.last_modified_http)
+            .body(Body::from(bytes))
+            .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response()),
+        Err(_) => StatusCode::NOT_FOUND.into_response(),
+    }
+}

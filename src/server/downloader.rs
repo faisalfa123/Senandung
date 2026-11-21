@@ -70,10 +70,10 @@ async fn process_single_job(state: &AppState, job: DownloadJob) {
                     title: job.title.clone(),
                     artist: job.artist.clone(),
                     duration_sec: job.duration_sec,
-                    thumbnail_url: if job.thumbnail_url.is_empty() {
-                        format!("https://i.ytimg.com/vi/{}/hqdefault.jpg", job.youtube_id)
-                    } else {
+                    thumbnail_url: if job.thumbnail_url.starts_with("/api/v1/thumbnail/") {
                         job.thumbnail_url.clone()
+                    } else {
+                        format!("/api/v1/thumbnail/{}", job.youtube_id)
                     },
                     file_path,
                     added_by: job.requested_by.clone(),
@@ -280,7 +280,7 @@ pub async fn search_youtube_async(query: &str) -> Result<Vec<SearchResultItem>> 
                 .and_then(|v| v.as_f64())
                 .map(|d| d as u64)
                 .unwrap_or(0);
-            let thumbnail_url = format!("https://i.ytimg.com/vi/{}/hqdefault.jpg", id);
+            let thumbnail_url = format!("/api/v1/thumbnail/{}", id);
 
             results.push(SearchResultItem {
                 youtube_id: id,

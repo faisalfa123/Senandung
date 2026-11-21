@@ -11,27 +11,29 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{broadcast, Mutex, RwLock};
 use tower_http::{
     compression::CompressionLayer,
     cors::{Any, CorsLayer},
 };
 
 use crate::core::{
+    cache::ThumbnailCache,
     db::Database,
     state::{AppState, RoomBroadcastEvent, DEFAULT_ROOM_ID},
 };
 use crate::server::{
     api::{
         download_status_handler, enqueue_download_handler, health_handler,
-        list_tracks_handler, search_handler, stream_track_handler,
+        list_tracks_handler, search_handler, stream_track_handler, thumbnail_handler,
     },
     downloader::{run_download_worker, spawn_download_worker},
+    static_cache::{serve_index_handler, serve_static_asset_handler},
     ws::ws_handler,
 };
 use crate::utils::system::AppConfig;
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() -> Result<()> {
     // Default log level WARN to minimize SD Card writes (expanded in Phase 6)
     let filter = tracing_subscriber::EnvFilter::try_from_default_env()
@@ -43,6 +45,7 @@ async fn main() -> Result<()> {
 
     let config = AppConfig::from_env_and_args();
     let db = Arc::new(Database::open(&config.data_dir)?);
+    let thumbnail_cache = Arc::new(Mutex::new(ThumbnailCache::new(&config.cache_dir)));
 
     let (download_tx, download_rx) = spawn_download_worker();
     let (global_tx, _) = broadcast::channel(32);
@@ -54,6 +57,7 @@ async fn main() -> Result<()> {
         downloads: Arc::new(RwLock::new(HashMap::new())),
         download_tx,
         global_tx: global_tx.clone(),
+        thumbnail_cache,
     };
 
     // Pre-initialize default Lobby room from Sled DB
@@ -71,13 +75,17 @@ async fn main() -> Result<()> {
         .allow_headers(Any);
 
     let app = Router::new()
+        .route("/", get(serve_index_handler))
         .route("/api/v1/health", get(health_handler))
         .route("/api/v1/search", get(search_handler))
         .route("/api/v1/download", post(enqueue_download_handler))
         .route("/api/v1/download/status/:id", get(download_status_handler))
         .route("/api/v1/tracks", get(list_tracks_handler))
         .route("/api/v1/stream/:track_id", get(stream_track_handler))
+        .route("/api/v1/thumbnail/:id", get(thumbnail_handler))
+        .route("/api/v1/artwork/:id", get(thumbnail_handler))
         .route("/ws", get(ws_handler))
+        .route("/*path", get(serve_static_asset_handler))
         .layer(CompressionLayer::new())
         .layer(cors)
         .with_state(app_state.clone());
