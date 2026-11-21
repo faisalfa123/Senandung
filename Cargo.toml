@@ -1,0 +1,47 @@
+[package]
+name = "senandung"
+version = "3.0.1-nightly-dev"
+edition = "2021"
+authors = ["Fais-Alfa <faisalfa123@users.noreply.github.com>"]
+description = "Ultra-Lightweight Self-Hosted Spotify-like PWA with Multi-Device Audio Sync"
+license = "MIT"
+
+[features]
+default = []
+local-audio = ["symphonia", "cpal"]  # Dormant feature, tidak aktif default
+
+[dependencies]
+# Web framework
+axum = { version = "0.7", features = ["ws", "macros"] }
+tower-http = { version = "0.5", features = ["compression-br", "compression-gzip", "cors", "set-header"] }
+tokio = { version = "1", features = ["full", "signal"] }
+tokio-util = { version = "0.7", features = ["io"] }
+
+# Serialization & State
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sled = "0.34"                    # Embedded DB (ACID, hemat I/O)
+uuid = { version = "1", features = ["v4"] }
+
+# Logging (hemat SD Card)
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+
+# Audio & Download (dormant features)
+symphonia = { version = "0.5", optional = true }
+cpal = { version = "0.15", optional = true }
+
+# Utilities
+chrono = "0.4"
+lru = "0.12"                     # Untuk Tier 3 cache
+rust-embed = "8"                 # Untuk embed file statis ke binary
+anyhow = "1"                     # Error handling
+thiserror = "1"                  # Error derive
+futures-util = "0.3"             # Untuk split WebSocket Sink/Stream
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true                     # Strip debug symbols untuk binary kecil
