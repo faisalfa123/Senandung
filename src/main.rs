@@ -56,8 +56,20 @@ async fn main() -> Result<()> {
         thumbnail_cache,
     };
 
-    // Pre-initialize default Lobby room from Sled DB
-    let _ = app_state.get_or_create_room(DEFAULT_ROOM_ID).await;
+    // Auto-scan local HDD1 & music directories at startup
+    let discovered_tracks = crate::utils::system::scan_local_music_dirs(&config, &db);
+
+    // Pre-initialize default Lobby room from Sled DB (and seed with discovered HDD tracks if room is empty)
+    let lobby_handle = app_state.get_or_create_room(DEFAULT_ROOM_ID).await;
+    {
+        let mut lobby_state = lobby_handle.state.write().await;
+        if lobby_state.playlist.is_empty() && !discovered_tracks.is_empty() {
+            for t in discovered_tracks.into_iter().take(50) {
+                lobby_state.playlist.push(t);
+            }
+            let _ = db.save_room_state(&lobby_state);
+        }
+    }
 
     // Spawn single-worker background download queue (nice -n 19 ionice -c 3 yt-dlp)
     let worker_state = app_state.clone();

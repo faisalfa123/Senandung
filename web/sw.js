@@ -1,5 +1,5 @@
 // Service Worker PWA for Senandung v3.0.1 Nightly Dev
-const CACHE_NAME = 'senandung-v3.0.1';
+const CACHE_NAME = 'senandung-v3.0.1-ytm';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

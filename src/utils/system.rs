@@ -2,6 +2,10 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::core::db::Database;
+use crate::core::state::Track;
+use crate::core::sync::current_epoch_ms;
+
 #[derive(Debug, Clone)]
 pub struct AppConfig {
     pub port: u16,
@@ -74,12 +78,6 @@ impl AppConfig {
             i += 1;
         }
 
-        // Build ordered candidate list for writable data_dir.
-        // In Mastermind systemd sandbox (DynamicUser=yes + ProtectSystem=strict),
-        // WorkingDirectory (/opt/mastermind/apps/senandung) is read-only (EROFS os error 30),
-        // and /var/lib/mastermind/senandung may be owned by root:root 0755 if pre-created by helper.
-        // We probe every candidate in priority order until we find one that is genuinely writable,
-        // ending with /tmp/senandung (always writable under PrivateTmp=yes).
         let mut data_candidates: Vec<PathBuf> = Vec::new();
         if let Some(d) = cli_data_dir {
             data_candidates.push(d);
@@ -104,8 +102,9 @@ impl AppConfig {
 
         let resolved_data_dir = resolve_first_writable_dir(&data_candidates);
 
+        // Use /mnt/hdd1/senandung directly so existing songs in root & subfolders are discovered
         let primary_music_dir = music_dir_override
-            .unwrap_or_else(|| PathBuf::from("/mnt/hdd1/senandung/tracks"));
+            .unwrap_or_else(|| PathBuf::from("/mnt/hdd1/senandung"));
 
         let fallback_music_dir = resolved_data_dir.join("tracks");
         let _ = fs::create_dir_all(&fallback_music_dir);
@@ -180,4 +179,178 @@ pub fn is_dir_usable(dir: &Path) -> bool {
         }
         Err(_) => false,
     }
+}
+
+/// Recursively scans `/mnt/hdd1/senandung` and configured music directories for audio files
+/// (`.mp3`, `.flac`, `.m4a`, `.opus`, `.ogg`, `.wav`) and registers them into Sled DB.
+pub fn scan_local_music_dirs(config: &AppConfig, db: &Database) -> Vec<Track> {
+    let mut scan_roots = Vec::new();
+    let root_hdd = PathBuf::from("/mnt/hdd1/senandung");
+    if root_hdd.exists() {
+        scan_roots.push(root_hdd);
+    }
+    if config.primary_music_dir.exists() && !scan_roots.contains(&config.primary_music_dir) {
+        scan_roots.push(config.primary_music_dir.clone());
+    }
+    if config.fallback_music_dir.exists() && !scan_roots.contains(&config.fallback_music_dir) {
+        scan_roots.push(config.fallback_music_dir.clone());
+    }
+
+    let existing_tracks = db.list_all_tracks().unwrap_or_default();
+    let mut known_paths: std::collections::HashSet<PathBuf> =
+        existing_tracks.iter().map(|t| t.file_path.clone()).collect();
+
+    let mut discovered_files = Vec::new();
+    for root in &scan_roots {
+        collect_audio_files_recursive(root, 0, &mut discovered_files);
+    }
+
+    for file_path in discovered_files {
+        if known_paths.contains(&file_path) {
+            continue;
+        }
+        if let Some(track) = build_track_from_file(&file_path) {
+            let _ = db.save_track(&track);
+            known_paths.insert(file_path);
+        }
+    }
+
+    db.list_all_tracks().unwrap_or_default()
+}
+
+fn collect_audio_files_recursive(dir: &Path, depth: usize, out: &mut Vec<PathBuf>) {
+    if depth > 4 {
+        return;
+    }
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        if name.starts_with('.') || name == "state.db" || name == "cache" || name == "data" {
+            continue;
+        }
+
+        if path.is_dir() {
+            collect_audio_files_recursive(&path, depth + 1, out);
+        } else if is_supported_audio_ext(&path) {
+            out.push(path);
+        }
+    }
+}
+
+pub fn is_supported_audio_ext(path: &Path) -> bool {
+    let Some(ext) = path.extension().and_then(|e| e.to_str()) else {
+        return false;
+    };
+    matches!(
+        ext.to_ascii_lowercase().as_str(),
+        "mp3" | "flac" | "m4a" | "opus" | "ogg" | "wav"
+    )
+}
+
+pub fn audio_mime_for_path(path: &Path) -> &'static str {
+    match path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|s| s.to_ascii_lowercase())
+        .as_deref()
+    {
+        Some("flac") => "audio/flac",
+        Some("m4a") => "audio/mp4",
+        Some("opus") => "audio/ogg; codecs=opus",
+        Some("ogg") => "audio/ogg",
+        Some("wav") => "audio/wav",
+        _ => "audio/mpeg",
+    }
+}
+
+fn build_track_from_file(path: &Path) -> Option<Track> {
+    let meta = fs::metadata(path).ok()?;
+    if meta.len() == 0 {
+        return None;
+    }
+
+    let stem = path.file_stem()?.to_string_lossy().to_string();
+    let mut raw_title = stem.clone();
+    let mut youtube_id = String::new();
+
+    // Check if filename ends with " [VIDEO_ID]" (standard yt-dlp format from Go v2)
+    if let Some(open_idx) = raw_title.rfind(" [") {
+        if raw_title.ends_with(']') {
+            let candidate = &raw_title[open_idx + 2..raw_title.len() - 1];
+            if candidate.len() == 11
+                && candidate
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+            {
+                youtube_id = candidate.to_string();
+                raw_title = raw_title[..open_idx].trim().to_string();
+            }
+        }
+    }
+
+    // Or check if filename itself is an 11-char YouTube ID (e.g. "dQw4w9WgXcQ.mp3")
+    if youtube_id.is_empty()
+        && stem.len() == 11
+        && stem
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    {
+        youtube_id = stem.clone();
+    }
+
+    let (artist, title) = if let Some((a, t)) = raw_title.split_once(" - ") {
+        (a.trim().to_string(), t.trim().to_string())
+    } else {
+        ("Koleksi STB".to_string(), raw_title)
+    };
+
+    let mtime_ms = meta
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or_else(current_epoch_ms);
+
+    let track_id = if !youtube_id.is_empty() {
+        youtube_id.clone()
+    } else {
+        // Stable deterministic hash ID from full path
+        let mut h: u64 = 0xcbf29ce484222325;
+        for &b in path.to_string_lossy().as_bytes() {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        format!("local_{:016x}", h)
+    };
+
+    let thumbnail_url = if !youtube_id.is_empty() {
+        format!("/api/v1/thumbnail/{}", youtube_id)
+    } else {
+        String::new()
+    };
+
+    // Rough duration estimate from file size (~128kbps = 16KB/s) when metadata is absent
+    let estimated_duration = (meta.len() / 16_000).max(1);
+
+    Some(Track {
+        id: track_id.clone(),
+        youtube_id: if youtube_id.is_empty() {
+            track_id
+        } else {
+            youtube_id
+        },
+        title,
+        artist,
+        duration_sec: estimated_duration,
+        thumbnail_url,
+        file_path: path.to_path_buf(),
+        added_by: "Storage HDD".to_string(),
+        added_at_ms: mtime_ms,
+    })
 }

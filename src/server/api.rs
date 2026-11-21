@@ -182,12 +182,12 @@ pub async fn download_status_handler(
 }
 
 pub async fn list_tracks_handler(State(state): State<AppState>) -> impl IntoResponse {
-    let tracks = state.db.list_all_tracks().unwrap_or_default();
+    let tracks = crate::utils::system::scan_local_music_dirs(&state.config, &state.db);
     Json(serde_json::json!({ "tracks": tracks }))
 }
 
-/// Streams audio file from disk in 8KB chunks with HTTP Range support.
-/// Never loads full audio file into server RAM.
+/// Streams audio file (`.mp3`, `.flac`, `.m4a`, `.opus`, `.ogg`, `.wav`) from disk in 8KB chunks
+/// with HTTP Range support. Never loads full audio file into server RAM.
 pub async fn stream_track_handler(
     State(state): State<AppState>,
     Path(track_id): Path<String>,
@@ -195,6 +195,9 @@ pub async fn stream_track_handler(
 ) -> Response {
     let clean_id: String = track_id
         .trim_end_matches(".mp3")
+        .trim_end_matches(".flac")
+        .trim_end_matches(".m4a")
+        .trim_end_matches(".opus")
         .chars()
         .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
         .collect();
@@ -202,14 +205,22 @@ pub async fn stream_track_handler(
     let file_path = if let Ok(Some(track)) = state.db.get_track(&clean_id) {
         track.file_path
     } else {
-        let storage = state.config.resolve_music_storage();
-        let candidate = storage.active_path.join(format!("{}.mp3", clean_id));
-        if candidate.exists() {
-            candidate
+        // Trigger a quick scan if track wasn't in DB yet
+        let _ = crate::utils::system::scan_local_music_dirs(&state.config, &state.db);
+        if let Ok(Some(track)) = state.db.get_track(&clean_id) {
+            track.file_path
         } else {
-            state.config.fallback_music_dir.join(format!("{}.mp3", clean_id))
+            let storage = state.config.resolve_music_storage();
+            let candidate = storage.active_path.join(format!("{}.mp3", clean_id));
+            if candidate.exists() {
+                candidate
+            } else {
+                state.config.fallback_music_dir.join(format!("{}.mp3", clean_id))
+            }
         }
     };
+
+    let content_type = crate::utils::system::audio_mime_for_path(&file_path);
 
     let mut file = match File::open(&file_path).await {
         Ok(f) => f,
@@ -250,7 +261,7 @@ pub async fn stream_track_handler(
 
             return Response::builder()
                 .status(StatusCode::PARTIAL_CONTENT)
-                .header(header::CONTENT_TYPE, "audio/mpeg")
+                .header(header::CONTENT_TYPE, content_type)
                 .header(header::ACCEPT_RANGES, "bytes")
                 .header(header::CONTENT_LENGTH, length.to_string())
                 .header(header::CONTENT_RANGE, content_range)
@@ -262,7 +273,7 @@ pub async fn stream_track_handler(
     let stream = ReaderStream::with_capacity(file, STREAM_CHUNK_SIZE);
     Response::builder()
         .status(StatusCode::OK)
-        .header(header::CONTENT_TYPE, "audio/mpeg")
+        .header(header::CONTENT_TYPE, content_type)
         .header(header::ACCEPT_RANGES, "bytes")
         .header(header::CONTENT_LENGTH, total_size.to_string())
         .body(Body::from_stream(stream))

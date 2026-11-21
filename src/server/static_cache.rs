@@ -35,6 +35,12 @@ fn serve_embedded_path(path: &str, req_headers: &HeaderMap) -> Response {
     let mime = mime_from_path(path);
     let etag = generate_etag(&body_bytes);
 
+    let cache_header = if path == "index.html" || path == "sw.js" {
+        "no-cache, must-revalidate"
+    } else {
+        "public, max-age=31536000, immutable"
+    };
+
     if let Some(if_none_match) = req_headers
         .get(header::IF_NONE_MATCH)
         .and_then(|v| v.to_str().ok())
@@ -43,10 +49,7 @@ fn serve_embedded_path(path: &str, req_headers: &HeaderMap) -> Response {
             return Response::builder()
                 .status(StatusCode::NOT_MODIFIED)
                 .header(header::ETAG, etag)
-                .header(
-                    header::CACHE_CONTROL,
-                    "public, max-age=31536000, immutable",
-                )
+                .header(header::CACHE_CONTROL, cache_header)
                 .body(axum::body::Body::empty())
                 .unwrap_or_else(|_| StatusCode::NOT_MODIFIED.into_response());
         }
@@ -55,10 +58,7 @@ fn serve_embedded_path(path: &str, req_headers: &HeaderMap) -> Response {
     Response::builder()
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, mime)
-        .header(
-            header::CACHE_CONTROL,
-            "public, max-age=31536000, immutable",
-        )
+        .header(header::CACHE_CONTROL, cache_header)
         .header(header::ETAG, etag)
         .body(axum::body::Body::from(body_bytes))
         .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
