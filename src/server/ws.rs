@@ -27,6 +27,8 @@ pub enum ClientWsAction {
         arch: Option<String>,
         client_timestamp_ms: Option<u64>,
     },
+    #[serde(rename = "leave_room")]
+    LeaveRoom,
     #[serde(rename = "ntp_ping")]
     NtpPing {
         client_timestamp_ms: u64,
@@ -206,6 +208,10 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                                     room_id: current_room_id.clone(),
                                     connected_users: users_list,
                                 });
+                            }
+
+                            ClientWsAction::LeaveRoom => {
+                                remove_user_from_room(&room_handle, &client_id).await;
                             }
 
                             ClientWsAction::NtpPing { client_timestamp_ms } => {

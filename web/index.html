@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#030303">
-  <meta name="description" content="Senandung Music: Self-Hosted YouTube Music Experience dengan Live Room Multi-Device Sync">
+  <meta name="description" content="Senandung v3 Remake: Self-Hosted Music Server dengan Mode Solo &amp; Live Room Multi-Device Audio Sync">
   <title>Senandung Music</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230d0d0d' stroke='%23ff0033' stroke-width='2'/%3E%3Cpath d='M21 10.5C21 8.6 18.8 7.5 16 7.5C13.2 7.5 11 8.8 11 10.8C11 15 21 14.2 21 19.2C21 21.5 18.8 23 16 23C13.2 23 11 21.6 11 19.5' stroke='%23ff0033' stroke-width='2.6' stroke-linecap='round' fill='none'/%3E%3Cpath d='M7.5 13.5V18.5M24.5 13.5V18.5' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E">
   <script>
-    // Purge legacy immutable Service Worker caches (senandung-v3.0.1) immediately before CSS/JS loads
     if ('caches' in window) {
       caches.keys().then(function(keys) {
         keys.forEach(function(k) {
-          if (k !== 'senandung-v3.0.2-ytm') caches.delete(k);
+          if (k !== 'senandung-v3.0.3-remake') caches.delete(k);
         });
       });
     }
@@ -21,10 +21,10 @@
       });
     }
   </script>
-  <link rel="stylesheet" href="/style.css?v=3.0.2">
+  <link rel="stylesheet" href="/style.css?v=3.0.3">
 </head>
 <body class="desktop">
-  <!-- YouTube Music Top Header Bar -->
+  <!-- Top Header Bar -->
   <header class="ytm-topbar" role="banner">
     <div class="ytm-topbar-left">
       <button
@@ -39,32 +39,37 @@
         </svg>
       </button>
 
+      <!-- Requirement #5: New Original Senandung v3 Remake Icon (Vinyl S-Wave Pulse Emblem) -->
       <a href="#beranda" class="ytm-brand" id="brand-home-link" aria-label="Senandung Music Beranda">
-        <span class="ytm-brand-circle" aria-hidden="true">
-          <svg width="26" height="26" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="14" cy="14" r="14" fill="#FF0000"/>
-            <circle cx="14" cy="14" r="8.2" stroke="#FFFFFF" stroke-width="1.6"/>
-            <path d="M12 10.5L17.5 14L12 17.5V10.5Z" fill="#FFFFFF"/>
+        <span class="ytm-brand-emblem" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1" y="1" width="30" height="30" rx="8" fill="#121212" stroke="#ff0033" stroke-width="2"/>
+            <path d="M20.5 10.5C20.5 8.7 18.5 7.5 16 7.5C13.3 7.5 11.5 8.8 11.5 10.8C11.5 14.8 20.5 14.2 20.5 19C20.5 21.3 18.5 22.8 16 22.8C13.4 22.8 11.5 21.4 11.5 19.4" stroke="#ff0033" stroke-width="2.6" stroke-linecap="round"/>
+            <path d="M7.2 13.5V18.5M24.8 13.5V18.5" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
+            <circle cx="16" cy="15.2" r="1.7" fill="#ffffff"/>
           </svg>
         </span>
-        <span class="ytm-brand-word">Senandung</span>
+        <div class="ytm-brand-title-col">
+          <span class="ytm-brand-word">Senandung</span>
+          <span class="ytm-brand-remake-tag">v3 REMAKE</span>
+        </div>
       </a>
     </div>
 
-    <!-- Center Search Box (Matches YouTube Music Top Search Pill) -->
+    <!-- Center Global Search Bar (Switches to Eksplorasi or searches YouTube/Web Music) -->
     <div class="ytm-topbar-center" id="topbar-search-container">
       <form id="search-form" class="ytm-search-box" role="search">
-        <button type="submit" id="btn-search-submit" class="ytm-search-icon-btn" aria-label="Cari lagu">
+        <button type="submit" id="btn-search-submit" class="ytm-search-icon-btn" aria-label="Cari di YouTube dan Web Musik">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M20.87 20.17l-5.59-5.59C16.35 13.35 17 11.75 17 10c0-3.87-3.13-7-7-7s-7 3.13-7 7 3.13 7 7 7c1.75 0 3.35-.65 4.58-1.71l5.59 5.59.7-.71zM10 16c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/>
           </svg>
         </button>
-        <label for="search-input" class="visually-hidden">Telusuri lagu, album, artis</label>
+        <label for="search-input" class="visually-hidden">Cari di YouTube atau Web Musik</label>
         <input
           type="search"
           id="search-input"
           class="ytm-search-input"
-          placeholder="Telusuri lagu, album, artis, atau unduh dari YouTube"
+          placeholder="Eksplorasi lagu di YouTube &amp; web musik..."
           autocomplete="off"
         >
         <button
@@ -78,21 +83,23 @@
       </form>
     </div>
 
-    <!-- Right Utilities: Mobile Search Trigger, Viewport Toggle, Cast = Masuk Room, Retro Anime/Doodle Avatar -->
+    <!-- Right Utilities: Sleep Timer, Viewport Toggle, Cast Room + Quick Leave Button, Avatar Selector -->
     <div class="ytm-topbar-right">
+      <!-- Value-Add Feature #6: Sleep Timer Button -->
       <button
         type="button"
-        id="btn-mobile-search-toggle"
-        class="ytm-icon-btn mobile-only-btn"
-        aria-label="Buka kolom pencarian"
-        title="Telusuri"
+        id="btn-sleep-timer"
+        class="ytm-icon-btn"
+        aria-label="Pengatur Waktu Tidur (Sleep Timer)"
+        title="Sleep Timer: Mati"
       >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M20.87 20.17l-5.59-5.59C16.35 13.35 17 11.75 17 10c0-3.87-3.13-7-7-7s-7 3.13-7 7 3.13 7 7 7c1.75 0 3.35-.65 4.58-1.71l5.59 5.59.7-.71zM10 16c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
         </svg>
+        <span class="sleep-badge hidden" id="sleep-timer-badge">OFF</span>
       </button>
 
-      <!-- Viewport Toggle (Desktop / Mobile) -->
+      <!-- Viewport Mode Toggle (Desktop / Mobile) -->
       <button
         type="button"
         id="btn-view-toggle"
@@ -111,28 +118,40 @@
         <span class="visually-hidden" id="view-mode-label">Desktop</span>
       </button>
 
-      <!-- Requirement #2: Cast Icon replaced with "Masuk Room" button & active room indicator -->
-      <button
-        type="button"
-        id="btn-cast-room"
-        class="ytm-cast-room-btn"
-        aria-label="Masuk atau pindah Live Room Sinkronisasi"
-        title="Cast & Masuk Live Room"
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M21 3H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11z"/>
-        </svg>
-        <span class="cast-room-badge" id="topbar-room-badge">Lobby</span>
-        <span class="ws-live-indicator" id="ws-status-dot"></span>
-      </button>
+      <!-- Requirement #2: Cast Room Group with Direct Leave ("Keluar") Button in Top-Right -->
+      <div class="ytm-cast-group">
+        <button
+          type="button"
+          id="btn-cast-room"
+          class="ytm-cast-room-btn"
+          aria-label="Masuk atau kelola Live Room"
+          title="Klik untuk masuk Live Room bersama"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M21 3H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11z"/>
+          </svg>
+          <span class="cast-room-badge" id="topbar-room-badge">Mode Solo</span>
+          <span class="ws-live-indicator" id="ws-status-dot"></span>
+        </button>
 
-      <!-- Requirement #1: Top-right Random Retro Anime / Doodle Avatar Button (Auto-saves per device token) -->
+        <button
+          type="button"
+          id="btn-topbar-leave-room"
+          class="ytm-cast-leave-btn hidden"
+          aria-label="Keluar dari Live Room dan kembali ke Mode Solo"
+          title="Keluar dari Room (Kembali ke Mode Solo)"
+        >
+          Keluar
+        </button>
+      </div>
+
+      <!-- Requirement #4: Top-Right Selectable Avatar Profile Button -->
       <button
         type="button"
         id="btn-device-profile"
         class="ytm-avatar-btn"
-        aria-label="Profil Perangkat dan Avatar Retro"
-        title="Klik untuk melihat/mengubah nama device & avatar"
+        aria-label="Pilih Ikon Profil dan Ubah Nama Perangkat"
+        title="Pilih Ikon Avatar &amp; Nama Device"
       >
         <span class="ytm-avatar-art" id="topbar-avatar-svg" aria-hidden="true"></span>
       </button>
@@ -140,56 +159,56 @@
   </header>
 
   <div class="ytm-app-shell">
-    <!-- Left Navigation Sidebar (Exact YouTube Music Layout) -->
-    <aside class="ytm-sidebar" id="app-sidebar" aria-label="Menu Utama">
+    <!-- Requirement #1: Left Navigation Sidebar with exact 4 items: a. Beranda, b. Eksplorasi, c. Playlist, d. Room -->
+    <aside class="ytm-sidebar" id="app-sidebar" aria-label="Navigasi Utama">
       <nav class="ytm-nav-primary">
-        <button type="button" class="ytm-nav-item active" data-nav="beranda" id="nav-btn-beranda">
+        <button type="button" class="ytm-nav-item active" data-tab="beranda" id="nav-btn-beranda">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 4.33l7 6.12V20h-4v-6H9v6H5v-9.55l7-6.12M12 3L4 10v11h6v-6h4v6h6V10l-8-7z"/>
           </svg>
           <span>Beranda</span>
         </button>
 
-        <button type="button" class="ytm-nav-item" data-nav="eksplorasi" id="nav-btn-eksplorasi">
+        <button type="button" class="ytm-nav-item" data-tab="eksplorasi" id="nav-btn-eksplorasi">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5.5-2.5l7.51-3.49L17.5 6.5 9.99 9.99 6.5 17.5zm5.5-6.6c.61 0 1.1.49 1.1 1.1s-.49 1.1-1.1 1.1-1.1-.49-1.1-1.1.49-1.1 1.1-1.1z"/>
           </svg>
           <span>Eksplorasi</span>
         </button>
 
-        <button type="button" class="ytm-nav-item" data-nav="koleksi" id="nav-btn-koleksi">
+        <button type="button" class="ytm-nav-item" data-tab="playlist" id="nav-btn-playlist">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15l-5-2.18L7 18V5h10v13z"/>
+            <path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/>
           </svg>
-          <span>Koleksi HDD</span>
+          <span>Playlist</span>
         </button>
 
-        <button type="button" class="ytm-nav-item" data-nav="liveroom" id="nav-btn-liveroom">
+        <button type="button" class="ytm-nav-item" data-tab="room" id="nav-btn-room">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+            <path d="M21 3H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11z"/>
           </svg>
-          <span>Antrean Room</span>
+          <span>Room</span>
         </button>
       </nav>
 
       <div class="ytm-sidebar-divider"></div>
 
       <div class="ytm-sidebar-playlists">
-        <button type="button" id="btn-open-room-modal-side" class="ytm-new-playlist-pill">
+        <button type="button" id="btn-new-custom-playlist" class="ytm-new-playlist-pill">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
           </svg>
-          <span>Masuk Room Baru</span>
+          <span>+ Playlist Baru</span>
         </button>
 
         <div class="ytm-sidebar-list">
-          <div class="ytm-sidebar-pl-item" id="side-shortcut-lobby">
-            <div class="ytm-pl-title">Live Room: <strong id="active-room-label">Lobby</strong></div>
-            <div class="ytm-pl-sub"><span id="listener-count-badge">1</span> perangkat • <span id="ntp-offset-badge">NTP 0ms</span></div>
+          <div class="ytm-sidebar-pl-item">
+            <div class="ytm-pl-title">Mode: <strong id="active-room-label">Solo (Mandiri)</strong></div>
+            <div class="ytm-pl-sub"><span id="listener-count-badge">1</span> perangkat • <span id="ntp-offset-badge">Lokal</span></div>
           </div>
-          <div class="ytm-sidebar-pl-item" id="side-shortcut-hdd">
-            <div class="ytm-pl-title">Koleksi Fisik STB</div>
-            <div class="ytm-pl-sub" id="storage-status-bar">Memindai /mnt/hdd1...</div>
+          <div class="ytm-sidebar-pl-item">
+            <div class="ytm-pl-title">Penyimpanan Musik STB</div>
+            <div class="ytm-pl-sub" id="storage-status-bar">/mnt/hdd1/senandung</div>
           </div>
           <div class="ytm-sidebar-pl-item">
             <div class="ytm-pl-title" id="device-name-display">Memuat Device...</div>
@@ -199,12 +218,12 @@
       </div>
     </aside>
 
-    <!-- Main Scrollable Content Feed (Exact YouTube Music Shelves & Carousels) -->
+    <!-- Main Scrollable Feed -->
     <main class="ytm-main-feed" id="main-content">
-      <!-- Status / Notification Banners -->
+      <!-- Global Notifications -->
       <div id="room-error-banner" class="ytm-banner ytm-banner-error hidden" role="alert">
-        <span id="room-error-text">Terjadi gangguan koneksi.</span>
-        <button type="button" id="btn-retry-ws" class="ytm-pill-btn">Hubungkan Ulang</button>
+        <span id="room-error-text">Terjadi gangguan pemutaran.</span>
+        <button type="button" id="btn-retry-ws" class="ytm-pill-btn">Muat Ulang</button>
       </div>
 
       <div id="download-status-banner" class="ytm-banner ytm-banner-info hidden" role="status" aria-live="polite">
@@ -212,118 +231,261 @@
         <span id="download-status-text">Mengunduh lagu ke penyimpanan STB...</span>
       </div>
 
-      <!-- Quick Mood / Filter Chips Row (YouTube Music Top Chips) -->
-      <div class="ytm-chips-bar" role="tablist" aria-label="Filter tampilan musik">
-        <button type="button" class="ytm-chip active" data-chip="all">Semua</button>
-        <button type="button" class="ytm-chip" data-chip="dengarkan-lagi">Dengarkan lagi</button>
-        <button type="button" class="ytm-chip" data-chip="dengarkan-bersama">Dengarkan bersama</button>
-        <button type="button" class="ytm-chip" data-chip="hdd-lokal">Koleksi HDD1</button>
-        <button type="button" class="ytm-chip" data-chip="cari-youtube">Pencarian YouTube</button>
-      </div>
-
-      <!-- Conditional Shelf: YouTube Search Results (Appears right at top when user searches) -->
-      <section id="shelf-search-results" class="ytm-shelf hidden" aria-labelledby="heading-search">
-        <div class="ytm-shelf-header">
-          <div>
-            <span class="ytm-shelf-eyebrow">HASIL PENCARIAN YOUTUBE (INNERTUBE LIVE)</span>
-            <h2 id="heading-search" class="ytm-shelf-title">Hasil Telusur</h2>
-          </div>
-          <button type="button" id="btn-close-search-shelf" class="ytm-pill-btn">Tutup Hasil</button>
+      <!-- ====================================================================
+           TAB 1: BERANDA (a. Album, b. Grup Band, c. History, d. Semua Lagu + Cari Satu-Satu)
+           ==================================================================== -->
+      <div id="tab-view-beranda" class="ytm-tab-view">
+        <!-- Category Jump Chips -->
+        <div class="ytm-chips-bar" role="tablist" aria-label="Kategori Beranda">
+          <button type="button" class="ytm-chip active" data-home-filter="all">Semua Kategori</button>
+          <button type="button" class="ytm-chip" data-home-filter="album">Album</button>
+          <button type="button" class="ytm-chip" data-home-filter="band">Grup Band</button>
+          <button type="button" class="ytm-chip" data-home-filter="history">History</button>
+          <button type="button" class="ytm-chip" data-home-filter="all-songs">Cari Satu-Satu Lagu</button>
         </div>
 
-        <div id="search-loading-state" class="ytm-banner ytm-banner-info hidden" role="status">
-          <span class="ytm-pulse-dot" aria-hidden="true"></span>
-          <span>Menelusuri katalog YouTube Music...</span>
-        </div>
-
-        <div id="search-error-state" class="ytm-banner ytm-banner-error hidden" role="alert">
-          <span id="search-error-text">Gagal memuat hasil pencarian.</span>
-        </div>
-
-        <div id="search-empty-state" class="ytm-empty-card hidden">
-          <p>Ketik judul lagu atau nama penyanyi di kolom pencarian atas untuk mengunduh &amp; memutar di Live Room.</p>
-        </div>
-
-        <div class="ytm-carousel-row ytm-search-grid" id="search-results-list" aria-label="Hasil pencarian YouTube"></div>
-      </section>
-
-      <!-- Shelf 1: Quick Picks / Top Collage Cards Row (Matches Top Row in image.png & image_2.png) -->
-      <section id="shelf-quick-collage" class="ytm-shelf" aria-label="Pilihan Cepat Koleksi">
-        <div class="ytm-carousel-wrapper">
-          <div class="ytm-carousel-row" id="quick-collage-carousel"></div>
-        </div>
-      </section>
-
-      <!-- Shelf 2: "Dengarkan lagi" with User Avatar & Carousel Arrows (Exact match to image.png & image_2.png) -->
-      <section id="shelf-listen-again" class="ytm-shelf" aria-labelledby="heading-listen-again">
-        <div class="ytm-shelf-header">
-          <div class="ytm-shelf-user-group">
-            <div class="ytm-shelf-avatar" id="shelf-user-avatar" aria-hidden="true"></div>
+        <!-- 3.a: Kategori ALBUM -->
+        <section id="home-sec-album" class="ytm-shelf" aria-labelledby="heading-home-album">
+          <div class="ytm-shelf-header">
             <div>
-              <span class="ytm-shelf-eyebrow" id="shelf-device-eyebrow">SENANDUNG</span>
-              <h2 id="heading-listen-again" class="ytm-shelf-title">Dengarkan lagi</h2>
+              <span class="ytm-shelf-eyebrow">KOLEKSI ALBUM &amp; FOLDER</span>
+              <h2 id="heading-home-album" class="ytm-shelf-title">Album</h2>
+            </div>
+            <div class="ytm-shelf-controls">
+              <button type="button" class="ytm-arrow-btn" data-scroll-target="home-album-carousel" data-dir="-1" aria-label="Geser Album ke kiri">‹</button>
+              <button type="button" class="ytm-arrow-btn" data-scroll-target="home-album-carousel" data-dir="1" aria-label="Geser Album ke kanan">›</button>
             </div>
           </div>
-          <div class="ytm-shelf-controls">
-            <button type="button" id="btn-refresh-library" class="ytm-pill-btn" title="Pindai ulang folder /mnt/hdd1/senandung">
-              Pindai HDD
-            </button>
-            <button type="button" class="ytm-arrow-btn" data-scroll-target="server-library-list" data-dir="-1" aria-label="Geser ke kiri">
-              ‹
-            </button>
-            <button type="button" class="ytm-arrow-btn" data-scroll-target="server-library-list" data-dir="1" aria-label="Geser ke kanan">
-              ›
-            </button>
+          <div class="ytm-carousel-row" id="home-album-carousel"></div>
+        </section>
+
+        <!-- 3.b: Kategori GRUP BAND / ARTIS -->
+        <section id="home-sec-band" class="ytm-shelf" aria-labelledby="heading-home-band">
+          <div class="ytm-shelf-header">
+            <div>
+              <span class="ytm-shelf-eyebrow">ARTIS &amp; GRUP MUSIK</span>
+              <h2 id="heading-home-band" class="ytm-shelf-title">Grup Band</h2>
+            </div>
+            <div class="ytm-shelf-controls">
+              <button type="button" id="btn-clear-band-filter" class="ytm-pill-btn hidden">Tampilkan Semua Band</button>
+              <button type="button" class="ytm-arrow-btn" data-scroll-target="home-band-carousel" data-dir="-1" aria-label="Geser Grup Band ke kiri">‹</button>
+              <button type="button" class="ytm-arrow-btn" data-scroll-target="home-band-carousel" data-dir="1" aria-label="Geser Grup Band ke kanan">›</button>
+            </div>
           </div>
-        </div>
+          <div class="ytm-carousel-row" id="home-band-carousel"></div>
+        </section>
 
-        <div id="library-empty-state" class="ytm-empty-card hidden">
-          <p class="ytm-empty-title">Belum Ada Lagu di Penyimpanan Disk</p>
-          <p class="ytm-empty-sub">Gunakan kotak pencarian di bagian atas untuk mencari lagu dari YouTube dan mengunduhnya ke `/mnt/hdd1/senandung`.</p>
-        </div>
-
-        <div class="ytm-carousel-row ytm-wide-cards" id="server-library-list" aria-label="Koleksi lagu di penyimpanan server"></div>
-      </section>
-
-      <!-- Shelf 3: "STASIUN • Dengarkan bersama" (Live Room Sync Queue & Connected Listeners) -->
-      <section id="shelf-listen-together" class="ytm-shelf" aria-labelledby="heading-listen-together">
-        <div class="ytm-shelf-header">
-          <div>
-            <span class="ytm-shelf-eyebrow">STASIUN LIVE ROOM • <span id="playlist-count-label">0 lagu</span></span>
-            <h2 id="heading-listen-together" class="ytm-shelf-title">Dengarkan bersama</h2>
+        <!-- 3.c: Kategori HISTORY (Riwayat Lagu yang Baru Diputar) -->
+        <section id="home-sec-history" class="ytm-shelf" aria-labelledby="heading-home-history">
+          <div class="ytm-shelf-header">
+            <div class="ytm-shelf-user-group">
+              <div class="ytm-shelf-avatar" id="shelf-user-avatar" aria-hidden="true"></div>
+              <div>
+                <span class="ytm-shelf-eyebrow" id="shelf-device-eyebrow">RIWAYAT PEMUTARAN</span>
+                <h2 id="heading-home-history" class="ytm-shelf-title">History</h2>
+              </div>
+            </div>
+            <div class="ytm-shelf-controls">
+              <button type="button" id="btn-clear-history" class="ytm-pill-btn">Bersihkan History</button>
+              <button type="button" class="ytm-arrow-btn" data-scroll-target="home-history-carousel" data-dir="-1" aria-label="Geser History ke kiri">‹</button>
+              <button type="button" class="ytm-arrow-btn" data-scroll-target="home-history-carousel" data-dir="1" aria-label="Geser History ke kanan">›</button>
+            </div>
           </div>
-          <div class="ytm-shelf-controls">
-            <button type="button" id="btn-open-room-modal-main" class="ytm-pill-btn">
-              Pindah Room
-            </button>
-            <button type="button" class="ytm-arrow-btn" data-scroll-target="room-playlist-list" data-dir="-1" aria-label="Geser ke kiri">
-              ‹
-            </button>
-            <button type="button" class="ytm-arrow-btn" data-scroll-target="room-playlist-list" data-dir="1" aria-label="Geser ke kanan">
-              ›
-            </button>
+          <div id="history-empty-state" class="ytm-empty-card hidden">
+            <p class="ytm-empty-title">Belum Ada Riwayat Pemutaran</p>
+            <p class="ytm-empty-sub">Lagu yang Anda putar akan otomatis tercatat di bagian History ini.</p>
           </div>
-        </div>
+          <div class="ytm-carousel-row ytm-wide-cards" id="home-history-carousel"></div>
+        </section>
 
-        <!-- Connected Devices Chips inside "Dengarkan bersama" -->
-        <div class="ytm-listeners-strip">
-          <span class="ytm-listeners-label">Pendengar Aktif:</span>
-          <ul class="ytm-listener-chips" id="connected-users-list"></ul>
-        </div>
+        <!-- 3.d: SEMUA LAGU YANG BISA DICARI SATU-SATU (Replaces "Dengarkan bersama" on Home) -->
+        <section id="home-sec-all-songs" class="ytm-shelf" aria-labelledby="heading-home-all-songs">
+          <div class="ytm-shelf-header ytm-shelf-header-wrap">
+            <div>
+              <span class="ytm-shelf-eyebrow">KOLEKSI LENGKAP HDD1 • <span id="library-total-count">0 lagu</span></span>
+              <h2 id="heading-home-all-songs" class="ytm-shelf-title">Semua Lagu</h2>
+            </div>
 
-        <div id="playlist-empty-state" class="ytm-empty-card hidden">
-          <p class="ytm-empty-title">Antrean Live Room Masih Kosong</p>
-          <p class="ytm-empty-sub">Klik salah satu lagu di "Dengarkan lagi" atau cari lagu di kolom pencarian atas untuk memutar bersama.</p>
-        </div>
+            <div class="ytm-local-search-bar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M20.87 20.17l-5.59-5.59C16.35 13.35 17 11.75 17 10c0-3.87-3.13-7-7-7s-7 3.13-7 7 3.13 7 7 7c1.75 0 3.35-.65 4.58-1.71l5.59 5.59.7-.71zM10 16c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/>
+              </svg>
+              <label for="local-song-filter-input" class="visually-hidden">Cari satu-satu lagu di koleksi</label>
+              <input
+                type="search"
+                id="local-song-filter-input"
+                class="ytm-local-filter-input"
+                placeholder="Cari satu-satu lagu, grup band, atau album..."
+                autocomplete="off"
+              >
+              <button type="button" id="btn-play-all-filtered" class="ytm-primary-btn ytm-btn-sm">
+                ▶ Putar Semua
+              </button>
+              <button type="button" id="btn-refresh-library" class="ytm-pill-btn ytm-btn-sm" title="Pindai ulang folder /mnt/hdd1/senandung">
+                Pindai HDD
+              </button>
+            </div>
+          </div>
 
-        <div class="ytm-carousel-row ytm-wide-cards" id="room-playlist-list" aria-label="Daftar putar Live Room"></div>
-      </section>
+          <div id="library-empty-state" class="ytm-empty-card hidden">
+            <p class="ytm-empty-title">Tidak Ada Lagu yang Cocok</p>
+            <p class="ytm-empty-sub">Coba kata kunci lain atau buka tab <strong>Eksplorasi</strong> untuk mengunduh lagu baru dari YouTube.</p>
+          </div>
+
+          <!-- Searchable Song List / Grid -->
+          <div class="ytm-song-table" id="server-library-list" aria-label="Daftar Semua Lagu"></div>
+        </section>
+      </div>
+
+      <!-- ====================================================================
+           TAB 2: EKSPLORASI (Cari di YouTube atau Web Musik Lainnya)
+           ==================================================================== -->
+      <div id="tab-view-eksplorasi" class="ytm-tab-view hidden">
+        <section class="ytm-shelf" aria-labelledby="heading-eksplorasi">
+          <div class="ytm-shelf-header ytm-shelf-header-wrap">
+            <div>
+              <span class="ytm-shelf-eyebrow">PENCARIAN ONLINE MULTI-SUMBER (YOUTUBE MUSIC, BAND &amp; LIVE)</span>
+              <h2 id="heading-eksplorasi" class="ytm-shelf-title">Eksplorasi Musik &amp; Unduh ke STB</h2>
+            </div>
+          </div>
+
+          <!-- Source Filter Chips for Eksplorasi -->
+          <div class="ytm-chips-bar" role="tablist" aria-label="Sumber Pencarian Musik">
+            <button type="button" class="ytm-chip active" data-explore-source="ytm">YouTube Music</button>
+            <button type="button" class="ytm-chip" data-explore-source="official">Official Audio / MV</button>
+            <button type="button" class="ytm-chip" data-explore-source="lyrics">Lirik &amp; Karaoke</button>
+            <button type="button" class="ytm-chip" data-explore-source="live">Live Acoustic / Cover</button>
+            <button type="button" class="ytm-chip" data-explore-source="fullalbum">Full Album / Nonstop</button>
+          </div>
+
+          <form id="explore-inline-form" class="ytm-explore-search-hero">
+            <input
+              type="search"
+              id="explore-query-input"
+              class="ytm-text-field ytm-explore-input"
+              placeholder="Ketik judul lagu, grup band (ST12, Guyon Waton, Armada, Sheila on 7), atau URL..."
+            >
+            <button type="submit" class="ytm-primary-btn">
+              Cari Sekarang
+            </button>
+          </form>
+
+          <div id="search-loading-state" class="ytm-banner ytm-banner-info hidden" role="status">
+            <span class="ytm-pulse-dot" aria-hidden="true"></span>
+            <span>Mencari lagu di jaringan musik...</span>
+          </div>
+
+          <div id="search-error-state" class="ytm-banner ytm-banner-error hidden" role="alert">
+            <span id="search-error-text">Gagal memuat hasil pencarian.</span>
+          </div>
+
+          <div id="search-empty-state" class="ytm-empty-card">
+            <p class="ytm-empty-title">Siap Menjelajahi Musik Baru</p>
+            <p class="ytm-empty-sub">Ketik judul lagu atau grup band di atas. Lagu yang diunduh akan otomatis tersimpan permanen di `/mnt/hdd1/senandung` dan siap diputar kapan saja.</p>
+          </div>
+
+          <div class="ytm-media-grid" id="search-results-list" aria-label="Hasil Eksplorasi Musik"></div>
+        </section>
+      </div>
+
+      <!-- ====================================================================
+           TAB 3: PLAYLIST (Favorit, Antrean Aktif & Playlist Kustom)
+           ==================================================================== -->
+      <div id="tab-view-playlist" class="ytm-tab-view hidden">
+        <section class="ytm-shelf" aria-labelledby="heading-playlist-tab">
+          <div class="ytm-shelf-header ytm-shelf-header-wrap">
+            <div>
+              <span class="ytm-shelf-eyebrow">KOLEKSI PLAYLIST PRIBADI &amp; FAVORIT</span>
+              <h2 id="heading-playlist-tab" class="ytm-shelf-title">Playlist Saya</h2>
+            </div>
+            <div class="ytm-shelf-controls">
+              <button type="button" id="btn-create-playlist-main" class="ytm-primary-btn">
+                + Buat Playlist Baru
+              </button>
+            </div>
+          </div>
+
+          <!-- Playlist Selector Pills -->
+          <div class="ytm-chips-bar" id="custom-playlists-bar"></div>
+
+          <div id="custom-playlist-empty" class="ytm-empty-card hidden">
+            <p class="ytm-empty-title">Playlist Ini Masih Kosong</p>
+            <p class="ytm-empty-sub">Klik tombol <strong>♡</strong> atau <strong>+ Playlist</strong> pada lagu di Beranda untuk menambahkan ke playlist ini.</p>
+          </div>
+
+          <div class="ytm-song-table" id="custom-playlist-tracks"></div>
+        </section>
+      </div>
+
+      <!-- ====================================================================
+           TAB 4: ROOM (Masuk Room, Sinkronisasi Multi-Perangkat & Tombol Keluar Room)
+           ==================================================================== -->
+      <div id="tab-view-room" class="ytm-tab-view hidden">
+        <section class="ytm-shelf" aria-labelledby="heading-room-tab">
+          <!-- Room Status Banner Card -->
+          <div class="ytm-room-hero-card">
+            <div class="ytm-room-hero-left">
+              <span class="ytm-shelf-eyebrow" id="room-tab-mode-eyebrow">STATUS SINKRONISASI</span>
+              <h2 id="heading-room-tab" class="ytm-shelf-title">Mode Solo (Pemutar Mandiri)</h2>
+              <p class="ytm-room-hero-desc" id="room-tab-mode-desc">
+                Anda sedang mendengarkan musik secara mandiri (Solo). Masuk ke Live Room untuk mendengarkan lagu serentak bersama perangkat lain.
+              </p>
+            </div>
+
+            <div class="ytm-room-hero-actions">
+              <button type="button" id="btn-room-tab-join" class="ytm-primary-btn">
+                Masuk Live Room
+              </button>
+              <button type="button" id="btn-room-tab-leave" class="ytm-danger-btn hidden">
+                Keluar Room (Kembali ke Solo)
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Room Join Panel inside Room Tab -->
+          <div class="ytm-room-join-panel" id="room-tab-join-panel">
+            <h3 class="ytm-sub-heading">Pilih atau Buat Nama Live Room</h3>
+            <div class="ytm-quick-rooms">
+              <button type="button" class="ytm-pill-btn quick-room-chip" data-room="Lobby">Lobby (Utama)</button>
+              <button type="button" class="ytm-pill-btn quick-room-chip" data-room="RuangKeluarga">RuangKeluarga</button>
+              <button type="button" class="ytm-pill-btn quick-room-chip" data-room="Kafe">Kafe</button>
+              <button type="button" class="ytm-pill-btn quick-room-chip" data-room="TestRoom">TestRoom</button>
+            </div>
+            <div class="ytm-inline-room-form">
+              <input
+                type="text"
+                id="room-tab-inline-input"
+                class="ytm-text-field"
+                placeholder="Ketik nama room (contoh: Lobby)..."
+                value="Lobby"
+                maxlength="32"
+              >
+              <button type="button" id="btn-room-tab-inline-submit" class="ytm-primary-btn">
+                Gabung Room
+              </button>
+            </div>
+          </div>
+
+          <!-- Active Room Listeners & Synchronized Queue -->
+          <div class="ytm-listeners-strip">
+            <span class="ytm-listeners-label">Perangkat di Room (<span id="playlist-count-label">0 lagu</span>):</span>
+            <ul class="ytm-listener-chips" id="connected-users-list"></ul>
+          </div>
+
+          <div id="playlist-empty-state" class="ytm-empty-card hidden">
+            <p class="ytm-empty-title">Antrean Live Room Masih Kosong</p>
+            <p class="ytm-empty-sub">Tambahkan lagu dari Beranda menggunakan tombol <strong>+ Room</strong> untuk memutar bersama.</p>
+          </div>
+
+          <div class="ytm-song-table" id="room-playlist-list" aria-label="Antrean Lagu Live Room"></div>
+        </section>
+      </div>
     </main>
   </div>
 
-  <!-- YouTube Music Persistent Bottom Player Bar -->
+  <!-- Persistent Bottom Player Bar (Fixed Direct HTML5 Audio Engine) -->
   <footer class="ytm-player-bar" role="contentinfo" aria-label="Kontrol Pemutar Musik">
-    <!-- Top Thin Progress & Grey Buffering Rail along top edge of Player Bar (Exact YT Music style) -->
+    <!-- Top Thin Progress & Grey Buffering Rail -->
     <div
       class="ytm-progress-line"
       id="progress-rail"
@@ -339,14 +501,14 @@
     </div>
 
     <div class="ytm-player-inner">
-      <!-- Left Transport Controls (Prev, Play/Pause, Next, Time) -->
+      <!-- Left Transport Controls (Prev, Play/Pause, Next, Shuffle, Repeat, Time) -->
       <div class="ytm-player-left">
         <button
           type="button"
           id="btn-prev-track"
           class="ytm-transport-btn"
-          aria-label="Ulangi dari awal lagu"
-          title="Awal Lagu"
+          aria-label="Lagu Sebelumnya"
+          title="Lagu Sebelumnya"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
@@ -358,7 +520,6 @@
           id="btn-play-toggle"
           class="ytm-transport-btn ytm-play-btn"
           aria-label="Putar atau Jeda"
-          disabled
         >
           <svg id="icon-play" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M8 5v14l11-7L8 5Z"/>
@@ -375,10 +536,34 @@
           class="ytm-transport-btn"
           aria-label="Lagu Berikutnya"
           title="Lagu Berikutnya"
-          disabled
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M6 18l8.5-6L6 6v12ZM16 6v12h2V6h-2Z"/>
+          </svg>
+        </button>
+
+        <!-- Value-Add Feature #6: Shuffle & Repeat Controls -->
+        <button
+          type="button"
+          id="btn-shuffle-toggle"
+          class="ytm-transport-btn ytm-sub-transport"
+          aria-label="Acak Lagu (Shuffle)"
+          title="Shuffle: Mati"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
+          </svg>
+        </button>
+
+        <button
+          type="button"
+          id="btn-repeat-toggle"
+          class="ytm-transport-btn ytm-sub-transport"
+          aria-label="Ulangi Lagu (Repeat)"
+          title="Repeat: Semua"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
           </svg>
         </button>
 
@@ -387,37 +572,53 @@
         </span>
       </div>
 
-      <!-- Center Now Playing Info (Thumbnail + Title + Artist + Like/Dislike) -->
+      <!-- Center Now Playing Info -->
       <div class="ytm-player-center">
         <img
           id="now-playing-artwork"
           class="ytm-player-thumb"
-          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' fill='%23181818'/%3E%3Ccircle cx='40' cy='40' r='18' stroke='%23ff0000' stroke-width='3' fill='none'/%3E%3Ccircle cx='40' cy='40' r='5' fill='%23ffffff'/%3E%3C/svg%3E"
+          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' fill='%23181818'/%3E%3Ccircle cx='40' cy='40' r='18' stroke='%23ff0033' stroke-width='3' fill='none'/%3E%3Ccircle cx='40' cy='40' r='5' fill='%23ffffff'/%3E%3C/svg%3E"
           alt="Sampul lagu aktif"
           width="44"
           height="44"
           fetchpriority="high"
         >
         <div class="ytm-player-meta">
-          <div class="ytm-player-title" id="now-playing-title">Pilih lagu untuk diputar</div>
+          <div class="ytm-player-title" id="now-playing-title">Pilih lagu di Beranda untuk memutar</div>
           <div class="ytm-player-artist">
-            <span id="now-playing-artist">Senandung Live Room</span>
+            <span id="now-playing-artist">Mode Solo Aktif</span>
             <span class="ytm-meta-sep">•</span>
             <span id="buffer-percent-label">Buffer 0%</span>
           </div>
         </div>
-        <!-- Hidden legacy IDs preserved for compatibility -->
+        <button
+          type="button"
+          id="btn-like-current"
+          class="ytm-transport-btn"
+          aria-label="Simpan ke Playlist Favorit"
+          title="Suka / Simpan ke Playlist Favorit"
+        >
+          ♡
+        </button>
         <span class="hidden" id="dock-track-index">#-</span>
         <span class="hidden" id="dock-track-title"></span>
         <span class="hidden" id="dock-track-artist"></span>
       </div>
 
-      <!-- Right Controls (Volume, Room Sync Pill) -->
+      <!-- Right Controls: Mute/Unmute + Volume Slider -->
       <div class="ytm-player-right">
         <div class="ytm-volume-box">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
-          </svg>
+          <button
+            type="button"
+            id="btn-mute-toggle"
+            class="ytm-transport-btn"
+            aria-label="Bisukan atau Nyalakan Suara"
+            title="Suara Aktif"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+            </svg>
+          </button>
           <label for="volume-slider" class="visually-hidden">Volume</label>
           <input
             type="range"
@@ -426,7 +627,7 @@
             min="0"
             max="1"
             step="0.05"
-            value="0.9"
+            value="0.95"
             aria-label="Volume Audio"
           >
         </div>
@@ -434,7 +635,7 @@
     </div>
   </footer>
 
-  <!-- Modal 1: Retro Anime / Doodle Avatar & Device Identity (Auto-saves per device token) -->
+  <!-- Modal 1: Requirement #4 — Selectable Avatar Grid (Not Random!) & Auto-Save Device Name -->
   <div
     id="device-modal-backdrop"
     class="ytm-modal-backdrop hidden"
@@ -442,9 +643,9 @@
     aria-modal="true"
     aria-labelledby="device-modal-title"
   >
-    <div class="ytm-modal-card">
+    <div class="ytm-modal-card ytm-modal-wide">
       <div class="ytm-modal-header">
-        <h2 id="device-modal-title" class="ytm-modal-title">Profil Perangkat &amp; Avatar Retro</h2>
+        <h2 id="device-modal-title" class="ytm-modal-title">Pilih Karakter Avatar &amp; Nama Perangkat</h2>
         <button type="button" id="btn-close-modal" class="ytm-icon-btn" aria-label="Tutup dialog">✕</button>
       </div>
 
@@ -452,12 +653,12 @@
         <div class="ytm-avatar-preview-large" id="modal-avatar-preview"></div>
         <div class="ytm-avatar-picker-meta">
           <div class="ytm-token-badge" id="device-token-badge">Token: -</div>
-          <p class="ytm-modal-desc">Perubahan nama dan karakter avatar tersimpan otomatis sesuai token perangkat Anda.</p>
-          <button type="button" id="btn-reroll-avatar" class="ytm-pill-btn">
-            Ganti Karakter Doodle / Anime Retro
-          </button>
+          <p class="ytm-modal-desc">Klik salah satu karakter Doodle / Anime Retro di bawah untuk memilih avatar Anda. Tersimpan otomatis sesuai token perangkat.</p>
         </div>
       </div>
+
+      <!-- Selectable Avatar Grid (Requirement #4: User picks directly) -->
+      <div class="ytm-avatar-selection-grid" id="avatar-selection-grid" role="radiogroup" aria-label="Pilihan Karakter Avatar"></div>
 
       <form id="device-name-form" class="ytm-modal-form">
         <label for="device-name-input" class="ytm-field-label">Nama Perangkat (Auto-Save)</label>
@@ -468,20 +669,20 @@
           maxlength="36"
           required
         >
-        <span class="ytm-autosave-hint" id="device-autosave-status">Tersimpan otomatis di token lokal</span>
+        <span class="ytm-autosave-hint" id="device-autosave-status">Tersimpan otomatis sesuai token</span>
         <div class="ytm-modal-actions">
           <button type="button" id="btn-reset-device-name" class="ytm-pill-btn">
-            Reset Otomatis
+            Reset Nama Default
           </button>
           <button type="submit" class="ytm-primary-btn">
-            Selesai
+            Simpan &amp; Tutup
           </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Modal 2: Cast / Masuk Live Room Dialog (Triggered by Cast Icon in Topbar) -->
+  <!-- Modal 2: Requirement #2 — Cast / Masuk & Keluar Live Room Modal -->
   <div
     id="room-modal-backdrop"
     class="ytm-modal-backdrop hidden"
@@ -491,11 +692,11 @@
   >
     <div class="ytm-modal-card">
       <div class="ytm-modal-header">
-        <h2 id="room-modal-title" class="ytm-modal-title">Cast &amp; Masuk Live Room</h2>
+        <h2 id="room-modal-title" class="ytm-modal-title">Cast &amp; Live Room Multi-Perangkat</h2>
         <button type="button" id="btn-close-room-modal" class="ytm-icon-btn" aria-label="Tutup dialog">✕</button>
       </div>
       <p class="ytm-modal-desc">
-        Semua perangkat yang masuk ke nama Room yang sama akan mendengarkan musik secara sinkron (&lt;100ms).
+        Pilih Room untuk mendengarkan lagu secara sinkron bersama perangkat lain, atau klik <strong>Keluar Room</strong> untuk kembali ke Mode Solo.
       </p>
 
       <div class="ytm-quick-rooms">
@@ -506,7 +707,7 @@
       </div>
 
       <div class="ytm-modal-form">
-        <label for="room-input" class="ytm-field-label">Ketik Nama Live Room</label>
+        <label for="room-input" class="ytm-field-label">Nama Live Room</label>
         <input
           type="text"
           id="room-input"
@@ -516,6 +717,9 @@
           placeholder="Contoh: Lobby, TestRoom..."
         >
         <div class="ytm-modal-actions">
+          <button type="button" id="btn-modal-leave-room" class="ytm-danger-btn hidden">
+            Keluar Room (Mode Solo)
+          </button>
           <button type="button" id="btn-join-room" class="ytm-primary-btn">
             Masuk Room Sekarang
           </button>
@@ -524,6 +728,6 @@
     </div>
   </div>
 
-  <script src="/app.js?v=3.0.2" defer></script>
+  <script src="/app.js?v=3.0.3" defer></script>
 </body>
 </html>

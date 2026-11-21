@@ -193,22 +193,43 @@ pub async fn stream_track_handler(
     Path(track_id): Path<String>,
     headers: HeaderMap,
 ) -> Response {
-    let clean_id: String = track_id
+    let raw_trimmed = track_id
         .trim_end_matches(".mp3")
         .trim_end_matches(".flac")
         .trim_end_matches(".m4a")
         .trim_end_matches(".opus")
+        .trim_end_matches(".ogg")
+        .trim_end_matches(".wav");
+
+    let clean_id: String = raw_trimmed
         .chars()
         .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
         .collect();
 
-    let file_path = if let Ok(Some(track)) = state.db.get_track(&clean_id) {
-        track.file_path
+    let lookup_track = |id_key: &str| -> Option<std::path::PathBuf> {
+        if let Ok(Some(t)) = state.db.get_track(id_key) {
+            if t.file_path.exists() {
+                return Some(t.file_path);
+            }
+        }
+        if let Ok(all) = state.db.list_all_tracks() {
+            if let Some(found) = all.into_iter().find(|t| {
+                t.id.eq_ignore_ascii_case(id_key) || t.youtube_id.eq_ignore_ascii_case(id_key)
+            }) {
+                if found.file_path.exists() {
+                    return Some(found.file_path);
+                }
+            }
+        }
+        None
+    };
+
+    let file_path = if let Some(p) = lookup_track(raw_trimmed).or_else(|| lookup_track(&clean_id)) {
+        p
     } else {
-        // Trigger a quick scan if track wasn't in DB yet
         let _ = crate::utils::system::scan_local_music_dirs(&state.config, &state.db);
-        if let Ok(Some(track)) = state.db.get_track(&clean_id) {
-            track.file_path
+        if let Some(p) = lookup_track(raw_trimmed).or_else(|| lookup_track(&clean_id)) {
+            p
         } else {
             let storage = state.config.resolve_music_storage();
             let candidate = storage.active_path.join(format!("{}.mp3", clean_id));

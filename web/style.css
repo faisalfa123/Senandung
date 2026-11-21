@@ -1168,3 +1168,379 @@ body.mobile .ytm-player-center {
 body.mobile .ytm-player-left {
   order: 2;
 }
+
+/* ==========================================================================
+   7. SENANDUNG v3 REMAKE ICON, CAST LEAVE BUTTON, BANDS, SONG TABLE & AVATAR GRID
+   ========================================================================== */
+.ytm-brand-emblem {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ytm-brand-title-col {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+
+.ytm-brand-remake-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #ff3355;
+  margin-top: 2px;
+}
+
+.ytm-cast-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ytm-cast-leave-btn,
+.ytm-danger-btn {
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 19px;
+  background-color: #3b1216;
+  border: 1px solid #ff3355;
+  color: #ffd6dc;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 150ms ease;
+}
+
+.ytm-cast-leave-btn:hover,
+.ytm-danger-btn:hover {
+  background-color: #ff0033;
+  color: #ffffff;
+}
+
+.sleep-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  background-color: var(--ytm-red);
+  color: #ffffff;
+  padding: 1px 5px;
+  border-radius: 6px;
+  margin-left: 3px;
+}
+
+/* Circular Grup Band Cards (3.b) */
+.ytm-band-card {
+  width: 146px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 10px 8px;
+  border-radius: 12px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.ytm-band-card:hover,
+.ytm-band-card.active-band {
+  background-color: var(--ytm-surface);
+  border-color: var(--ytm-border);
+}
+
+.ytm-band-avatar {
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: var(--ytm-elevated);
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  position: relative;
+}
+
+.ytm-band-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ytm-band-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ytm-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.ytm-band-count {
+  font-size: 0.78rem;
+  color: var(--ytm-subtext);
+}
+
+/* Searchable All-Songs Bar & Table (3.d) */
+.ytm-shelf-header-wrap {
+  flex-wrap: wrap;
+}
+
+.ytm-local-search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--ytm-surface);
+  border: 1px solid var(--ytm-border);
+  border-radius: 24px;
+  padding: 4px 10px 4px 14px;
+  flex: 1 1 340px;
+  max-width: 580px;
+}
+
+.ytm-local-filter-input {
+  flex: 1 1 160px;
+  background: transparent;
+  border: none;
+  color: var(--ytm-text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  min-height: 36px;
+}
+
+.ytm-local-filter-input:focus {
+  outline: none;
+}
+
+.ytm-btn-sm {
+  min-height: 34px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+}
+
+.ytm-song-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ytm-song-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background-color: var(--ytm-surface);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.ytm-song-row:hover {
+  background-color: var(--ytm-elevated);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.ytm-song-row.active-playing {
+  background-color: #241014;
+  border-color: var(--ytm-red);
+}
+
+.ytm-song-row-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ytm-song-num {
+  width: 28px;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ytm-subtext);
+  flex-shrink: 0;
+}
+
+.ytm-song-row.active-playing .ytm-song-num {
+  color: #ff4d6a;
+}
+
+.ytm-song-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+  background-color: var(--ytm-elevated);
+  flex-shrink: 0;
+}
+
+.ytm-song-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.ytm-song-title {
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--ytm-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ytm-song-sub {
+  font-size: 0.8rem;
+  color: var(--ytm-subtext);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.ytm-song-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Eksplorasi Tab Search Grid */
+.ytm-explore-search-hero {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.ytm-explore-input {
+  flex: 1 1 260px;
+}
+
+.ytm-media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.ytm-media-grid .ytm-media-card {
+  width: 100%;
+}
+
+/* Room Tab Hero & Join Panel */
+.ytm-room-hero-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background-color: var(--ytm-surface);
+  border: 1px solid var(--ytm-border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+
+.ytm-room-hero-left {
+  flex: 1 1 280px;
+}
+
+.ytm-room-hero-desc {
+  font-size: 0.88rem;
+  color: var(--ytm-subtext);
+  margin-top: 6px;
+}
+
+.ytm-room-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ytm-room-join-panel {
+  background-color: var(--ytm-surface);
+  border: 1px solid var(--ytm-border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 18px;
+}
+
+.ytm-sub-heading {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.ytm-inline-room-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ytm-inline-room-form .ytm-text-field {
+  flex: 1 1 200px;
+}
+
+/* Selectable Avatar Grid in Modal (Requirement #4) */
+.ytm-modal-wide {
+  max-width: 520px;
+}
+
+.ytm-avatar-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.ytm-avatar-choice-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  background-color: var(--ytm-surface);
+  border: 2px solid transparent;
+  color: var(--ytm-subtext);
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+.ytm-avatar-choice-btn:hover {
+  background-color: var(--ytm-hover);
+  color: var(--ytm-text);
+}
+
+.ytm-avatar-choice-btn.selected {
+  border-color: #ff0033;
+  background-color: #291016;
+  color: #ffffff;
+}
+
+.ytm-avatar-choice-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.ytm-avatar-choice-thumb svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.ytm-sub-transport.active-mode {
+  color: #ff3355;
+}
+
