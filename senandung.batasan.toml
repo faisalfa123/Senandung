@@ -4,7 +4,7 @@ version = "3.0.1-nightly-dev"
 repo = "faisalfa123/Senandung"
 asset = "senandung-linux-arm64"
 language = "rust"
-description = "Ultra-Lightweight Self-Hosted Spotify-like PWA with Multi-Device Audio Sync"
+description = "Ultra-Lightweight Self-Hosted Spotify-like PWA with Multi-Device Audio Sync (Rust Edition)"
 
 [run]
 port = 8989
@@ -16,7 +16,7 @@ cpu_quota_pct = 50
 tasks_max = 64
 
 [permissions]
-paths_rw = ["/mnt/hdd1/senandung", "/var/lib/senandung", "/var/cache/senandung", "/var/log/senandung"]
+paths_rw = ["/mnt/hdd1/senandung"]
 paths_ro = []
 outbound = ["youtube.com", "googlevideo.com", "ytimg.com"]
-tools = ["yt-dlp", "ffmpeg", "curl"]
+tools = ["yt-dlp", "ffmpeg", "python3", "curl"]

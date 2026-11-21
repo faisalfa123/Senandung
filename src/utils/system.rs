@@ -31,7 +31,14 @@ impl AppConfig {
         let mut data_dir = env::var("DATA_DIR")
             .or_else(|_| env::var("STATE_DIRECTORY"))
             .map(PathBuf::from)
-            .unwrap_or_else(|_| PathBuf::from("/var/lib/senandung"));
+            .unwrap_or_else(|_| {
+                let mm_jail = PathBuf::from("/var/lib/mastermind/senandung");
+                if mm_jail.exists() {
+                    mm_jail
+                } else {
+                    PathBuf::from("/var/lib/senandung")
+                }
+            });
 
         let mut music_dir_override: Option<PathBuf> = env::var("SENANDUNG_MUSIC_DIR")
             .or_else(|_| env::var("MUSIC_DIR"))
@@ -41,26 +48,33 @@ impl AppConfig {
         let mut i = 1;
         while i < args.len() {
             match args[i].as_str() {
-                "--port" | "-p" if i + 1 < args.len() => {
+                "--port" | "-port" | "-p" if i + 1 < args.len() => {
                     if let Ok(p) = args[i + 1].parse::<u16>() {
                         port = p;
                     }
                     i += 1;
                 }
-                "--data-dir" | "-d" if i + 1 < args.len() => {
+                "--data-dir" | "-data-dir" | "-d" if i + 1 < args.len() => {
                     data_dir = PathBuf::from(&args[i + 1]);
                     i += 1;
                 }
-                "--music-dir" | "-m" if i + 1 < args.len() => {
+                "--music-dir" | "-music-dir" | "-m" if i + 1 < args.len() => {
                     music_dir_override = Some(PathBuf::from(&args[i + 1]));
                     i += 1;
+                }
+                arg if arg.starts_with("--port=") || arg.starts_with("-port=") => {
+                    if let Some(val) = arg.split('=').nth(1) {
+                        if let Ok(p) = val.parse::<u16>() {
+                            port = p;
+                        }
+                    }
                 }
                 _ => {}
             }
             i += 1;
         }
 
-        // Verify data_dir is writable; fallback to ./data when running unprivileged in dev
+        // Verify data_dir is writable; fallback to ./data when running unprivileged in dev/sandbox
         let resolved_data_dir = ensure_writable_dir(&data_dir, &PathBuf::from("./data"));
 
         let primary_music_dir = music_dir_override
@@ -69,8 +83,8 @@ impl AppConfig {
         let fallback_music_dir = resolved_data_dir.join("tracks");
         let _ = fs::create_dir_all(&fallback_music_dir);
 
-        let default_cache = PathBuf::from("/var/cache/senandung");
-        let fallback_cache = resolved_data_dir.join("cache");
+        let default_cache = resolved_data_dir.join("cache");
+        let fallback_cache = PathBuf::from("./data/cache");
         let cache_dir = ensure_writable_dir(&default_cache, &fallback_cache);
 
         Self {

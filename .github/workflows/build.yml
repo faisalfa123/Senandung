@@ -1,0 +1,83 @@
+name: Build & Release (Rust Multi-Arch)
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Multi-Arch Rust Binaries & Mastermind Assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Cross-Compilation Toolchain (ARM64 & ARMv7)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf libc6-dev-arm64-cross libc6-dev-armhf-cross
+
+      - name: Install Rust Toolchain & Targets
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu,aarch64-unknown-linux-gnu,armv7-unknown-linux-gnueabihf
+
+      - name: Configure Cargo Cross-Linkers
+        run: |
+          mkdir -p ~/.cargo
+          cat << 'EOF' >> ~/.cargo/config.toml
+          [target.aarch64-unknown-linux-gnu]
+          linker = "aarch64-linux-gnu-gcc"
+
+          [target.armv7-unknown-linux-gnueabihf]
+          linker = "arm-linux-gnueabihf-gcc"
+          EOF
+
+      - name: Build Multi-Arch Binaries (x86_64, arm64, armv7l)
+        run: |
+          mkdir -p dist
+          # 1. x86_64
+          cargo build --release --target x86_64-unknown-linux-gnu
+          cp target/x86_64-unknown-linux-gnu/release/senandung dist/senandung-linux-x86_64
+
+          # 2. ARM64 (Mastermind Required Asset: STB HG680P / Odroid C2)
+          cargo build --release --target aarch64-unknown-linux-gnu
+          cp target/aarch64-unknown-linux-gnu/release/senandung dist/senandung-linux-arm64
+          cp dist/senandung-linux-arm64 dist/senandung-linux-aarch64
+
+          # 3. ARMv7l (32-bit SBCs)
+          cargo build --release --target armv7-unknown-linux-gnueabihf
+          cp target/armv7-unknown-linux-gnueabihf/release/senandung dist/senandung-linux-armv7l
+
+      - name: Generate SHA-256 Checksums
+        run: |
+          cd dist
+          sha256sum senandung-linux-aarch64 senandung-linux-arm64 senandung-linux-armv7l senandung-linux-x86_64 > checksums.txt
+          cat checksums.txt
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: senandung-rust-binaries
+          path: dist/*
+
+      - name: Publish GitHub Release Assets
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/senandung-linux-arm64
+            dist/senandung-linux-aarch64
+            dist/senandung-linux-armv7l
+            dist/senandung-linux-x86_64
+            dist/checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
