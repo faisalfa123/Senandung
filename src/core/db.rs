@@ -1,5 +1,6 @@
+use std::env;
 use std::path::{Path, PathBuf};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use crate::core::state::{RoomState, Track};
@@ -20,19 +21,47 @@ pub struct Database {
 }
 
 impl Database {
-    /// Initializes Sled embedded DB at `/var/lib/senandung/state.db` (or configured data_dir/state.db).
-    /// Configured with low memory cache capacity and periodic flush to protect SD Card I/O.
+    /// Initializes Sled embedded DB at `data_dir/state.db` with automatic fallback to `/tmp/senandung/state.db`
+    /// and a final temporary in-memory Sled mode if all disk paths are read-only (`EROFS` / `EACCES`).
     pub fn open(data_dir: &Path) -> Result<Self> {
-        let db_path = data_dir.join("state.db");
-        let db = sled::Config::new()
-            .path(&db_path)
-            .cache_capacity(256 * 1024) // 256KB page cache
-            .segment_size(8_192)        // 8KB segment size prevents 20MB+ IO buffer preallocation
-            .flush_every_ms(Some(5000)) // Batch writes every 5s to protect SD Card
-            .open()
-            .with_context(|| format!("Failed to open sled DB at {}", db_path.display()))?;
+        let candidates = [
+            data_dir.join("state.db"),
+            PathBuf::from("/mnt/hdd1/senandung/state.db"),
+            env::temp_dir().join("senandung_state.db"),
+            PathBuf::from("/tmp/senandung_state.db"),
+        ];
 
-        Ok(Self { db, db_path })
+        for db_path in &candidates {
+            if let Some(parent) = db_path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            let cfg = sled::Config::new()
+                .path(db_path)
+                .cache_capacity(256 * 1024) // 256KB page cache
+                .segment_size(8_192)        // 8KB segment size prevents 20MB+ IO buffer preallocation
+                .flush_every_ms(Some(5000)); // Batch writes every 5s to protect SD Card
+
+            if let Ok(db) = cfg.open() {
+                return Ok(Self {
+                    db,
+                    db_path: db_path.clone(),
+                });
+            }
+        }
+
+        // Ultimate zero-crash fallback: temporary Sled instance when entire filesystem is read-only
+        let tmp_path = env::temp_dir().join("senandung_mem_state.db");
+        let db = sled::Config::new()
+            .path(&tmp_path)
+            .temporary(true)
+            .cache_capacity(256 * 1024)
+            .segment_size(8_192)
+            .open()?;
+
+        Ok(Self {
+            db,
+            db_path: PathBuf::from("memory://temporary-sled"),
+        })
     }
 
     pub fn save_room_state(&self, room: &RoomState) -> Result<()> {
@@ -52,7 +81,6 @@ impl Database {
         if let Some(bytes) = tree.get(room_id.as_bytes())? {
             let persisted: PersistedRoom = serde_json::from_slice(&bytes)?;
             let mut state = RoomState::new(&persisted.room_id);
-            // Filter out tracks whose files no longer exist on disk
             state.playlist = persisted
                 .playlist
                 .into_iter()

@@ -28,21 +28,11 @@ impl AppConfig {
             .and_then(|p| p.parse::<u16>().ok())
             .unwrap_or(8989);
 
-        let mut data_dir = env::var("DATA_DIR")
-            .or_else(|_| env::var("STATE_DIRECTORY"))
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| {
-                let mm_jail = PathBuf::from("/var/lib/mastermind/senandung");
-                if mm_jail.exists() {
-                    mm_jail
-                } else {
-                    PathBuf::from("/var/lib/senandung")
-                }
-            });
-
+        let mut cli_data_dir: Option<PathBuf> = None;
         let mut music_dir_override: Option<PathBuf> = env::var("SENANDUNG_MUSIC_DIR")
             .or_else(|_| env::var("MUSIC_DIR"))
             .ok()
+            .filter(|s| !s.trim().is_empty())
             .map(PathBuf::from);
 
         let mut i = 1;
@@ -55,7 +45,7 @@ impl AppConfig {
                     i += 1;
                 }
                 "--data-dir" | "-data-dir" | "-d" if i + 1 < args.len() => {
-                    data_dir = PathBuf::from(&args[i + 1]);
+                    cli_data_dir = Some(PathBuf::from(&args[i + 1]));
                     i += 1;
                 }
                 "--music-dir" | "-music-dir" | "-m" if i + 1 < args.len() => {
@@ -69,13 +59,50 @@ impl AppConfig {
                         }
                     }
                 }
+                arg if arg.starts_with("--data-dir=") || arg.starts_with("-data-dir=") => {
+                    if let Some(val) = arg.split('=').nth(1) {
+                        cli_data_dir = Some(PathBuf::from(val));
+                    }
+                }
+                arg if arg.starts_with("--music-dir=") || arg.starts_with("-music-dir=") => {
+                    if let Some(val) = arg.split('=').nth(1) {
+                        music_dir_override = Some(PathBuf::from(val));
+                    }
+                }
                 _ => {}
             }
             i += 1;
         }
 
-        // Verify data_dir is writable; fallback to ./data when running unprivileged in dev/sandbox
-        let resolved_data_dir = ensure_writable_dir(&data_dir, &PathBuf::from("./data"));
+        // Build ordered candidate list for writable data_dir.
+        // In Mastermind systemd sandbox (DynamicUser=yes + ProtectSystem=strict),
+        // WorkingDirectory (/opt/mastermind/apps/senandung) is read-only (EROFS os error 30),
+        // and /var/lib/mastermind/senandung may be owned by root:root 0755 if pre-created by helper.
+        // We probe every candidate in priority order until we find one that is genuinely writable,
+        // ending with /tmp/senandung (always writable under PrivateTmp=yes).
+        let mut data_candidates: Vec<PathBuf> = Vec::new();
+        if let Some(d) = cli_data_dir {
+            data_candidates.push(d);
+        }
+        if let Ok(env_data) = env::var("DATA_DIR") {
+            if !env_data.trim().is_empty() {
+                data_candidates.push(PathBuf::from(env_data));
+            }
+        }
+        if let Ok(state_dir) = env::var("STATE_DIRECTORY") {
+            for part in state_dir.split(':').filter(|s| !s.trim().is_empty()) {
+                data_candidates.push(PathBuf::from(part));
+            }
+        }
+        data_candidates.push(PathBuf::from("/mnt/hdd1/senandung/data"));
+        data_candidates.push(PathBuf::from("/mnt/hdd1/senandung"));
+        data_candidates.push(PathBuf::from("/var/lib/mastermind/senandung"));
+        data_candidates.push(PathBuf::from("/var/lib/senandung"));
+        data_candidates.push(PathBuf::from("./data"));
+        data_candidates.push(env::temp_dir().join("senandung"));
+        data_candidates.push(PathBuf::from("/tmp/senandung"));
+
+        let resolved_data_dir = resolve_first_writable_dir(&data_candidates);
 
         let primary_music_dir = music_dir_override
             .unwrap_or_else(|| PathBuf::from("/mnt/hdd1/senandung/tracks"));
@@ -83,9 +110,13 @@ impl AppConfig {
         let fallback_music_dir = resolved_data_dir.join("tracks");
         let _ = fs::create_dir_all(&fallback_music_dir);
 
-        let default_cache = resolved_data_dir.join("cache");
-        let fallback_cache = PathBuf::from("./data/cache");
-        let cache_dir = ensure_writable_dir(&default_cache, &fallback_cache);
+        let cache_candidates = [
+            resolved_data_dir.join("cache"),
+            PathBuf::from("/var/cache/senandung"),
+            env::temp_dir().join("senandung/cache"),
+            PathBuf::from("/tmp/senandung/cache"),
+        ];
+        let cache_dir = resolve_first_writable_dir(&cache_candidates);
 
         Self {
             port,
@@ -126,13 +157,15 @@ pub fn detect_arch() -> String {
     }
 }
 
-pub fn ensure_writable_dir(preferred: &Path, fallback: &Path) -> PathBuf {
-    if is_dir_usable(preferred) {
-        preferred.to_path_buf()
-    } else {
-        let _ = fs::create_dir_all(fallback);
-        fallback.to_path_buf()
+pub fn resolve_first_writable_dir(candidates: &[PathBuf]) -> PathBuf {
+    for candidate in candidates {
+        if is_dir_usable(candidate) {
+            return candidate.clone();
+        }
     }
+    let tmp = env::temp_dir().join("senandung");
+    let _ = fs::create_dir_all(&tmp);
+    tmp
 }
 
 pub fn is_dir_usable(dir: &Path) -> bool {
