@@ -1,10 +1,10 @@
-// Service Worker PWA for Senandung v3.0.1 Nightly Dev
-const CACHE_NAME = 'senandung-v3.0.1-ytm';
+// Service Worker PWA for Senandung v3.0.1 Nightly Dev (Network-First with Cache Fallback)
+const CACHE_NAME = 'senandung-v3.0.2-ytm';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/app.js',
-  '/style.css'
+  '/app.js?v=3.0.2',
+  '/style.css?v=3.0.2'
 ];
 
 self.addEventListener('install', (event) => {
@@ -31,12 +31,20 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
-  // Bypass Service Worker cache for API, audio streams, and WebSocket endpoints
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/ws')) {
     return;
   }
 
+  // Network-First with fast ETag 304 revalidation, falling back to cache when offline
   event.respondWith(
-    caches.match(req).then((cached) => cached || fetch(req))
+    fetch(req)
+      .then((networkResp) => {
+        if (networkResp && networkResp.status === 200) {
+          const clone = networkResp.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+        }
+        return networkResp;
+      })
+      .catch(() => caches.match(req))
   );
 });

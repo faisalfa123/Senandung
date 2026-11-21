@@ -6,7 +6,22 @@
   <meta name="theme-color" content="#030303">
   <meta name="description" content="Senandung Music: Self-Hosted YouTube Music Experience dengan Live Room Multi-Device Sync">
   <title>Senandung Music</title>
-  <link rel="stylesheet" href="/style.css">
+  <script>
+    // Purge legacy immutable Service Worker caches (senandung-v3.0.1) immediately before CSS/JS loads
+    if ('caches' in window) {
+      caches.keys().then(function(keys) {
+        keys.forEach(function(k) {
+          if (k !== 'senandung-v3.0.2-ytm') caches.delete(k);
+        });
+      });
+    }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(r) { r.update(); });
+      });
+    }
+  </script>
+  <link rel="stylesheet" href="/style.css?v=3.0.2">
 </head>
 <body class="desktop">
   <!-- YouTube Music Top Header Bar -->
@@ -509,6 +524,6 @@
     </div>
   </div>
 
-  <script src="/app.js" defer></script>
+  <script src="/app.js?v=3.0.2" defer></script>
 </body>
 </html>

@@ -35,11 +35,10 @@ fn serve_embedded_path(path: &str, req_headers: &HeaderMap) -> Response {
     let mime = mime_from_path(path);
     let etag = generate_etag(&body_bytes);
 
-    let cache_header = if path == "index.html" || path == "sw.js" {
-        "no-cache, must-revalidate"
-    } else {
-        "public, max-age=31536000, immutable"
-    };
+    // Always revalidate with ETag ("no-cache, must-revalidate"):
+    // If file is unchanged, server returns 304 Not Modified in <0.5ms.
+    // If binary was updated via Mastermind, browser immediately receives the new CSS/JS.
+    let cache_header = "public, no-cache, must-revalidate";
 
     if let Some(if_none_match) = req_headers
         .get(header::IF_NONE_MATCH)
