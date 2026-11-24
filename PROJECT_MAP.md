@@ -1,4 +1,4 @@
-# 🗺️ PROJECT MAP - SENANDUNG v3.0.1 Nightly Dev
+# 🗺️ PROJECT MAP - SENANDUNG v3.0.5 Main/Stable
 
 > **PANDUAN NAVIGASI FILE — JANGAN SCAN REPO, GUNAKAN FILE INI**
 
@@ -9,58 +9,54 @@ senandung/
 ├── .antigravity/
 │   └── rules.md              # Protokol eksekusi AI
 ├── src/
-│   ├── main.rs               # Entry point, Axum init, Tokio runtime, graceful shutdown
+│   ├── main.rs               # Entry point, Axum router, worker pool, periodic storage checker
 │   ├── server/
-│   │   ├── api.rs            # REST endpoints (search, download, health, stream)
-│   │   ├── ws.rs             # WebSocket handler (Live Room, NTP sync)
-│   │   ├── downloader.rs     # yt-dlp wrapper async (single-worker, nice 19)
+│   │   ├── api.rs            # REST endpoints (playlists, PIN, search, download, health, stream)
+│   │   ├── ws.rs             # WebSocket handler (Live Room, Multi-Sample NTP sync, Delta updates, PIN)
+│   │   ├── downloader.rs     # yt-dlp wrapper async (concurrent pool Semaphore 2, nice 19)
 │   │   └── static_cache.rs   # Handler file statis dari RAM (Tier 1 caching)
 │   ├── core/
-│   │   ├── state.rs          # Shared state (Arc<RwLock>) untuk playlist & room
-│   │   ├── db.rs             # Sled DB integration (ACID, hemat I/O)
-│   │   ├── sync.rs           # NTP offset & Web Audio API scheduling
+│   │   ├── state.rs          # Shared state (Arc<RwLock>) untuk playlist, delta events & room PIN
+│   │   ├── db.rs             # Sled DB integration (custom_playlists, rooms, tracks)
+│   │   ├── sync.rs           # Multi-sample median NTP offset & Web Audio API scheduling
 │   │   ├── audio_engine.rs   # [DORMANT] Symphonia module (feature-gated)
-│   │   └── cache.rs          # LRU disk cache untuk thumbnail/artwork (Tier 3)
+│   │   └── cache.rs          # LRU disk cache untuk thumbnail/artwork (Tier 3, configurable MB)
 │   ├── logging/
 │   │   └── mod.rs            # Tracing setup + rotation + journald fallback
 │   └── utils/
-│       └── system.rs         # Arch detection, flexible storage router, nice/IO priority
+│       └── system.rs         # Storage health checker, auto-migration, local HDD scanner
 ├── web/                      # Frontend statis (Vanilla JS + CSS, NO framework)
-│   ├── index.html
-│   ├── app.js                # UI logic, Web Audio API, WebSocket client
-│   ├── sw.js                 # Service Worker untuk PWA caching
-│   └── style.css             # YouTube Music-like Dark Theme
+│   ├── index.html            # YouTube Music-like Dark Theme layout + Modals
+│   ├── app.js                # UI logic, Media Session API, Toast system, Solo <-> Room preservation
+│   ├── sw.js                 # Service Worker untuk PWA caching (Network-First)
+│   └── style.css             # Responsive styling, toast container, animations
 ├── scripts/
 │   ├── install.sh            # Native installation script
 │   └── mastermind.sh         # Mastermind ecosystem integration
 ├── Cargo.toml                # Rust dependencies
 ├── PROJECT_MAP.md            # This file
+├── RELEASE_NOTES.md          # Version release changelog
 └── README.md                 # Documentation
 ```
 
 ## 🔑 File Kunci per Fitur
 
-### Live Room Sync
-- `src/server/ws.rs` — WebSocket handler
-- `src/core/state.rs` — Room state management (Multi-room + Lobby default)
-- `src/core/sync.rs` — NTP offset calculation
-- `web/app.js` — Web Audio API scheduling
+### Live Room Sync & Security
+- `src/server/ws.rs` — WebSocket handler (multi-sample median NTP filter, delta updates, room PIN validation)
+- `src/core/state.rs` — Room state management, PlaylistDelta, salted PIN hashing
+- `src/core/sync.rs` — Multi-sample median NTP offset calculation
+- `web/app.js` — Rapid ping NTP sync, Solo <-> Room state preservation via sessionStorage, Toast notifications
 
-### YouTube Download & Flexible Storage
-- `src/server/downloader.rs` — yt-dlp wrapper (single-worker queue, MP3 128K)
-- `src/server/api.rs` — Download & 8KB chunk audio stream endpoints
-- `src/utils/system.rs` — Flexible storage router (`/mnt/hdd1/senandung` -> fallback `/var/lib/senandung/tracks`)
+### YouTube Download & Concurrent Worker
+- `src/server/downloader.rs` — yt-dlp wrapper (Semaphore(2) concurrent pool, nice 19)
+- `src/server/api.rs` — Download, custom playlists, PIN management & 8KB chunk audio stream endpoints
+- `src/utils/system.rs` — Storage router + 5-minute periodic auto-migration back to HDD
 
-### Caching
+### Caching & PWA
 - `src/server/static_cache.rs` — Tier 1 (RAM via rust-embed)
-- `src/core/cache.rs` — Tier 3 (LRU disk, max 50MB / 500 items)
+- `src/core/cache.rs` — Tier 3 (LRU disk, configurable via `SENANDUNG_THUMB_CACHE_MB`)
 - `web/sw.js` — Client-side PWA caching
 
 ### Database
-- `src/core/db.rs` — Sled integration
-- Location: `/var/lib/senandung/state.db`
-
-### Logging
-- `src/logging/mod.rs` — Tracing setup
-- Default level: WARN
-- Fallback: stderr → systemd-journald
+- `src/core/db.rs` — Sled integration (`rooms_v3`, `tracks_v3`, `custom_playlists_v3`)
+- Location: `/var/lib/senandung/state.db` (auto-fallback to `/mnt/hdd1/senandung` or `/tmp`)

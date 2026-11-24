@@ -108,17 +108,25 @@
   state.audioEl.volume = 0.95;
   state.audioEl.muted = false;
 
-  // Universal User Gesture Unlocker for iOS Safari and Mobile Chrome autoplay restrictions
+  // Universal User Gesture Unlocker for iOS Safari and Mobile Chrome autoplay restrictions (Phase 6 Task 6.3)
+  // Plays a tiny valid 44-byte base64-encoded silent WAV file to reliably activate the Web Audio / HTML5 audio pipeline
+  const SILENT_WAV_BASE64 = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP8A';
+
   function unlockAudioContextOnGesture() {
     if (state.audioUnlocked) return;
     state.audioUnlocked = true;
     try {
+      const origSrc = state.audioEl.src;
+      if (!origSrc || !state.loadedTrackId) {
+        state.audioEl.src = SILENT_WAV_BASE64;
+      }
       const p = state.audioEl.play();
       if (p !== undefined) {
         p.then(() => {
           if (!state.loadedTrackId) {
             state.audioEl.pause();
             state.audioEl.currentTime = 0;
+            state.audioEl.removeAttribute('src');
           }
         }).catch(() => {});
       }
@@ -420,10 +428,26 @@
   // Room PINs stored in volatile session memory only (never localStorage)
   const roomSessionPins = new Map();
 
+  const STORAGE_KEY_SOLO_STATE = 'senandung_solo_state_v3';
+
   function enterLiveRoom(roomName, pin) {
     const target = (roomName || 'Lobby').trim() || 'Lobby';
     if (typeof pin === 'string' && pin.trim()) {
       roomSessionPins.set(target, pin.trim());
+    }
+
+    // Phase 6 Task 6.2: Preserve solo mode playback state to sessionStorage before joining room
+    if (!state.inRoom) {
+      try {
+        const soloSnapshot = {
+          soloQueue: state.soloQueue,
+          soloTrackIndex: state.soloTrackIndex,
+          currentTime: state.audioEl.currentTime || 0,
+          loadedTrackId: state.loadedTrackId,
+          wasPlaying: !state.audioEl.paused
+        };
+        sessionStorage.setItem(STORAGE_KEY_SOLO_STATE, JSON.stringify(soloSnapshot));
+      } catch (_) {}
     }
 
     state.inRoom = true;
@@ -458,6 +482,25 @@
       clearTimeout(state.scheduledPlayTimer);
       state.scheduledPlayTimer = null;
     }
+
+    // Phase 6 Task 6.2: Restore solo mode playback state from sessionStorage
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY_SOLO_STATE);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved && Array.isArray(saved.soloQueue)) {
+          state.soloQueue = saved.soloQueue;
+          state.soloTrackIndex = saved.soloTrackIndex || 0;
+          if (saved.loadedTrackId && state.soloQueue[state.soloTrackIndex]) {
+            const track = state.soloQueue[state.soloTrackIndex];
+            if (track.id === saved.loadedTrackId) {
+              updateNowPlayingBar(track, false);
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
     updateRoomModeUI();
     if (!silent) {
       dom.nowPlayingArtist.textContent = 'Mode Solo Aktif (Mandiri)';
@@ -1812,25 +1855,102 @@
     });
   }
 
+  // ==========================================================================
+  // Phase 6 Task 6.1: Toast Notification System (Stackable, Auto-Dismiss 5s, Actionable Retry)
+  // ==========================================================================
+  let toastContainer = null;
+  function getToastContainer() {
+    if (!toastContainer) {
+      toastContainer = document.createElement('div');
+      toastContainer.className = 'ytm-toast-container';
+      document.body.appendChild(toastContainer);
+    }
+    return toastContainer;
+  }
+
+  function showToast(message, type = 'info', options = {}) {
+    const container = getToastContainer();
+    const toast = document.createElement('div');
+    toast.className = `ytm-toast toast-${type}`;
+
+    const msgSpan = document.createElement('span');
+    msgSpan.className = 'ytm-toast-message';
+    msgSpan.textContent = message;
+    toast.appendChild(msgSpan);
+
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'ytm-toast-actions';
+
+    if (options.retryLabel && typeof options.onRetry === 'function') {
+      const retryBtn = document.createElement('button');
+      retryBtn.type = 'button';
+      retryBtn.className = 'ytm-toast-retry-btn';
+      retryBtn.textContent = options.retryLabel;
+      retryBtn.addEventListener('click', () => {
+        removeToast(toast);
+        options.onRetry();
+      });
+      actionsDiv.appendChild(retryBtn);
+    }
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'ytm-toast-close-btn';
+    closeBtn.textContent = '✕';
+    closeBtn.addEventListener('click', () => removeToast(toast));
+    actionsDiv.appendChild(closeBtn);
+
+    toast.appendChild(actionsDiv);
+    container.appendChild(toast);
+
+    // Trigger smooth enter animation
+    requestAnimationFrame(() => toast.classList.add('show'));
+
+    const duration = options.duration || 5000;
+    const timer = setTimeout(() => removeToast(toast), duration);
+    toast._timer = timer;
+
+    return toast;
+  }
+
+  function removeToast(toast) {
+    if (!toast || !toast.parentNode) return;
+    if (toast._timer) clearTimeout(toast._timer);
+    toast.classList.remove('show');
+    setTimeout(() => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 250);
+  }
+
   function handleDownloadProgressEvent(data) {
-    if (data.status === 'queued' || data.status === 'downloading') {
-      dom.downloadStatusText.textContent = `Mengunduh "${data.title}" ke penyimpanan STB (${data.status})...`;
-      dom.downloadStatusBanner.classList.remove('hidden');
+    if (data.status === 'queued') {
+      showToast(`Mengantrekan "${data.title}"...`, 'info', { duration: 3000 });
+    } else if (data.status === 'downloading') {
+      showToast(`Mengunduh "${data.title}" ke STB...`, 'info', { duration: 4000 });
     } else if (data.status === 'completed') {
-      dom.downloadStatusText.textContent = `"${data.title}" selesai diunduh dan siap diputar!`;
-      dom.downloadStatusBanner.classList.remove('hidden');
+      showToast(`"${data.title}" berhasil diunduh dan siap diputar!`, 'success', { duration: 5000 });
       fetchServerLibrary().then(() => {
         if (!state.isPlaying && data.track) {
           handleUserPlayTrack(data.track, state.libraryTracks);
         }
       });
-      setTimeout(() => {
-        dom.downloadStatusBanner.classList.add('hidden');
-      }, 3500);
     } else if (data.status === 'failed') {
-      dom.downloadStatusBanner.classList.add('hidden');
-      dom.roomErrorText.textContent = `Unduhan "${data.title}" gagal: ${data.message || 'Periksa yt-dlp'}`;
-      dom.roomErrorBanner.classList.remove('hidden');
+      showToast(`Unduhan "${data.title}" gagal: ${data.message || 'Periksa yt-dlp'}`, 'error', {
+        duration: 7000,
+        retryLabel: 'Coba Lagi',
+        onRetry: () => {
+          if (data.youtube_id) {
+            enqueueDownloadToRoom({
+              id: data.youtube_id,
+              youtube_id: data.youtube_id,
+              title: data.title,
+              artist: 'YouTube Music',
+              duration_sec: 0,
+              thumbnail_url: ''
+            });
+          }
+        }
+      });
     }
   }
 
