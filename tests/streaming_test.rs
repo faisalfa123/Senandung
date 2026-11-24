@@ -43,7 +43,7 @@ async fn test_streaming_track_with_range_requests() {
     let db = Arc::new(Database::open(&data_dir).unwrap());
     let (download_tx, _download_rx) = spawn_download_worker();
     let (global_tx, _) = broadcast::channel(16);
-    let thumbnail_cache = Arc::new(Mutex::new(ThumbnailCache::new(&cache_dir)));
+    let thumbnail_cache = Arc::new(Mutex::new(ThumbnailCache::new(&cache_dir, 20)));
 
     let track = Track {
         id: "test_song_123".to_string(),
@@ -65,6 +65,7 @@ async fn test_streaming_track_with_range_requests() {
         primary_music_dir: music_dir,
         fallback_music_dir: tmp.path().join("fallback"),
         arch: "X64".to_string(),
+        thumb_cache_mb: 20,
     };
 
     let app_state = AppState {

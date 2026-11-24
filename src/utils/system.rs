@@ -14,6 +14,7 @@ pub struct AppConfig {
     pub fallback_music_dir: PathBuf,
     pub cache_dir: PathBuf,
     pub arch: String,
+    pub thumb_cache_mb: u64,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -117,6 +118,12 @@ impl AppConfig {
         ];
         let cache_dir = resolve_first_writable_dir(&cache_candidates);
 
+        let thumb_cache_mb = env::var("SENANDUNG_THUMB_CACHE_MB")
+            .ok()
+            .and_then(|v| v.parse::<u64>().ok())
+            .unwrap_or(20)
+            .clamp(1, 100);
+
         Self {
             port,
             data_dir: resolved_data_dir,
@@ -124,6 +131,7 @@ impl AppConfig {
             fallback_music_dir,
             cache_dir,
             arch: detect_arch(),
+            thumb_cache_mb,
         }
     }
 

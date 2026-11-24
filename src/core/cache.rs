@@ -25,13 +25,14 @@ pub struct ThumbnailCache {
 }
 
 impl ThumbnailCache {
-    pub fn new(base_cache_dir: &Path) -> Self {
+    pub fn new(base_cache_dir: &Path, max_size_mb: u64) -> Self {
         let thumb_dir = base_cache_dir.join("thumbnails");
         let _ = fs::create_dir_all(&thumb_dir);
 
+        let bounded_mb = max_size_mb.clamp(1, 100);
         let mut instance = Self {
             cache: LruCache::new(NonZeroUsize::new(500).unwrap()),
-            max_size_bytes: 50 * 1024 * 1024, // 50 MB max
+            max_size_bytes: bounded_mb * 1024 * 1024,
             current_size_bytes: 0,
             cache_dir: thumb_dir,
         };

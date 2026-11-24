@@ -93,6 +93,7 @@ cargo build --release --features local-audio
 | `--data-dir`, `-d` | `DATA_DIR` / `STATE_DIRECTORY` | `/var/lib/senandung` | Lokasi `state.db` (Sled) dan fallback musik |
 | `--music-dir`, `-m` | `SENANDUNG_MUSIC_DIR` / `MUSIC_DIR` | `/mnt/hdd1/senandung/tracks` | Lokasi utama penyimpanan MP3 (otomatis fallback ke `DATA_DIR/tracks` jika HDD tidak terbaca) |
 | `--log-file` | `SENANDUNG_LOG_FILE=1` | `false` (`stderr`) | Aktifkan penulisan log ke file dengan rotasi maks 2 MB |
+| - | `SENANDUNG_THUMB_CACHE_MB` | `20` | Batas kapasitas disk cache thumbnail dalam MB (min: 1, maks: 100) |
 | - | `RUST_LOG` | `warn` | Level log (`warn`, `error`, `info`, `debug`) |
 
 ---

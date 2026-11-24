@@ -41,7 +41,7 @@ async fn main() -> Result<()> {
 
     let config = AppConfig::from_env_and_args();
     let db = Arc::new(Database::open(&config.data_dir)?);
-    let thumbnail_cache = Arc::new(Mutex::new(ThumbnailCache::new(&config.cache_dir)));
+    let thumbnail_cache = Arc::new(Mutex::new(ThumbnailCache::new(&config.cache_dir, config.thumb_cache_mb)));
 
     let (download_tx, download_rx) = spawn_download_worker();
     let (global_tx, _) = broadcast::channel(32);
