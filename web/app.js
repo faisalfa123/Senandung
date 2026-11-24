@@ -684,13 +684,21 @@
     const rawDelayMs = playTimestamp - serverTime;
     const targetSeek = typeof seekPositionSec === 'number' ? seekPositionSec : 0;
 
+    state.roomSyncAnchor = {
+      playTimestamp,
+      seekPositionSec: targetSeek,
+      trackId: track.id
+    };
+
     if (rawDelayMs > 0 && rawDelayMs < 3000) {
       state.scheduledPlayTimer = setTimeout(() => {
         playTrackDirectly(track, targetSeek);
       }, rawDelayMs);
     } else {
-      const lateSec = rawDelayMs < 0 ? Math.min(Math.abs(rawDelayMs) / 1000, 10) : 0;
-      playTrackDirectly(track, targetSeek + lateSec + (JITTER_BUFFER_MS / 1000));
+      const lateSec = rawDelayMs < 0 ? Math.abs(rawDelayMs) / 1000 : 0;
+      const maxDur = track.duration_sec > 0 ? Math.max(0, track.duration_sec - 0.5) : Infinity;
+      const syncedPos = Math.min(targetSeek + lateSec + (JITTER_BUFFER_MS / 1000), maxDur);
+      playTrackDirectly(track, syncedPos);
     }
   }
 
@@ -871,6 +879,9 @@
             }
           }
         });
+
+        navigator.mediaSession.setActionHandler('seekbackward', null);
+        navigator.mediaSession.setActionHandler('seekforward', null);
 
         navigator.mediaSession.setActionHandler('seekto', (details) => {
           if (details.seekTime !== undefined && Number.isFinite(details.seekTime)) {
@@ -2398,6 +2409,195 @@
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   }
 
+  function initBetaEnhancements() {
+    // 1. Continuous Room-mode second-by-second drift correction
+    setInterval(() => {
+      if (!state.inRoom || !state.audioEl || state.audioEl.paused || !state.roomSyncAnchor) return;
+      const anchor = state.roomSyncAnchor;
+      if (state.loadedTrackId !== anchor.trackId) return;
+      const serverNow = Date.now() + (state.ntpOffsetMs || 0);
+      const expectedSec = anchor.seekPositionSec + Math.max(0, (serverNow - anchor.playTimestamp) / 1000);
+      const actualSec = state.audioEl.currentTime || 0;
+      if (Number.isFinite(expectedSec) && Math.abs(actualSec - expectedSec) > 0.4) {
+        try {
+          state.audioEl.currentTime = expectedSec;
+        } catch (_) {}
+      }
+    }, 2000);
+
+    // 2. Eksplorasi Download Queue Popover
+    const dlBtn = document.getElementById('btn-explore-dl-queue');
+    const dlPanel = document.getElementById('explore-dl-queue-panel');
+    const dlBadge = document.getElementById('explore-dl-badge');
+    const dlSummary = document.getElementById('explore-dl-summary');
+    const dlList = document.getElementById('explore-dl-list');
+
+    if (dlBtn && dlPanel) {
+      dlBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = dlPanel.classList.toggle('hidden');
+        dlBtn.setAttribute('aria-expanded', String(!isHidden));
+      });
+      document.addEventListener('click', (e) => {
+        if (!dlPanel.contains(e.target) && e.target !== dlBtn) {
+          dlPanel.classList.add('hidden');
+          dlBtn.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+
+    // Poll download queue status when Eksplorasi tab is active
+    async function refreshDownloadQueueUI() {
+      if (!dlList || !dlSummary || !dlBadge) return;
+      try {
+        const res = await fetch('/api/v1/downloads');
+        if (!res.ok) return;
+        const jobs = await res.json();
+        const list = Array.isArray(jobs) ? jobs : (jobs.jobs || []);
+        const active = list.filter((j) => j.status === 'downloading' || j.status === 'queued' || j.status === 'pending');
+        if (active.length > 0) {
+          dlBadge.textContent = String(active.length);
+          dlBadge.classList.remove('hidden');
+          dlBtn.classList.add('has-active');
+          dlSummary.textContent = `${active.length} lagu sedang diproses`;
+        } else {
+          dlBadge.classList.add('hidden');
+          dlBtn.classList.remove('has-active');
+          dlSummary.textContent = list.length > 0 ? 'Semua unduhan selesai' : 'Tidak ada unduhan aktif';
+        }
+        dlList.innerHTML = '';
+        if (list.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'ytm-muted-sm';
+          empty.textContent = 'Belum ada antrian unduhan.';
+          dlList.appendChild(empty);
+        } else {
+          list.slice(0, 8).forEach((job) => {
+            const item = document.createElement('div');
+            item.className = 'ytm-dl-item';
+            const title = document.createElement('div');
+            title.className = 'ytm-dl-item-title';
+            title.textContent = job.title || job.video_id || 'Unduhan YouTube';
+            const st = document.createElement('div');
+            st.className = 'ytm-dl-item-status';
+            const pct = typeof job.progress_pct === 'number' ? `${Math.round(job.progress_pct)}%` : '';
+            st.innerHTML = `<span>${job.status || 'queued'}</span><span>${pct}</span>`;
+            item.appendChild(title);
+            item.appendChild(st);
+            dlList.appendChild(item);
+          });
+        }
+      } catch (_) {}
+    }
+    setInterval(refreshDownloadQueueUI, 4000);
+    refreshDownloadQueueUI();
+
+    // 3. Now Playing Full Modal (clicking bottom player bar)
+    const playerNow = document.querySelector('.ytm-player-now');
+    const npModal = document.getElementById('now-playing-modal');
+    const btnCloseNp = document.getElementById('btn-close-np-modal');
+    const npArt = document.getElementById('np-modal-art');
+    const npTitle = document.getElementById('np-modal-title');
+    const npArtist = document.getElementById('np-modal-artist');
+    const npMode = document.getElementById('np-modal-mode');
+    const npSeek = document.getElementById('np-modal-seek');
+    const npCur = document.getElementById('np-modal-time-cur');
+    const npDur = document.getElementById('np-modal-time-dur');
+    const npPlayBtn = document.getElementById('btn-np-play');
+    const npIconPlay = document.getElementById('np-icon-play');
+    const npIconPause = document.getElementById('np-icon-pause');
+    const npPrev = document.getElementById('btn-np-prev');
+    const npNext = document.getElementById('btn-np-next');
+    const npShuffle = document.getElementById('btn-np-shuffle');
+    const npRepeat = document.getElementById('btn-np-repeat');
+    const npLyricsToggle = document.getElementById('btn-np-lyrics-toggle');
+    const npDetailsPanel = document.getElementById('np-modal-details-panel');
+    const npMeta = document.getElementById('np-modal-meta');
+    const npLyrics = document.getElementById('np-modal-lyrics');
+
+    function syncNpModal() {
+      if (!npModal || npModal.classList.contains('hidden')) return;
+      const track = (state.inRoom
+        ? state.roomPlaylist[state.roomTrackIndex]
+        : state.soloQueue[state.soloTrackIndex]) || state.libraryTracks.find((t) => t.id === state.loadedTrackId);
+      if (track) {
+        if (npTitle) npTitle.textContent = track.title || 'Tanpa Judul';
+        if (npArtist) npArtist.textContent = track.artist || 'Artis Tidak Diketahui';
+        if (npArt) {
+          npArt.src = track.thumbnail_url || DEFAULT_ARTWORK_SVG;
+          npArt.classList.toggle('playing', state.audioEl && !state.audioEl.paused);
+        }
+        if (npMeta) {
+          const durStr = track.duration_sec ? formatSeconds(track.duration_sec) : '--:--';
+          npMeta.innerHTML = `
+            <div><strong>Durasi:</strong> ${durStr}</div>
+            <div><strong>Mode:</strong> ${state.inRoom ? `Room ${state.roomId}` : 'Mode Solo'}</div>
+            <div><strong>Sumber:</strong> ${track.youtube_id ? 'YouTube / STB' : 'Lokal HDD'}</div>
+            <div><strong>Status:</strong> ${state.audioEl && !state.audioEl.paused ? 'Memutar' : 'Jeda'}</div>
+          `;
+        }
+      }
+      if (npMode) npMode.textContent = state.inRoom ? `Live Room: ${state.roomId}` : 'Mode Solo';
+      const isPlaying = state.audioEl && !state.audioEl.paused;
+      if (npIconPlay && npIconPause) {
+        npIconPlay.classList.toggle('hidden', isPlaying);
+        npIconPause.classList.toggle('hidden', !isPlaying);
+      }
+      if (state.audioEl && Number.isFinite(state.audioEl.duration) && state.audioEl.duration > 0) {
+        const cur = state.audioEl.currentTime || 0;
+        const dur = state.audioEl.duration;
+        if (npSeek) npSeek.value = String(Math.round((cur / dur) * 100));
+        if (npCur) npCur.textContent = formatSeconds(cur);
+        if (npDur) npDur.textContent = formatSeconds(dur);
+      }
+      if (npShuffle) npShuffle.style.color = state.shuffleEnabled ? '#ff0033' : '';
+      if (npRepeat) npRepeat.style.color = state.repeatMode !== 'off' ? '#ff0033' : '';
+    }
+
+    if (playerNow && npModal) {
+      playerNow.addEventListener('click', () => {
+        npModal.classList.remove('hidden');
+        syncNpModal();
+      });
+    }
+    if (btnCloseNp && npModal) {
+      btnCloseNp.addEventListener('click', () => npModal.classList.add('hidden'));
+      npModal.addEventListener('click', (e) => {
+        if (e.target === npModal) npModal.classList.add('hidden');
+      });
+    }
+    if (npPlayBtn && dom.btnPlayPause) npPlayBtn.addEventListener('click', () => { dom.btnPlayPause.click(); setTimeout(syncNpModal, 80); });
+    if (npPrev && dom.btnPrev) npPrev.addEventListener('click', () => { dom.btnPrev.click(); setTimeout(syncNpModal, 120); });
+    if (npNext && dom.btnNext) npNext.addEventListener('click', () => { dom.btnNext.click(); setTimeout(syncNpModal, 120); });
+    if (npShuffle && dom.btnShuffle) npShuffle.addEventListener('click', () => { dom.btnShuffle.click(); setTimeout(syncNpModal, 50); });
+    if (npRepeat && dom.btnRepeat) npRepeat.addEventListener('click', () => { dom.btnRepeat.click(); setTimeout(syncNpModal, 50); });
+    if (npSeek) {
+      npSeek.addEventListener('input', () => {
+        if (state.audioEl && Number.isFinite(state.audioEl.duration) && state.audioEl.duration > 0) {
+          const target = (Number(npSeek.value) / 100) * state.audioEl.duration;
+          state.audioEl.currentTime = target;
+          if (state.inRoom) sendWsAction({ action: 'seek', seek_position_sec: target });
+        }
+      });
+    }
+    if (npLyricsToggle && npDetailsPanel) {
+      npLyricsToggle.addEventListener('click', () => {
+        const hidden = npDetailsPanel.classList.toggle('hidden');
+        npLyricsToggle.setAttribute('aria-pressed', String(!hidden));
+        if (!hidden && npLyrics) {
+          const t = npTitle ? npTitle.textContent : '';
+          const a = npArtist ? npArtist.textContent : '';
+          npLyrics.textContent = `Lirik untuk "${t}" (${a}) belum tersedia secara offline di STB.\nGunakan tab Eksplorasi -> Lirik & Karaoke untuk mencari versi lirik lagu ini.`;
+        }
+      });
+    }
+    if (state.audioEl) {
+      state.audioEl.addEventListener('timeupdate', syncNpModal);
+      state.audioEl.addEventListener('play', syncNpModal);
+      state.audioEl.addEventListener('pause', syncNpModal);
+    }
+  }
+
   function init() {
     registerServiceWorker();
     initDeviceProfileAndAvatar();
@@ -2408,6 +2608,7 @@
     bindAutoExitRoomLifecycle();
     bindAudioEvents();
     bindUiControls();
+    initBetaEnhancements();
     fetchServerHealth();
     fetchServerLibrary();
     connectWebSocket();

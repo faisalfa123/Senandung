@@ -6,12 +6,12 @@
   <meta name="theme-color" content="#030303">
   <meta name="description" content="Senandung v3 Remake: Self-Hosted Music Server dengan Mode Solo &amp; Live Room Multi-Device Audio Sync">
   <title>Senandung Music</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230d0d0d' stroke='%23ff0033' stroke-width='2'/%3E%3Cpath d='M21 10.5C21 8.6 18.8 7.5 16 7.5C13.2 7.5 11 8.8 11 10.8C11 15 21 14.2 21 19.2C21 21.5 18.8 23 16 23C13.2 23 11 21.6 11 19.5' stroke='%23ff0033' stroke-width='2.6' stroke-linecap='round' fill='none'/%3E%3Cpath d='M7.5 13.5V18.5M24.5 13.5V18.5' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M23.2 14.5C22.7 11.4 20.1 9 16.9 9C14.3 9 12.1 10.6 11.1 12.9C10.7 12.8 10.3 12.7 9.9 12.7C7.2 12.7 5 14.9 5 17.6C5 20.3 7.2 22.5 9.9 22.5H22.5C24.7 22.5 26.5 20.7 26.5 18.5C26.5 16.5 25.1 14.9 23.2 14.5Z' fill='%23ff0033'/%3E%3Cpath d='M14.2 13.5L19.6 16.7L14.2 19.9V13.5Z' fill='%23ffffff'/%3E%3C/svg%3E">
   <script>
     if ('caches' in window) {
       caches.keys().then(function(keys) {
         keys.forEach(function(k) {
-          if (k !== 'senandung-v3.0.5-remake') caches.delete(k);
+          if (k !== 'senandung-v3.2.2-beta.1') caches.delete(k);
         });
       });
     }
@@ -21,7 +21,7 @@
       });
     }
   </script>
-  <link rel="stylesheet" href="/style.css?v=3.0.5">
+  <link rel="stylesheet" href="/style.css?v=3.2.2-beta.1">
 </head>
 <body class="desktop">
   <!-- Top Header Bar -->
@@ -39,19 +39,18 @@
         </svg>
       </button>
 
-      <!-- Requirement #5: New Original Senandung v3 Remake Icon (Vinyl S-Wave Pulse Emblem) -->
+      <!-- Senandung Flat Cloud + Play Icon -->
       <a href="#beranda" class="ytm-brand" id="brand-home-link" aria-label="Senandung Music Beranda">
         <span class="ytm-brand-emblem" aria-hidden="true">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="1" y="1" width="30" height="30" rx="8" fill="#121212" stroke="#ff0033" stroke-width="2"/>
-            <path d="M20.5 10.5C20.5 8.7 18.5 7.5 16 7.5C13.3 7.5 11.5 8.8 11.5 10.8C11.5 14.8 20.5 14.2 20.5 19C20.5 21.3 18.5 22.8 16 22.8C13.4 22.8 11.5 21.4 11.5 19.4" stroke="#ff0033" stroke-width="2.6" stroke-linecap="round"/>
-            <path d="M7.2 13.5V18.5M24.8 13.5V18.5" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
-            <circle cx="16" cy="15.2" r="1.7" fill="#ffffff"/>
+            <rect width="32" height="32" rx="8" fill="#18181b"/>
+            <path d="M23.2 14.5C22.7 11.4 20.1 9 16.9 9C14.3 9 12.1 10.6 11.1 12.9C10.7 12.8 10.3 12.7 9.9 12.7C7.2 12.7 5 14.9 5 17.6C5 20.3 7.2 22.5 9.9 22.5H22.5C24.7 22.5 26.5 20.7 26.5 18.5C26.5 16.5 25.1 14.9 23.2 14.5Z" fill="#ff0033"/>
+            <path d="M14.2 13.5L19.6 16.7L14.2 19.9V13.5Z" fill="#ffffff"/>
           </svg>
         </span>
         <div class="ytm-brand-title-col">
           <span class="ytm-brand-word">Senandung</span>
-          <span class="ytm-brand-remake-tag">v3 REMAKE</span>
+          <span class="ytm-brand-remake-tag">v3.2.2 BETA</span>
         </div>
       </a>
     </div>
@@ -346,6 +345,31 @@
             <div>
               <span class="ytm-shelf-eyebrow">PENCARIAN ONLINE MULTI-SUMBER (YOUTUBE MUSIC, BAND &amp; LIVE)</span>
               <h2 id="heading-eksplorasi" class="ytm-shelf-title">Eksplorasi Musik &amp; Unduh ke STB</h2>
+            </div>
+            <div class="ytm-explore-dl-wrap">
+              <button
+                type="button"
+                id="btn-explore-dl-queue"
+                class="ytm-dl-queue-btn"
+                aria-label="Lihat Antrian Download"
+                aria-expanded="false"
+                title="Antrian Download STB"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span>Antrian</span>
+                <span id="explore-dl-badge" class="ytm-dl-badge hidden">0</span>
+              </button>
+              <div id="explore-dl-queue-panel" class="ytm-dl-queue-panel hidden" role="region" aria-label="Daftar Antrian Download">
+                <div class="ytm-dl-queue-head">
+                  <strong>Antrian Unduhan STB</strong>
+                  <span id="explore-dl-summary" class="ytm-muted-sm">Tidak ada unduhan aktif</span>
+                </div>
+                <div id="explore-dl-list" class="ytm-dl-queue-list"></div>
+              </div>
             </div>
           </div>
 
@@ -737,6 +761,76 @@
     </div>
   </div>
 
-  <script src="/app.js?v=3.0.5" defer></script>
+  <!-- Now Playing Full Modal (Opens when clicking bottom player bar) -->
+  <div id="now-playing-modal" class="ytm-modal-backdrop ytm-np-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="np-modal-title">
+    <div class="ytm-np-sheet">
+      <div class="ytm-np-topbar">
+        <button type="button" id="btn-close-np-modal" class="ytm-icon-btn" aria-label="Tutup Pemutar">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+          </svg>
+        </button>
+        <span class="ytm-np-mode-pill" id="np-modal-mode">Mode Solo</span>
+        <button type="button" id="btn-np-lyrics-toggle" class="ytm-chip" aria-pressed="false">Lirik &amp; Detail</button>
+      </div>
+
+      <div class="ytm-np-body">
+        <div class="ytm-np-art-wrap">
+          <img id="np-modal-art" class="ytm-np-art" src="" alt="Artwork Lagu">
+        </div>
+
+        <div class="ytm-np-info">
+          <h2 id="np-modal-title" class="ytm-np-title">Pilih lagu di Beranda</h2>
+          <p id="np-modal-artist" class="ytm-np-artist">-</p>
+        </div>
+
+        <div class="ytm-np-progress-wrap">
+          <input type="range" id="np-modal-seek" class="ytm-np-seek" min="0" max="100" value="0" aria-label="Posisi Lagu">
+          <div class="ytm-np-times">
+            <span id="np-modal-time-cur">0:00</span>
+            <span id="np-modal-time-dur">0:00</span>
+          </div>
+        </div>
+
+        <div class="ytm-np-controls">
+          <button type="button" id="btn-np-shuffle" class="ytm-icon-btn" aria-label="Acak (Random)" title="Acak">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
+            </svg>
+          </button>
+          <button type="button" id="btn-np-prev" class="ytm-icon-btn" aria-label="Sebelumnya" title="Sebelumnya">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+            </svg>
+          </button>
+          <button type="button" id="btn-np-play" class="ytm-np-play-btn" aria-label="Putar atau Jeda">
+            <svg id="np-icon-play" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            <svg id="np-icon-pause" class="hidden" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+            </svg>
+          </button>
+          <button type="button" id="btn-np-next" class="ytm-icon-btn" aria-label="Berikutnya" title="Berikutnya">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+            </svg>
+          </button>
+          <button type="button" id="btn-np-repeat" class="ytm-icon-btn" aria-label="Ulangi (Repeat)" title="Ulangi">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
+            </svg>
+          </button>
+        </div>
+
+        <div id="np-modal-details-panel" class="ytm-np-details hidden">
+          <div class="ytm-np-detail-grid" id="np-modal-meta"></div>
+          <div class="ytm-np-lyrics-box" id="np-modal-lyrics">Memuat lirik lagu...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js?v=3.2.2-beta.1" defer></script>
 </body>
 </html>
