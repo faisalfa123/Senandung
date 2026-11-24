@@ -57,7 +57,7 @@ pub async fn health_handler(State(state): State<AppState>) -> impl IntoResponse 
     let storage = state.config.resolve_music_storage();
     Json(HealthResponse {
         status: "ok",
-        version: "3.0.1-nightly-dev",
+        version: "3.2.0-beta",
         arch: state.config.arch.clone(),
         db_path: state.db.db_path.to_string_lossy().to_string(),
         cache_dir: state.config.cache_dir.to_string_lossy().to_string(),
@@ -380,4 +380,126 @@ pub async fn thumbnail_handler(
             .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response()),
         Err(_) => StatusCode::NOT_FOUND.into_response(),
     }
+}
+
+// ============================================================================
+// Phase 3: Server-Side Custom Playlist REST API
+// ============================================================================
+
+/// GET /api/v1/playlists
+pub async fn list_playlists_handler(State(state): State<AppState>) -> impl IntoResponse {
+    match state.db.load_custom_playlists() {
+        Ok(playlists) => (StatusCode::OK, Json(serde_json::json!({ "playlists": playlists }))),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e.to_string() })),
+        ),
+    }
+}
+
+/// POST /api/v1/playlists/{name}/tracks
+pub async fn add_playlist_track_handler(
+    State(state): State<AppState>,
+    Path(name): Path<String>,
+    Json(track): Json<crate::core::state::Track>,
+) -> impl IntoResponse {
+    let mut playlists = match state.db.load_custom_playlists() {
+        Ok(p) => p,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e.to_string() })),
+            )
+        }
+    };
+
+    let list = playlists.entry(name.clone()).or_insert_with(Vec::new);
+    if !list.iter().any(|t| t.id == track.id) {
+        list.push(track);
+    }
+
+    match state.db.save_custom_playlist(&name, list) {
+        Ok(_) => (
+            StatusCode::OK,
+            Json(serde_json::json!({ "status": "ok", "playlist": list })),
+        ),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e.to_string() })),
+        ),
+    }
+}
+
+/// DELETE /api/v1/playlists/{name}/tracks/{track_id}
+pub async fn remove_playlist_track_handler(
+    State(state): State<AppState>,
+    Path((name, track_id)): Path<(String, String)>,
+) -> impl IntoResponse {
+    let mut playlists = match state.db.load_custom_playlists() {
+        Ok(p) => p,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e.to_string() })),
+            )
+        }
+    };
+
+    let list = playlists.entry(name.clone()).or_insert_with(Vec::new);
+    list.retain(|t| t.id != track_id);
+
+    match state.db.save_custom_playlist(&name, list) {
+        Ok(_) => (
+            StatusCode::OK,
+            Json(serde_json::json!({ "status": "ok", "playlist": list })),
+        ),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e.to_string() })),
+        ),
+    }
+}
+
+/// DELETE /api/v1/playlists/{name}
+pub async fn delete_playlist_handler(
+    State(state): State<AppState>,
+    Path(name): Path<String>,
+) -> impl IntoResponse {
+    if name == "Favorit" {
+        // Favorit cannot be completely removed, clear it instead
+        let _ = state.db.save_custom_playlist("Favorit", &[]);
+        return (
+            StatusCode::OK,
+            Json(serde_json::json!({ "status": "ok", "cleared": true })),
+        );
+    }
+
+    match state.db.delete_custom_playlist(&name) {
+        Ok(deleted) => (
+            StatusCode::OK,
+            Json(serde_json::json!({ "status": "ok", "deleted": deleted })),
+        ),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e.to_string() })),
+        ),
+    }
+}
+
+/// POST /api/v1/migrate-playlists
+/// Bulk import custom playlists from client localStorage
+pub async fn migrate_playlists_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<std::collections::HashMap<String, Vec<crate::core::state::Track>>>,
+) -> impl IntoResponse {
+    let mut imported = 0;
+    for (name, tracks) in payload {
+        if let Ok(_) = state.db.save_custom_playlist(&name, &tracks) {
+            imported += 1;
+        }
+    }
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({ "status": "ok", "imported_count": imported })),
+    )
 }

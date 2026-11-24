@@ -433,6 +433,7 @@
       sendRapidNtpPings();
     }
 
+    loadCustomPlaylists();
     updateRoomModeUI();
   }
 
@@ -1271,9 +1272,10 @@
   }
 
   // ==========================================================================
-  // 6. CUSTOM PLAYLISTS TAB (Requirement #1.c)
+  // 6. CUSTOM PLAYLISTS TAB (Phase 3: Server-Side Persistence + Fallback)
   // ==========================================================================
-  function loadCustomPlaylists() {
+  async function loadCustomPlaylists() {
+    // 1. Load local cache first for instant UI response
     try {
       const raw = localStorage.getItem(STORAGE_KEY_CUSTOM_PL);
       if (raw) {
@@ -1286,35 +1288,107 @@
     if (!Array.isArray(state.customPlaylists.Favorit)) {
       state.customPlaylists.Favorit = [];
     }
+
+    // 2. Fetch from server REST API
+    try {
+      const resp = await fetch('/api/v1/playlists');
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data && data.playlists && typeof data.playlists === 'object') {
+          // If server had empty or fewer playlists but localStorage had existing data, trigger one-time migration
+          const serverKeys = Object.keys(data.playlists);
+          const localKeys = Object.keys(state.customPlaylists);
+          const hasLocalData = localKeys.some(k => (state.customPlaylists[k] || []).length > 0);
+
+          if (serverKeys.length <= 1 && hasLocalData && (!data.playlists.Favorit || data.playlists.Favorit.length === 0)) {
+            await migrateLocalPlaylistsToServer(state.customPlaylists);
+          } else {
+            state.customPlaylists = data.playlists;
+            if (!Array.isArray(state.customPlaylists.Favorit)) {
+              state.customPlaylists.Favorit = [];
+            }
+            saveCustomPlaylistsLocalCache();
+          }
+        }
+      }
+    } catch (_) {
+      // Offline fallback: keep using localStorage
+    }
+
+    if (state.activeTab === 'playlist') {
+      renderCustomPlaylistsTab();
+    }
   }
 
-  function saveCustomPlaylists() {
+  function saveCustomPlaylistsLocalCache() {
     try {
       localStorage.setItem(STORAGE_KEY_CUSTOM_PL, JSON.stringify(state.customPlaylists));
     } catch (_) {}
   }
 
-  function addTrackToActiveCustomPlaylist(track) {
+  async function migrateLocalPlaylistsToServer(localPlaylists) {
+    try {
+      const resp = await fetch('/api/v1/migrate-playlists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(localPlaylists)
+      });
+      if (resp.ok) {
+        saveCustomPlaylistsLocalCache();
+      }
+    } catch (_) {}
+  }
+
+  async function addTrackToActiveCustomPlaylist(track) {
     const plName = state.activeCustomPlaylistName || 'Favorit';
     if (!Array.isArray(state.customPlaylists[plName])) {
       state.customPlaylists[plName] = [];
     }
     if (!state.customPlaylists[plName].some((t) => t.id === track.id)) {
       state.customPlaylists[plName].push(track);
-      saveCustomPlaylists();
+      saveCustomPlaylistsLocalCache();
+      renderCustomPlaylistsTab();
+
+      // Sync to server REST API
+      try {
+        await fetch(`/api/v1/playlists/${encodeURIComponent(plName)}/tracks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(track)
+        });
+      } catch (_) {}
     }
     if (state.loadedTrackId === track.id && dom.btnLikeCurrent) {
       dom.btnLikeCurrent.textContent = '♥';
     }
   }
 
-  function createNewCustomPlaylistPrompt() {
+  async function createNewCustomPlaylistPrompt() {
     const name = window.prompt('Masukkan nama Playlist baru:', 'Playlist Santai');
     if (!name || !name.trim()) return;
     const clean = name.trim();
     if (!state.customPlaylists[clean]) {
       state.customPlaylists[clean] = [];
-      saveCustomPlaylists();
+      saveCustomPlaylistsLocalCache();
+      try {
+        await fetch(`/api/v1/playlists/${encodeURIComponent(clean)}/tracks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: '__init__',
+            youtube_id: '',
+            title: '',
+            artist: '',
+            duration_sec: 0,
+            thumbnail_url: '',
+            file_path: '',
+            added_by: state.deviceName,
+            added_at_ms: Date.now()
+          })
+        });
+        // Remove dummy init track
+        await fetch(`/api/v1/playlists/${encodeURIComponent(clean)}/tracks/__init__`, { method: 'DELETE' });
+      } catch (_) {}
     }
     state.activeCustomPlaylistName = clean;
     switchTab('playlist');
@@ -1336,7 +1410,7 @@
       dom.customPlaylistsBar.appendChild(chip);
     });
 
-    const tracks = state.customPlaylists[state.activeCustomPlaylistName] || [];
+    const tracks = (state.customPlaylists[state.activeCustomPlaylistName] || []).filter(t => t.id !== '__init__');
     dom.customPlaylistTracks.innerHTML = '';
 
     if (tracks.length === 0) {
@@ -1350,10 +1424,16 @@
         isActive: state.loadedTrackId === track.id,
         onPlay: () => handleUserPlayTrack(track, tracks),
         roomActionLabel: 'Hapus',
-        onAddRoom: () => {
-          state.customPlaylists[state.activeCustomPlaylistName] = tracks.filter((t) => t.id !== track.id);
-          saveCustomPlaylists();
+        onAddRoom: async () => {
+          const plName = state.activeCustomPlaylistName;
+          state.customPlaylists[plName] = tracks.filter((t) => t.id !== track.id);
+          saveCustomPlaylistsLocalCache();
           renderCustomPlaylistsTab();
+          try {
+            await fetch(`/api/v1/playlists/${encodeURIComponent(plName)}/tracks/${encodeURIComponent(track.id)}`, {
+              method: 'DELETE'
+            });
+          } catch (_) {}
         }
       });
       dom.customPlaylistTracks.appendChild(row);

@@ -98,5 +98,23 @@ cargo build --release --features local-audio
 
 ---
 
+## 📡 REST API Endpoints (v3.2.0)
+
+| Endpoint | Method | Header | Deskripsi |
+| :--- | :--- | :--- | :--- |
+| `/api/v1/health` | `GET` | - | Status server, versi, path DB & storage musik |
+| `/api/v1/search?q={query}` | `GET` | - | Cari lagu via yt-dlp & YouTube |
+| `/api/v1/tracks` | `GET` | - | Daftar semua lagu yang tersimpan di disk |
+| `/api/v1/stream/{track_id}` | `GET` | `Range` | Stream audio MP3 chunked 8KB (mendukung range request) |
+| `/api/v1/thumbnail/{id}` | `GET` | - | Ambil gambar thumbnail/artwork track |
+| `/api/v1/download` | `POST` | - | Antrekan unduhan musik baru ke worker latar belakang |
+| `/api/v1/playlists` | `GET` | - | List semua playlist kustom server-side |
+| `/api/v1/playlists/{name}/tracks` | `POST` | - | Tambah track ke playlist kustom |
+| `/api/v1/playlists/{name}/tracks/{track_id}` | `DELETE` | - | Hapus track dari playlist kustom |
+| `/api/v1/playlists/{name}` | `DELETE` | - | Hapus seluruh playlist kustom (Favorit di-reset kosong) |
+| `/api/v1/migrate-playlists` | `POST` | - | Migrasi data playlist localStorage klien ke server Sled DB |
+
+---
+
 ## 📄 Lisensi
 MIT License — Hak Cipta © Fais-Alfa (`faisalfa123`).

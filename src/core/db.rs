@@ -7,6 +7,7 @@ use crate::core::state::{RoomState, Track};
 
 const ROOMS_TREE: &str = "rooms_v3";
 const TRACKS_TREE: &str = "tracks_v3";
+const CUSTOM_PLAYLISTS_TREE: &str = "custom_playlists_v3";
 
 #[derive(Debug, Serialize, Deserialize)]
 struct PersistedRoom {
@@ -129,5 +130,77 @@ impl Database {
     pub async fn flush_async(&self) -> Result<usize> {
         let flushed = self.db.flush_async().await?;
         Ok(flushed)
+    }
+
+    /// Save tracks for a specific custom playlist name
+    pub fn save_custom_playlist(&self, name: &str, tracks: &[Track]) -> Result<()> {
+        let tree = self.db.open_tree(CUSTOM_PLAYLISTS_TREE)?;
+        let bytes = serde_json::to_vec(tracks)?;
+        tree.insert(name.as_bytes(), bytes)?;
+        Ok(())
+    }
+
+    /// Load all custom playlists as a HashMap of name -> tracks
+    pub fn load_custom_playlists(&self) -> Result<std::collections::HashMap<String, Vec<Track>>> {
+        let tree = self.db.open_tree(CUSTOM_PLAYLISTS_TREE)?;
+        let mut map = std::collections::HashMap::new();
+        for item in tree.iter() {
+            if let Ok((key, val)) = item {
+                if let (Ok(name), Ok(tracks)) = (
+                    std::str::from_utf8(&key),
+                    serde_json::from_slice::<Vec<Track>>(&val),
+                ) {
+                    map.insert(name.to_string(), tracks);
+                }
+            }
+        }
+        if !map.contains_key("Favorit") {
+            map.insert("Favorit".to_string(), Vec::new());
+        }
+        Ok(map)
+    }
+
+    /// Delete a custom playlist by name
+    pub fn delete_custom_playlist(&self, name: &str) -> Result<bool> {
+        let tree = self.db.open_tree(CUSTOM_PLAYLISTS_TREE)?;
+        let removed = tree.remove(name.as_bytes())?;
+        Ok(removed.is_some())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_custom_playlist_persistence() {
+        let tmp_dir = tempfile::tempdir().unwrap();
+        let db = Database::open(tmp_dir.path()).unwrap();
+
+        // Initially Favorit should exist
+        let playlists = db.load_custom_playlists().unwrap();
+        assert!(playlists.contains_key("Favorit"));
+
+        let test_tracks = vec![Track {
+            id: "track-1".to_string(),
+            youtube_id: "yt-1".to_string(),
+            title: "Test Title".to_string(),
+            artist: "Test Artist".to_string(),
+            duration_sec: 180,
+            thumbnail_url: "http://example.com/thumb.jpg".to_string(),
+            file_path: PathBuf::from("/tmp/track-1.mp3"),
+            added_by: "Test".to_string(),
+            added_at_ms: 1000,
+        }];
+
+        db.save_custom_playlist("Santai", &test_tracks).unwrap();
+        let updated = db.load_custom_playlists().unwrap();
+        assert_eq!(updated.get("Santai").unwrap().len(), 1);
+        assert_eq!(updated.get("Santai").unwrap()[0].title, "Test Title");
+
+        let deleted = db.delete_custom_playlist("Santai").unwrap();
+        assert!(deleted);
+        let after_delete = db.load_custom_playlists().unwrap();
+        assert!(!after_delete.contains_key("Santai"));
     }
 }

@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::{
-    routing::{get, post},
+    routing::{delete, get, post},
     Router,
 };
 use tokio::sync::{broadcast, Mutex, RwLock};
@@ -26,8 +26,10 @@ use crate::core::{
 use crate::logging::{init_logging, safe_log_error};
 use crate::server::{
     api::{
-        download_status_handler, enqueue_download_handler, health_handler,
-        list_tracks_handler, search_handler, stream_track_handler, thumbnail_handler,
+        add_playlist_track_handler, delete_playlist_handler, download_status_handler,
+        enqueue_download_handler, health_handler, list_playlists_handler, list_tracks_handler,
+        migrate_playlists_handler, remove_playlist_track_handler, search_handler,
+        stream_track_handler, thumbnail_handler,
     },
     downloader::{run_download_worker, spawn_download_worker},
     static_cache::{serve_index_handler, serve_static_asset_handler},
@@ -89,6 +91,11 @@ async fn main() -> Result<()> {
         .route("/api/v1/download", post(enqueue_download_handler))
         .route("/api/v1/download/status/:id", get(download_status_handler))
         .route("/api/v1/tracks", get(list_tracks_handler))
+        .route("/api/v1/playlists", get(list_playlists_handler))
+        .route("/api/v1/playlists/:name/tracks", post(add_playlist_track_handler))
+        .route("/api/v1/playlists/:name/tracks/:track_id", delete(remove_playlist_track_handler))
+        .route("/api/v1/playlists/:name", delete(delete_playlist_handler))
+        .route("/api/v1/migrate-playlists", post(migrate_playlists_handler))
         .route("/api/v1/stream/:track_id", get(stream_track_handler))
         .route("/api/v1/thumbnail/:id", get(thumbnail_handler))
         .route("/api/v1/artwork/:id", get(thumbnail_handler))
