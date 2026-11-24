@@ -659,6 +659,23 @@
       dom.btnLikeCurrent.textContent = isFav ? '♥' : '♡';
     }
     updateTransportButtonsUI(isPlaying);
+
+    // Media Session API: Update Lock Screen / Notification metadata
+    if ('mediaSession' in navigator) {
+      const artworkSrc = track.thumbnail_url || `${window.location.origin}/icon.svg`;
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: track.title || 'Senandung Track',
+        artist: track.artist || 'Senandung',
+        album: extractAlbumName(track) || 'Senandung Music',
+        artwork: [
+          { src: artworkSrc, sizes: '96x96', type: 'image/jpeg' },
+          { src: artworkSrc, sizes: '128x128', type: 'image/jpeg' },
+          { src: artworkSrc, sizes: '192x192', type: 'image/jpeg' },
+          { src: artworkSrc, sizes: '256x256', type: 'image/jpeg' },
+          { src: artworkSrc, sizes: '512x512', type: 'image/jpeg' }
+        ]
+      });
+    }
   }
 
   function updateTransportButtonsUI(isPlaying) {
@@ -710,14 +727,23 @@
     state.audioEl.addEventListener('play', () => {
       state.isPlaying = true;
       updateTransportButtonsUI(true);
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'playing';
+      }
     });
 
     state.audioEl.addEventListener('pause', () => {
       state.isPlaying = false;
       updateTransportButtonsUI(false);
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
     });
 
     state.audioEl.addEventListener('ended', () => {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'none';
+      }
       if (state.repeatMode === 'one') {
         state.audioEl.currentTime = 0;
         state.audioEl.play().catch(() => {});
@@ -738,6 +764,67 @@
         }
       }
     });
+
+    // Register Media Session API Action Handlers for Lock Screen & Notification Controls
+    if ('mediaSession' in navigator) {
+      try {
+        navigator.mediaSession.setActionHandler('play', () => {
+          if (!state.loadedTrackId) {
+            const first = state.soloQueue[0] || state.libraryTracks[0];
+            if (first) handleUserPlayTrack(first, state.libraryTracks);
+          } else {
+            state.audioEl.play().catch(() => {});
+            if (state.inRoom) {
+              sendWsAction({
+                action: 'play',
+                track_index: state.roomTrackIndex,
+                seek_position_sec: state.audioEl.currentTime || 0
+              });
+            }
+          }
+        });
+
+        navigator.mediaSession.setActionHandler('pause', () => {
+          state.audioEl.pause();
+          if (state.inRoom) {
+            sendWsAction({
+              action: 'pause',
+              seek_position_sec: state.audioEl.currentTime || 0
+            });
+          }
+        });
+
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+          if (state.audioEl.currentTime > 4) {
+            state.audioEl.currentTime = 0;
+            if (state.inRoom) sendWsAction({ action: 'seek', seek_position_sec: 0 });
+          } else if (!state.inRoom && state.soloQueue.length > 0) {
+            playSoloTrackAtIndex(state.soloTrackIndex - 1);
+          }
+        });
+
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+          if (state.inRoom) {
+            sendWsAction({ action: 'next_track' });
+          } else if (state.soloQueue.length > 0) {
+            if (state.shuffleEnabled && state.soloQueue.length > 1) {
+              playSoloTrackAtIndex(Math.floor(Math.random() * state.soloQueue.length));
+            } else {
+              playSoloTrackAtIndex(state.soloTrackIndex + 1);
+            }
+          }
+        });
+
+        navigator.mediaSession.setActionHandler('seekto', (details) => {
+          if (details.seekTime !== undefined && Number.isFinite(details.seekTime)) {
+            state.audioEl.currentTime = details.seekTime;
+            if (state.inRoom) {
+              sendWsAction({ action: 'seek', seek_position_sec: details.seekTime });
+            }
+          }
+        });
+      } catch (_) {}
+    }
   }
 
   // ==========================================================================
