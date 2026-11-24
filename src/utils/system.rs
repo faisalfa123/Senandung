@@ -362,3 +362,37 @@ fn build_track_from_file(path: &Path) -> Option<Track> {
         added_at_ms: mtime_ms,
     })
 }
+
+/// Periodic Storage Health Check & Auto-Migration (Phase 5 Task 5.3)
+/// Every 5 minutes, checks if the primary HDD has reconnected.
+/// If reconnected after fallback, automatically migrates files from fallback directory back to HDD
+/// and updates track file_path in Sled DB.
+pub fn start_storage_health_checker(config: AppConfig, db: std::sync::Arc<Database>) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(300));
+        loop {
+            interval.tick().await;
+
+            // Only attempt migration if primary music directory is usable and fallback has files
+            if is_dir_usable(&config.primary_music_dir) && config.fallback_music_dir.exists() {
+                if let Ok(entries) = fs::read_dir(&config.fallback_music_dir) {
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.is_file() && is_supported_audio_ext(&path) {
+                            if let Some(filename) = path.file_name() {
+                                let target_path = config.primary_music_dir.join(filename);
+                                // Move file back to HDD
+                                if fs::rename(&path, &target_path).is_ok() || fs::copy(&path, &target_path).map(|_| { let _ = fs::remove_file(&path); () }).is_ok() {
+                                    // Update track in DB if present
+                                    if let Some(track) = build_track_from_file(&target_path) {
+                                        let _ = db.save_track(&track);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+}

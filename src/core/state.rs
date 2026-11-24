@@ -64,6 +64,19 @@ impl RoomState {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", content = "payload")]
+pub enum PlaylistDelta {
+    #[serde(rename = "added")]
+    Added { track: Track },
+    #[serde(rename = "removed")]
+    Removed { track_id: String },
+    #[serde(rename = "reordered")]
+    Reordered { track_ids: Vec<String> },
+    #[serde(rename = "index_changed")]
+    IndexChanged { current_track_index: usize },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "event", content = "data")]
 pub enum RoomBroadcastEvent {
     #[serde(rename = "room_state_snapshot")]
@@ -72,6 +85,12 @@ pub enum RoomBroadcastEvent {
     PlaylistUpdated {
         room_id: String,
         playlist: Vec<Track>,
+        current_track_index: usize,
+    },
+    #[serde(rename = "playlist_delta")]
+    PlaylistDeltaUpdated {
+        room_id: String,
+        delta: PlaylistDelta,
         current_track_index: usize,
     },
     #[serde(rename = "playback_sync")]
@@ -196,7 +215,7 @@ impl AppState {
         let (playlist, current_track_index, snapshot) = {
             let mut state = handle.state.write().await;
             if !state.playlist.iter().any(|t| t.id == track.id) {
-                state.playlist.push(track);
+                state.playlist.push(track.clone());
             }
             if state.current_track_index >= state.playlist.len() && !state.playlist.is_empty() {
                 state.current_track_index = 0;
@@ -208,6 +227,13 @@ impl AppState {
                 state.clone(),
             )
         };
+
+        // Broadcast Delta update for modern clients (Phase 5 Task 5.1) and full snapshot for backward compat
+        let _ = handle.tx.send(RoomBroadcastEvent::PlaylistDeltaUpdated {
+            room_id: snapshot.room_id.clone(),
+            delta: PlaylistDelta::Added { track: track.clone() },
+            current_track_index,
+        });
 
         let _ = handle.tx.send(RoomBroadcastEvent::PlaylistUpdated {
             room_id: snapshot.room_id,

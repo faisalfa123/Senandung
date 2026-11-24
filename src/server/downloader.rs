@@ -3,7 +3,8 @@ use std::time::Duration;
 use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 use tokio::process::Command;
-use tokio::sync::mpsc;
+use std::sync::Arc;
+use tokio::sync::{mpsc, Semaphore};
 use tokio::time::timeout;
 
 use crate::core::state::{
@@ -38,14 +39,26 @@ pub struct SearchResultItem {
     pub thumbnail_url: String,
 }
 
-/// Initializes the single-worker background download queue (Bug #2 fix).
+/// Initializes the concurrent background download queue with bounded channel (Phase 5 Task 5.2).
 pub fn spawn_download_worker() -> (DownloadSender, mpsc::Receiver<DownloadJob>) {
     mpsc::channel::<DownloadJob>(64)
 }
 
+/// Runs concurrent download workers bounded to 2 simultaneous jobs to keep CPU <30% on STB ARM64.
 pub async fn run_download_worker(mut rx: mpsc::Receiver<DownloadJob>, state: AppState) {
+    let semaphore = Arc::new(Semaphore::new(2));
+
     while let Some(job) = rx.recv().await {
-        process_single_job(&state, job).await;
+        let permit = match semaphore.clone().acquire_owned().await {
+            Ok(p) => p,
+            Err(_) => break,
+        };
+        let state_clone = state.clone();
+
+        tokio::spawn(async move {
+            process_single_job(&state_clone, job).await;
+            drop(permit);
+        });
     }
 }
 

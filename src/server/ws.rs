@@ -11,7 +11,7 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::core::state::{
-    verify_room_pin, AppState, DeviceInfo, RoomBroadcastEvent, DEFAULT_ROOM_ID,
+    verify_room_pin, AppState, DeviceInfo, PlaylistDelta, RoomBroadcastEvent, DEFAULT_ROOM_ID,
 };
 use crate::core::sync::{
     calculate_ntp_offset, calculate_ntp_offset_median, current_epoch_ms,
@@ -395,24 +395,31 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                             }
 
                             ClientWsAction::RemoveTrack { track_id } => {
-                                let event = {
+                                let (event, delta_event) = {
                                     let mut r_state = room_handle.state.write().await;
                                     r_state.playlist.retain(|t| t.id != track_id);
                                     if r_state.current_track_index >= r_state.playlist.len() && !r_state.playlist.is_empty() {
                                         r_state.current_track_index = 0;
                                     }
                                     let _ = state.db.save_room_state(&r_state);
-                                    RoomBroadcastEvent::PlaylistUpdated {
+                                    let d_ev = RoomBroadcastEvent::PlaylistDeltaUpdated {
+                                        room_id: r_state.room_id.clone(),
+                                        delta: PlaylistDelta::Removed { track_id },
+                                        current_track_index: r_state.current_track_index,
+                                    };
+                                    let full_ev = RoomBroadcastEvent::PlaylistUpdated {
                                         room_id: r_state.room_id.clone(),
                                         playlist: r_state.playlist.clone(),
                                         current_track_index: r_state.current_track_index,
-                                    }
+                                    };
+                                    (full_ev, d_ev)
                                 };
+                                let _ = room_handle.tx.send(delta_event);
                                 let _ = room_handle.tx.send(event);
                             }
 
                             ClientWsAction::ReorderPlaylist { from_index, to_index } => {
-                                let event = {
+                                let (event, delta_event) = {
                                     let mut r_state = room_handle.state.write().await;
                                     let len = r_state.playlist.len();
                                     if from_index >= len || to_index >= len {
@@ -424,12 +431,20 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                                         r_state.current_track_index = to_index;
                                     }
                                     let _ = state.db.save_room_state(&r_state);
-                                    RoomBroadcastEvent::PlaylistUpdated {
+                                    let track_ids = r_state.playlist.iter().map(|t| t.id.clone()).collect();
+                                    let d_ev = RoomBroadcastEvent::PlaylistDeltaUpdated {
+                                        room_id: r_state.room_id.clone(),
+                                        delta: PlaylistDelta::Reordered { track_ids },
+                                        current_track_index: r_state.current_track_index,
+                                    };
+                                    let full_ev = RoomBroadcastEvent::PlaylistUpdated {
                                         room_id: r_state.room_id.clone(),
                                         playlist: r_state.playlist.clone(),
                                         current_track_index: r_state.current_track_index,
-                                    }
+                                    };
+                                    (full_ev, d_ev)
                                 };
+                                let _ = room_handle.tx.send(delta_event);
                                 let _ = room_handle.tx.send(event);
                             }
 

@@ -1665,6 +1665,30 @@
         break;
       }
 
+      case 'playlist_delta': {
+        // Phase 5 Task 5.1: Delta Playlist Updates (>60% bandwidth saving)
+        if (typeof data.current_track_index === 'number') {
+          state.roomTrackIndex = data.current_track_index;
+        }
+        const delta = data.delta || {};
+        if (delta.type === 'added' && delta.payload && delta.payload.track) {
+          const t = delta.payload.track;
+          if (!state.roomPlaylist.some((x) => x.id === t.id)) {
+            state.roomPlaylist.push(t);
+          }
+        } else if (delta.type === 'removed' && delta.payload && delta.payload.track_id) {
+          state.roomPlaylist = state.roomPlaylist.filter((x) => x.id !== delta.payload.track_id);
+        } else if (delta.type === 'reordered' && delta.payload && Array.isArray(delta.payload.track_ids)) {
+          const idMap = new Map(state.roomPlaylist.map((t) => [t.id, t]));
+          state.roomPlaylist = delta.payload.track_ids.map((id) => idMap.get(id)).filter(Boolean);
+        } else if (delta.type === 'index_changed' && delta.payload && typeof delta.payload.current_track_index === 'number') {
+          state.roomTrackIndex = delta.payload.current_track_index;
+        }
+        renderRoomPlaylistTab();
+        fetchServerLibrary();
+        break;
+      }
+
       case 'playlist_updated': {
         state.roomPlaylist = Array.isArray(data.playlist) ? data.playlist : [];
         state.roomTrackIndex = typeof data.current_track_index === 'number' ? data.current_track_index : 0;

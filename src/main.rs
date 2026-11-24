@@ -73,11 +73,14 @@ async fn main() -> Result<()> {
         }
     }
 
-    // Spawn single-worker background download queue (nice -n 19 ionice -c 3 yt-dlp)
+    // Spawn background download worker pool (Semaphore 2, nice -n 19 ionice -c 3)
     let worker_state = app_state.clone();
     tokio::spawn(async move {
         run_download_worker(download_rx, worker_state).await;
     });
+
+    // Spawn periodic storage health check and auto-migrate task (Phase 5 Task 5.3)
+    crate::utils::system::start_storage_health_checker(config.clone(), db.clone());
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
