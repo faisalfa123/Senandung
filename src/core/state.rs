@@ -106,7 +106,7 @@ pub struct RoomHandle {
 
 impl RoomHandle {
     pub fn new(initial_state: RoomState) -> Self {
-        let (tx, _) = broadcast::channel(128);
+        let (tx, _) = broadcast::channel(32);
         Self {
             state: Arc::new(RwLock::new(initial_state)),
             tx,
