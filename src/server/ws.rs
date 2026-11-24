@@ -14,7 +14,8 @@ use crate::core::state::{
     AppState, DeviceInfo, RoomBroadcastEvent, DEFAULT_ROOM_ID,
 };
 use crate::core::sync::{
-    calculate_ntp_offset, current_epoch_ms, target_server_play_timestamp,
+    calculate_ntp_offset, calculate_ntp_offset_median, current_epoch_ms,
+    target_server_play_timestamp,
 };
 
 #[derive(Debug, Deserialize)]
@@ -102,6 +103,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
     let mut room_handle = state.get_or_create_room(&current_room_id).await;
     let mut room_rx = room_handle.tx.subscribe();
     let mut global_rx = state.global_tx.subscribe();
+    let mut ntp_samples: Vec<(u64, u64)> = Vec::with_capacity(5);
 
     loop {
         tokio::select! {
@@ -216,7 +218,17 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
 
                             ClientWsAction::NtpPing { client_timestamp_ms } => {
                                 let server_now = current_epoch_ms();
-                                let offset = calculate_ntp_offset(client_timestamp_ms, server_now);
+                                ntp_samples.push((client_timestamp_ms, server_now));
+
+                                // When 5 samples collected, calculate median offset; otherwise calculate current offset
+                                let offset = if ntp_samples.len() >= 5 {
+                                    let med = calculate_ntp_offset_median(&ntp_samples);
+                                    ntp_samples.clear();
+                                    med
+                                } else {
+                                    calculate_ntp_offset(client_timestamp_ms, server_now)
+                                };
+
                                 let pong = NtpPongPayload {
                                     event: "ntp_pong",
                                     client_timestamp_ms,

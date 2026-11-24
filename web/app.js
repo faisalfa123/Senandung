@@ -430,6 +430,7 @@
         arch: state.arch,
         client_timestamp_ms: Date.now()
       });
+      sendRapidNtpPings();
     }
 
     updateRoomModeUI();
@@ -1483,10 +1484,7 @@
           client_timestamp_ms: Date.now()
         });
       }
-      sendWsAction({
-        action: 'ntp_ping',
-        client_timestamp_ms: Date.now()
-      });
+      sendRapidNtpPings();
     });
 
     ws.addEventListener('message', (ev) => {
@@ -1503,6 +1501,24 @@
     });
   }
 
+  // Phase 2 Task 2.1: Multi-Sample Median NTP Filter
+  let ntpSamples = [];
+  function sendRapidNtpPings() {
+    ntpSamples = [];
+    let count = 0;
+    const interval = setInterval(() => {
+      if (!state.ws || state.ws.readyState !== WebSocket.OPEN || count >= 5) {
+        clearInterval(interval);
+        return;
+      }
+      sendWsAction({
+        action: 'ntp_ping',
+        client_timestamp_ms: Date.now()
+      });
+      count++;
+    }, 50);
+  }
+
   function sendWsAction(payload) {
     if (state.ws && state.ws.readyState === WebSocket.OPEN) {
       state.ws.send(JSON.stringify(payload));
@@ -1511,9 +1527,20 @@
 
   function handleServerWsMessage(msg) {
     if (msg.event === 'ntp_pong') {
-      const rtt = Date.now() - msg.client_timestamp_ms;
+      const now = Date.now();
+      const rtt = now - msg.client_timestamp_ms;
       const estimatedServerNow = msg.server_timestamp_ms + Math.round(rtt / 2);
-      state.ntpOffsetMs = estimatedServerNow - Date.now();
+      const calculatedOffset = estimatedServerNow - now;
+
+      ntpSamples.push(calculatedOffset);
+
+      // Compute median offset when samples are available
+      const sorted = ntpSamples.slice().sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      state.ntpOffsetMs = sorted.length % 2 === 1
+        ? sorted[mid]
+        : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+
       if (state.inRoom) {
         dom.ntpOffsetBadge.textContent = `NTP ${state.ntpOffsetMs >= 0 ? '+' : ''}${state.ntpOffsetMs}ms`;
       }
