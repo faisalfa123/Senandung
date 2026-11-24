@@ -211,7 +211,7 @@
           </div>
           <div class="ytm-sidebar-pl-item">
             <div class="ytm-pl-title" id="device-name-display">Memuat Device...</div>
-            <div class="ytm-pl-sub" id="server-version-badge">v3.0.5</div>
+            <div class="ytm-pl-sub" id="server-version-badge">v3.2.2</div>
           </div>
         </div>
       </div>
@@ -823,9 +823,22 @@
           </button>
         </div>
 
-        <div id="np-modal-details-panel" class="ytm-np-details hidden">
+        <div class="ytm-np-tabs" role="tablist">
+          <button type="button" id="btn-np-tab-lyrics" class="ytm-chip active" role="tab" aria-selected="true">Lirik &amp; Detail</button>
+          <button type="button" id="btn-np-tab-queue" class="ytm-chip" role="tab" aria-selected="false">Antrean Lagu</button>
+        </div>
+
+        <div id="np-modal-details-panel" class="ytm-np-details">
           <div class="ytm-np-detail-grid" id="np-modal-meta"></div>
+          <form id="np-lyrics-search-form" class="ytm-np-lyrics-search">
+            <input type="search" id="np-lyrics-search-input" class="ytm-text-field" placeholder="Cari lirik manual (judul / artis)...">
+            <button type="submit" id="btn-np-lyrics-search" class="ytm-pill-btn">Cari</button>
+          </form>
           <div class="ytm-np-lyrics-box" id="np-modal-lyrics">Memuat lirik lagu...</div>
+        </div>
+
+        <div id="np-modal-queue-panel" class="ytm-np-details hidden">
+          <div id="np-modal-queue-list" class="ytm-dl-queue-list"></div>
         </div>
       </div>
     </div>

@@ -2410,7 +2410,7 @@
   }
 
   function initBetaEnhancements() {
-    // 1. Continuous Room-mode second-by-second drift correction
+    // 1. Continuous Room-mode second-by-second drift correction (micro-rate + seamless seek)
     setInterval(() => {
       if (!state.inRoom || !state.audioEl || state.audioEl.paused || !state.roomSyncAnchor) return;
       const anchor = state.roomSyncAnchor;
@@ -2418,12 +2418,23 @@
       const serverNow = Date.now() + (state.ntpOffsetMs || 0);
       const expectedSec = anchor.seekPositionSec + Math.max(0, (serverNow - anchor.playTimestamp) / 1000);
       const actualSec = state.audioEl.currentTime || 0;
-      if (Number.isFinite(expectedSec) && Math.abs(actualSec - expectedSec) > 0.4) {
+      if (!Number.isFinite(expectedSec)) return;
+
+      const driftMs = (expectedSec - actualSec) * 1000;
+      const absDriftMs = Math.abs(driftMs);
+
+      if (absDriftMs > 300) {
+        state.audioEl.playbackRate = 1.0;
         try {
           state.audioEl.currentTime = expectedSec;
         } catch (_) {}
+      } else if (absDriftMs >= 50) {
+        // Micro-rate pitch adjustment (0.98 - 1.02)
+        state.audioEl.playbackRate = driftMs > 0 ? 1.02 : 0.98;
+      } else if (state.audioEl.playbackRate !== 1.0) {
+        state.audioEl.playbackRate = 1.0;
       }
-    }, 2000);
+    }, 1500);
 
     // 2. Eksplorasi Download Queue Popover
     const dlBtn = document.getElementById('btn-explore-dl-queue');
@@ -2580,15 +2591,80 @@
         }
       });
     }
-    if (npLyricsToggle && npDetailsPanel) {
-      npLyricsToggle.addEventListener('click', () => {
-        const hidden = npDetailsPanel.classList.toggle('hidden');
-        npLyricsToggle.setAttribute('aria-pressed', String(!hidden));
-        if (!hidden && npLyrics) {
-          const t = npTitle ? npTitle.textContent : '';
-          const a = npArtist ? npArtist.textContent : '';
-          npLyrics.textContent = `Lirik untuk "${t}" (${a}) belum tersedia secara offline di STB.\nGunakan tab Eksplorasi -> Lirik & Karaoke untuk mencari versi lirik lagu ini.`;
+    const npTabLyrics = document.getElementById('btn-np-tab-lyrics');
+    const npTabQueue = document.getElementById('btn-np-tab-queue');
+    const npQueuePanel = document.getElementById('np-modal-queue-panel');
+    const npQueueList = document.getElementById('np-modal-queue-list');
+    const npLyricsForm = document.getElementById('np-lyrics-search-form');
+    const npLyricsInput = document.getElementById('np-lyrics-search-input');
+
+    async function fetchLyricsFromLrclib(query) {
+      if (!npLyrics || !query) return;
+      npLyrics.textContent = `Mencari lirik "${query}"...`;
+      try {
+        const res = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(query)}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const items = await res.json();
+        if (Array.isArray(items) && items.length > 0) {
+          const match = items.find((x) => x.plainLyrics || x.syncedLyrics) || items[0];
+          const text = match.plainLyrics || (match.syncedLyrics ? match.syncedLyrics.replace(/\[\d{2}:\d{2}\.\d{2,3}\]\s*/g, '') : '');
+          npLyrics.textContent = text || 'Lirik tidak tersedia untuk lagu ini.';
+        } else {
+          npLyrics.textContent = `Lirik untuk "${query}" tidak ditemukan. Coba cari dengan kata kunci lain di atas.`;
         }
+      } catch (_) {
+        npLyrics.textContent = 'Gagal memuat lirik (periksa koneksi internet).';
+      }
+    }
+
+    function renderNpQueue() {
+      if (!npQueueList) return;
+      const queue = state.inRoom ? state.roomPlaylist : state.soloQueue;
+      const activeIdx = state.inRoom ? state.roomTrackIndex : state.soloTrackIndex;
+      npQueueList.innerHTML = '';
+      if (!queue || queue.length === 0) {
+        npQueueList.innerHTML = '<div class="ytm-muted-sm">Antrean lagu kosong.</div>';
+        return;
+      }
+      queue.slice(0, 30).forEach((t, idx) => {
+        const item = document.createElement('div');
+        item.className = 'ytm-dl-item';
+        if (idx === activeIdx) item.style.borderLeft = '3px solid #ff0033';
+        item.innerHTML = `<div class="ytm-dl-item-title">${idx + 1}. ${t.title || 'Tanpa Judul'}</div><div class="ytm-dl-item-status"><span>${t.artist || '-'}</span><span>${idx === activeIdx ? 'Sedang Diputar' : ''}</span></div>`;
+        npQueueList.appendChild(item);
+      });
+    }
+
+    if (npTabLyrics && npTabQueue && npDetailsPanel && npQueuePanel) {
+      npTabLyrics.addEventListener('click', () => {
+        npTabLyrics.classList.add('active');
+        npTabQueue.classList.remove('active');
+        npDetailsPanel.classList.remove('hidden');
+        npQueuePanel.classList.add('hidden');
+      });
+      npTabQueue.addEventListener('click', () => {
+        npTabQueue.classList.add('active');
+        npTabLyrics.classList.remove('active');
+        npQueuePanel.classList.remove('hidden');
+        npDetailsPanel.classList.add('hidden');
+        renderNpQueue();
+      });
+    }
+    if (npLyricsForm && npLyricsInput) {
+      npLyricsForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const q = npLyricsInput.value.trim();
+        if (q) fetchLyricsFromLrclib(q);
+      });
+    }
+    if (playerNow) {
+      playerNow.addEventListener('click', () => {
+        const t = npTitle ? npTitle.textContent : '';
+        const a = npArtist ? npArtist.textContent : '';
+        if (t && t !== 'Pilih lagu di Beranda') {
+          fetchLyricsFromLrclib(`${t} ${a !== '-' ? a : ''}`.trim());
+        }
+        renderNpQueue();
       });
     }
     if (state.audioEl) {

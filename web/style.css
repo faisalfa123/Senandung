@@ -1991,3 +1991,83 @@ body.mobile .ytm-player-left {
     gap: 6px;
   }
 }
+
+/* ==========================================================================
+   v3.2.2-beta-candidate: 44px Tap Targets, Desktop Thumbnails, Equalizer & Lyrics
+   ========================================================================== */
+
+/* Desktop Thumbnail Aspect Ratio Fix (Item 4) */
+.ytm-media-thumb-box {
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.ytm-media-thumb-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+/* Now Playing Tabs & Manual Lyrics Search */
+.ytm-np-tabs {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+.ytm-np-lyrics-search {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.ytm-np-lyrics-search .ytm-text-field {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+/* Mini Equalizer Bar Animation (Item 8) */
+.ytm-eq-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+  margin-left: 6px;
+}
+
+.ytm-eq-bars span {
+  width: 3px;
+  background: #ff0033;
+  border-radius: 2px;
+  animation: ytmEqPulse 0.9s ease-in-out infinite alternate;
+}
+
+.ytm-eq-bars span:nth-child(2) {
+  animation-delay: 0.25s;
+}
+
+.ytm-eq-bars span:nth-child(3) {
+  animation-delay: 0.5s;
+}
+
+@keyframes ytmEqPulse {
+  0% { height: 4px; }
+  100% { height: 14px; }
+}
+
+/* Mobile 44px Minimum Tap Targets (Item 1 & 5) */
+@media (max-width: 768px) {
+  .ytm-icon-btn,
+  .ytm-pill-btn,
+  .ytm-primary-btn,
+  .ytm-chip,
+  .ytm-dl-queue-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

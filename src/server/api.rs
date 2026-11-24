@@ -57,7 +57,7 @@ pub async fn health_handler(State(state): State<AppState>) -> impl IntoResponse 
     let storage = state.config.resolve_music_storage();
     Json(HealthResponse {
         status: "ok",
-        version: "3.0.5",
+        version: "3.2.2",
         arch: state.config.arch.clone(),
         db_path: state.db.db_path.to_string_lossy().to_string(),
         cache_dir: state.config.cache_dir.to_string_lossy().to_string(),
