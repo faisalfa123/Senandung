@@ -57,7 +57,7 @@ pub async fn health_handler(State(state): State<AppState>) -> impl IntoResponse 
     let storage = state.config.resolve_music_storage();
     Json(HealthResponse {
         status: "ok",
-        version: "3.2.0-beta",
+        version: "3.2.1-beta",
         arch: state.config.arch.clone(),
         db_path: state.db.db_path.to_string_lossy().to_string(),
         cache_dir: state.config.cache_dir.to_string_lossy().to_string(),
@@ -503,3 +503,56 @@ pub async fn migrate_playlists_handler(
         Json(serde_json::json!({ "status": "ok", "imported_count": imported })),
     )
 }
+
+// ============================================================================
+// Phase 4: Room PIN Management REST API
+// ============================================================================
+
+#[derive(Debug, Deserialize)]
+pub struct SetPinRequest {
+    pub pin: String,
+}
+
+/// POST /api/v1/rooms/{id}/pin
+pub async fn set_room_pin_handler(
+    State(state): State<AppState>,
+    Path(room_id): Path<String>,
+    Json(payload): Json<SetPinRequest>,
+) -> impl IntoResponse {
+    let room_handle = state.get_or_create_room(&room_id).await;
+    let pin_hash = if payload.pin.trim().is_empty() {
+        None
+    } else {
+        Some(crate::core::state::hash_room_pin(payload.pin.trim()))
+    };
+
+    {
+        let mut r_state = room_handle.state.write().await;
+        r_state.pin_hash = pin_hash;
+        let _ = state.db.save_room_state(&r_state);
+    }
+
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({ "status": "ok", "room_id": room_id, "protected": true })),
+    )
+}
+
+/// DELETE /api/v1/rooms/{id}/pin
+pub async fn remove_room_pin_handler(
+    State(state): State<AppState>,
+    Path(room_id): Path<String>,
+) -> impl IntoResponse {
+    let room_handle = state.get_or_create_room(&room_id).await;
+    {
+        let mut r_state = room_handle.state.write().await;
+        r_state.pin_hash = None;
+        let _ = state.db.save_room_state(&r_state);
+    }
+
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({ "status": "ok", "room_id": room_id, "protected": false })),
+    )
+}
+

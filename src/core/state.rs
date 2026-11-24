@@ -43,6 +43,8 @@ pub struct RoomState {
     pub seek_position_sec: f64,
     pub ntp_offset_ms: i64,
     pub connected_users: Vec<DeviceInfo>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pin_hash: Option<String>,
 }
 
 impl RoomState {
@@ -56,6 +58,7 @@ impl RoomState {
             seek_position_sec: 0.0,
             ntp_offset_ms: 0,
             connected_users: Vec::new(),
+            pin_hash: None,
         }
     }
 }
@@ -97,6 +100,25 @@ pub enum RoomBroadcastEvent {
     ServerShutdown {
         message: String,
     },
+    #[serde(rename = "join_denied")]
+    JoinDenied {
+        room_id: String,
+        reason: String,
+    },
+}
+
+/// Simple fast salted SHA-256 hash representation for Room PIN protection (hemat CPU STB ARM64)
+pub fn hash_room_pin(pin: &str) -> String {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    "senandung_pin_salt_v3".hash(&mut hasher);
+    pin.hash(&mut hasher);
+    format!("{:016x}", hasher.finish())
+}
+
+pub fn verify_room_pin(pin: &str, expected_hash: &str) -> bool {
+    hash_room_pin(pin) == expected_hash
 }
 
 pub struct RoomHandle {

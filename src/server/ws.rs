@@ -11,7 +11,7 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::core::state::{
-    AppState, DeviceInfo, RoomBroadcastEvent, DEFAULT_ROOM_ID,
+    verify_room_pin, AppState, DeviceInfo, RoomBroadcastEvent, DEFAULT_ROOM_ID,
 };
 use crate::core::sync::{
     calculate_ntp_offset, calculate_ntp_offset_median, current_epoch_ms,
@@ -27,6 +27,7 @@ pub enum ClientWsAction {
         device_name: Option<String>,
         arch: Option<String>,
         client_timestamp_ms: Option<u64>,
+        pin: Option<String>,
     },
     #[serde(rename = "leave_room")]
     LeaveRoom,
@@ -104,6 +105,8 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
     let mut room_rx = room_handle.tx.subscribe();
     let mut global_rx = state.global_tx.subscribe();
     let mut ntp_samples: Vec<(u64, u64)> = Vec::with_capacity(5);
+    let mut failed_pin_attempts: u32 = 0;
+    let mut last_pin_attempt_time: u64 = 0;
 
     loop {
         tokio::select! {
@@ -147,12 +150,13 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                         };
 
                         match action {
-                            // Bug #5 Fix: Immediately respond with room_state_snapshot upon join_room
+                            // Phase 4 Task 4.1: PIN validation & Rate Limit on join_room
                             ClientWsAction::JoinRoom {
                                 room_id,
                                 device_name,
                                 arch,
                                 client_timestamp_ms,
+                                pin,
                             } => {
                                 let target_room = room_id
                                     .unwrap_or_else(|| DEFAULT_ROOM_ID.to_string());
@@ -161,6 +165,47 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                                 } else {
                                     target_room.trim().to_string()
                                 };
+
+                                let candidate_handle = state.get_or_create_room(&target_room).await;
+                                let now_ms = current_epoch_ms();
+
+                                // Reset attempt counter if 60 seconds have elapsed
+                                if now_ms.saturating_sub(last_pin_attempt_time) > 60_000 {
+                                    failed_pin_attempts = 0;
+                                }
+
+                                // Check PIN if target room is protected
+                                let pin_check_failed = {
+                                    let c_state = candidate_handle.state.read().await;
+                                    if let Some(ref required_hash) = c_state.pin_hash {
+                                        if failed_pin_attempts >= 5 {
+                                            Some("Terlalu banyak percobaan PIN salah. Tunggu 1 menit.".to_string())
+                                        } else {
+                                            let supplied_pin = pin.as_deref().unwrap_or("");
+                                            if !verify_room_pin(supplied_pin, required_hash) {
+                                                failed_pin_attempts += 1;
+                                                last_pin_attempt_time = now_ms;
+                                                Some("PIN Room salah atau belum dimasukkan.".to_string())
+                                            } else {
+                                                failed_pin_attempts = 0;
+                                                None
+                                            }
+                                        }
+                                    } else {
+                                        None
+                                    }
+                                };
+
+                                if let Some(reason) = pin_check_failed {
+                                    let deny_event = RoomBroadcastEvent::JoinDenied {
+                                        room_id: target_room,
+                                        reason,
+                                    };
+                                    if let Ok(deny_json) = serde_json::to_string(&deny_event) {
+                                        let _ = ws_sender.send(Message::Text(deny_json)).await;
+                                    }
+                                    continue;
+                                }
 
                                 if let Some(name) = device_name {
                                     if !name.trim().is_empty() {
@@ -173,7 +218,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                                 if target_room != current_room_id {
                                     remove_user_from_room(&room_handle, &client_id).await;
                                     current_room_id = target_room;
-                                    room_handle = state.get_or_create_room(&current_room_id).await;
+                                    room_handle = candidate_handle;
                                     room_rx = room_handle.tx.subscribe();
                                 }
 

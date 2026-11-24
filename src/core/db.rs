@@ -14,6 +14,8 @@ struct PersistedRoom {
     pub room_id: String,
     pub playlist: Vec<Track>,
     pub current_track_index: usize,
+    #[serde(default)]
+    pub pin_hash: Option<String>,
 }
 
 pub struct Database {
@@ -71,6 +73,7 @@ impl Database {
             room_id: room.room_id.clone(),
             playlist: room.playlist.clone(),
             current_track_index: room.current_track_index,
+            pin_hash: room.pin_hash.clone(),
         };
         let bytes = serde_json::to_vec(&persisted)?;
         tree.insert(room.room_id.as_bytes(), bytes)?;
@@ -82,6 +85,7 @@ impl Database {
         if let Some(bytes) = tree.get(room_id.as_bytes())? {
             let persisted: PersistedRoom = serde_json::from_slice(&bytes)?;
             let mut state = RoomState::new(&persisted.room_id);
+            state.pin_hash = persisted.pin_hash;
             state.playlist = persisted
                 .playlist
                 .into_iter()

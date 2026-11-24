@@ -28,8 +28,8 @@ use crate::server::{
     api::{
         add_playlist_track_handler, delete_playlist_handler, download_status_handler,
         enqueue_download_handler, health_handler, list_playlists_handler, list_tracks_handler,
-        migrate_playlists_handler, remove_playlist_track_handler, search_handler,
-        stream_track_handler, thumbnail_handler,
+        migrate_playlists_handler, remove_playlist_track_handler, remove_room_pin_handler,
+        search_handler, set_room_pin_handler, stream_track_handler, thumbnail_handler,
     },
     downloader::{run_download_worker, spawn_download_worker},
     static_cache::{serve_index_handler, serve_static_asset_handler},
@@ -96,6 +96,8 @@ async fn main() -> Result<()> {
         .route("/api/v1/playlists/:name/tracks/:track_id", delete(remove_playlist_track_handler))
         .route("/api/v1/playlists/:name", delete(delete_playlist_handler))
         .route("/api/v1/migrate-playlists", post(migrate_playlists_handler))
+        .route("/api/v1/rooms/:id/pin", post(set_room_pin_handler))
+        .route("/api/v1/rooms/:id/pin", delete(remove_room_pin_handler))
         .route("/api/v1/stream/:track_id", get(stream_track_handler))
         .route("/api/v1/thumbnail/:id", get(thumbnail_handler))
         .route("/api/v1/artwork/:id", get(thumbnail_handler))

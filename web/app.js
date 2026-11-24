@@ -262,6 +262,8 @@
     roomModalBackdrop: document.getElementById('room-modal-backdrop'),
     btnCloseRoomModal: document.getElementById('btn-close-room-modal'),
     roomInput: document.getElementById('room-input'),
+    roomPinInput: document.getElementById('room-pin-input'),
+    roomPinError: document.getElementById('room-pin-error'),
     btnModalLeaveRoom: document.getElementById('btn-modal-leave-room'),
     btnJoinRoom: document.getElementById('btn-join-room')
   };
@@ -413,12 +415,21 @@
   }
 
   // ==========================================================================
-  // 3. SOLO MODE vs LIVE ROOM LIFECYCLE (Requirement #2)
+  // 3. SOLO MODE vs LIVE ROOM LIFECYCLE (Requirement #2 & Phase 4: Room PIN)
   // ==========================================================================
-  function enterLiveRoom(roomName) {
+  // Room PINs stored in volatile session memory only (never localStorage)
+  const roomSessionPins = new Map();
+
+  function enterLiveRoom(roomName, pin) {
     const target = (roomName || 'Lobby').trim() || 'Lobby';
+    if (typeof pin === 'string' && pin.trim()) {
+      roomSessionPins.set(target, pin.trim());
+    }
+
     state.inRoom = true;
     state.roomId = target;
+
+    const activePin = roomSessionPins.get(target);
 
     if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
       connectWebSocket();
@@ -428,7 +439,8 @@
         room_id: state.roomId,
         device_name: state.deviceName,
         arch: state.arch,
-        client_timestamp_ms: Date.now()
+        client_timestamp_ms: Date.now(),
+        pin: activePin || undefined
       });
       sendRapidNtpPings();
     }
@@ -1556,12 +1568,14 @@
       state.wsConnected = true;
       if (state.inRoom) {
         dom.wsStatusDot.classList.add('online');
+        const activePin = roomSessionPins.get(state.roomId);
         sendWsAction({
           action: 'join_room',
           room_id: state.roomId,
           device_name: state.deviceName,
           arch: state.arch,
-          client_timestamp_ms: Date.now()
+          client_timestamp_ms: Date.now(),
+          pin: activePin || undefined
         });
       }
       sendRapidNtpPings();
@@ -1699,6 +1713,17 @@
       case 'server_shutdown': {
         // Requirement #2: Automatically return to Solo Mode when server restarts or updates
         leaveLiveRoomToSolo(true);
+        break;
+      }
+
+      case 'join_denied': {
+        // Phase 4: Room PIN rejected
+        leaveLiveRoomToSolo(true);
+        if (dom.roomPinError) {
+          dom.roomPinError.textContent = data.reason || 'PIN Room salah atau akses ditolak.';
+          dom.roomPinError.classList.remove('hidden');
+        }
+        dom.roomModalBackdrop.classList.remove('hidden');
         break;
       }
     }
@@ -2113,6 +2138,8 @@
     // Requirement #2: Cast Button, Topbar Leave Room Button, and Room Tab Controls
     const openRoomModal = () => {
       dom.roomInput.value = state.roomId;
+      if (dom.roomPinInput) dom.roomPinInput.value = '';
+      if (dom.roomPinError) dom.roomPinError.classList.add('hidden');
       dom.roomModalBackdrop.classList.remove('hidden');
       dom.roomInput.focus();
     };
@@ -2139,7 +2166,8 @@
         const target = chip.getAttribute('data-room') || 'Lobby';
         dom.roomInput.value = target;
         dom.roomTabInlineInput.value = target;
-        enterLiveRoom(target);
+        const pin = dom.roomPinInput ? dom.roomPinInput.value.trim() : '';
+        enterLiveRoom(target, pin);
         closeRoomModal();
         switchTab('room');
       });
@@ -2147,7 +2175,8 @@
 
     dom.btnJoinRoom.addEventListener('click', () => {
       const target = dom.roomInput.value.trim() || 'Lobby';
-      enterLiveRoom(target);
+      const pin = dom.roomPinInput ? dom.roomPinInput.value.trim() : '';
+      enterLiveRoom(target, pin);
       closeRoomModal();
       switchTab('room');
     });
