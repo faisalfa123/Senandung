@@ -1,10 +1,10 @@
-// Service Worker PWA for Senandung v3.0.4 Remake (Network-First with ETag Revalidation)
-const CACHE_NAME = 'senandung-v3.0.4-remake';
+// Service Worker PWA for Senandung v3.1.0 Remake (Network-First with ETag Revalidation)
+const CACHE_NAME = 'senandung-v3.1.0-remake';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/app.js?v=3.0.4',
-  '/style.css?v=3.0.4'
+  '/app.js?v=3.1.0',
+  '/style.css?v=3.1.0'
 ];
 
 self.addEventListener('install', (event) => {
