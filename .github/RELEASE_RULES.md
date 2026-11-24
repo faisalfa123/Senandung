@@ -13,4 +13,5 @@ Setiap kali merilis versi baru (Canary / Nightly Dev / Beta Candidate / Stable),
    - Buat annotated tag: `git tag -a v<X.Y.Z> -m "Senandung v<X.Y.Z>"`
    - Push ke GitHub: `git push origin main --tags`
 4. **Publikasikan GitHub Release**:
-   - Jalankan `gh release create v<X.Y.Z> --title "Senandung v<X.Y.Z>" --notes-file RELEASE_NOTES.md` (tambahkan `--prerelease` untuk Nightly/Beta).
+   - Jalankan `gh release create v<X.Y.Z> --title "Senandung v<X.Y.Z>" --notes-file RELEASE_NOTES.md` (tambahkan `--prerelease` untuk Nightly/Beta jika belum siap jadi `Latest`).
+   - Pastikan `.github/workflows/build.yml` tidak meng-hardcode `tag_name` versi lama; gunakan `${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v<X.Y.Z>' }}` agar asset binary (`senandung-linux-arm64`, `checksums.txt`, dll.) otomatis terunggah ke rilis terbaru.
