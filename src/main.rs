@@ -92,7 +92,7 @@ async fn main() -> Result<()> {
         .route("/api/v1/health", get(health_handler))
         .route("/api/v1/search", get(search_handler))
         .route("/api/v1/download", post(enqueue_download_handler))
-        .route("/api/v1/downloads", get(api::list_downloads_handler))
+        .route("/api/v1/downloads", get(server::api::list_downloads_handler))
         .route("/api/v1/download/status/:id", get(download_status_handler))
         .route("/api/v1/tracks", get(list_tracks_handler))
         .route("/api/v1/playlists", get(list_playlists_handler))
