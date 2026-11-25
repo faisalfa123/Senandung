@@ -219,6 +219,13 @@ async fn execute_yt_dlp_download(job: &DownloadJob, target_dir: &PathBuf) -> Res
     };
 
     cmd.args([
+        "--force-ipv4",
+        "--socket-timeout",
+        "15",
+        "--retries",
+        "2",
+        "--extractor-args",
+        "youtube:player_client=android,web",
         "--no-playlist",
         "--no-warnings",
         "--no-check-certificates",
@@ -244,6 +251,13 @@ async fn execute_yt_dlp_download(job: &DownloadJob, target_dir: &PathBuf) -> Res
     // Fallback: if ffmpeg conversion failed inside sandbox, download bestaudio directly (m4a/opus)
     let mut fallback_cmd = Command::new(&yt_bin);
     fallback_cmd.args([
+        "--force-ipv4",
+        "--socket-timeout",
+        "15",
+        "--retries",
+        "2",
+        "--extractor-args",
+        "youtube:player_client=android,web",
         "--no-playlist",
         "--no-warnings",
         "--no-check-certificates",

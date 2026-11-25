@@ -432,6 +432,8 @@ input:disabled {
 }
 
 .ytm-chip {
+  flex-shrink: 0;
+  white-space: nowrap;
   min-height: 38px;
   padding: 0 14px;
   border-radius: 8px;
@@ -1093,6 +1095,37 @@ input:disabled {
    6. MOBILE YOUTUBE MUSIC LAYOUT (Matches image.png)
    ========================================================================== */
 @media (max-width: 767px) {
+  html {
+    font-size: 14px;
+  }
+
+  .ytm-topbar {
+    padding: 0 10px;
+    gap: 8px;
+  }
+
+  .ytm-topbar-left {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .ytm-topbar-center {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .ytm-topbar-right {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .ytm-chip {
+    font-size: 0.82rem;
+    padding: 0 12px;
+    min-height: 34px;
+  }
+
   .ytm-sidebar {
     position: fixed;
     left: 0;

@@ -494,6 +494,7 @@
           <div class="ytm-listeners-strip">
             <span class="ytm-listeners-label">Perangkat di Room (<span id="playlist-count-label">0 lagu</span>):</span>
             <ul class="ytm-listener-chips" id="connected-users-list"></ul>
+            <button type="button" id="btn-room-add-music" class="ytm-pill-btn" style="margin-left: auto;">+ Tambah Lagu</button>
           </div>
 
           <div id="playlist-empty-state" class="ytm-empty-card hidden">
@@ -828,6 +829,20 @@
           <div class="ytm-np-lyrics-box" id="np-modal-lyrics">Memuat lirik lagu...</div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal Tambah Lagu ke Room -->
+  <div id="room-add-music-modal" class="ytm-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="room-add-music-title">
+    <div class="ytm-modal-card">
+      <div class="ytm-modal-header">
+        <h3 id="room-add-music-title">Tambah Lagu ke Room</h3>
+        <button type="button" id="btn-close-room-add-music" class="ytm-icon-btn" aria-label="Tutup">&times;</button>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <input type="search" id="room-add-music-search" class="ytm-input" placeholder="Cari lagu di Library STB..." autocomplete="off">
+      </div>
+      <div id="room-add-music-list" style="max-height: 55vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;"></div>
     </div>
   </div>
 

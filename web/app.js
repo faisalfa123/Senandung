@@ -2598,6 +2598,73 @@
     }
   }
 
+  function initRoomAddMusicModal() {
+    const btnOpen = document.getElementById('btn-room-add-music');
+    const modal = document.getElementById('room-add-music-modal');
+    const btnClose = document.getElementById('btn-close-room-add-music');
+    const searchInput = document.getElementById('room-add-music-search');
+    const listEl = document.getElementById('room-add-music-list');
+    if (!btnOpen || !modal || !listEl) return;
+
+    const renderList = (query = '') => {
+      const q = query.trim().toLowerCase();
+      const tracks = (state.libraryTracks || []).filter((t) => {
+        if (!q) return true;
+        return (t.title || '').toLowerCase().includes(q) || (t.artist || '').toLowerCase().includes(q);
+      });
+      listEl.innerHTML = '';
+      if (tracks.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'ytm-muted-sm';
+        empty.textContent = 'Tidak ada lagu yang cocok.';
+        listEl.appendChild(empty);
+        return;
+      }
+      tracks.slice(0, 50).forEach((track) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.05);';
+        const info = document.createElement('div');
+        info.style.cssText = 'min-width:0;flex:1;';
+        const title = document.createElement('div');
+        title.style.cssText = 'font-size:0.9rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+        title.textContent = track.title || track.id;
+        const artist = document.createElement('div');
+        artist.className = 'ytm-muted-sm';
+        artist.textContent = track.artist || 'Unknown';
+        info.appendChild(title);
+        info.appendChild(artist);
+
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'ytm-pill-btn';
+        addBtn.textContent = '+ Room';
+        addBtn.addEventListener('click', () => {
+          sendWsMessage({ type: 'AddTrack', track_id: track.id });
+          addBtn.textContent = 'Ditambahkan';
+          addBtn.disabled = true;
+          showToast(`"${track.title || track.id}" ditambahkan ke Room`, 'success');
+        });
+
+        row.appendChild(info);
+        row.appendChild(addBtn);
+        listEl.appendChild(row);
+      });
+    };
+
+    btnOpen.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      renderList('');
+      modal.classList.remove('hidden');
+    });
+    if (btnClose) btnClose.addEventListener('click', () => modal.classList.add('hidden'));
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.add('hidden');
+    });
+    if (searchInput) {
+      searchInput.addEventListener('input', () => renderList(searchInput.value));
+    }
+  }
+
   function init() {
     registerServiceWorker();
     initDeviceProfileAndAvatar();
@@ -2609,6 +2676,7 @@
     bindAudioEvents();
     bindUiControls();
     initBetaEnhancements();
+    initRoomAddMusicModal();
     fetchServerHealth();
     fetchServerLibrary();
     connectWebSocket();

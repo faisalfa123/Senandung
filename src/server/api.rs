@@ -166,6 +166,13 @@ pub async fn enqueue_download_handler(
     ))
 }
 
+/// Lists all active/recent download jobs for the UI queue popover.
+pub async fn list_downloads_handler(State(state): State<AppState>) -> impl IntoResponse {
+    let downloads = state.downloads.read().await;
+    let jobs: Vec<_> = downloads.values().cloned().collect();
+    Json(jobs)
+}
+
 pub async fn download_status_handler(
     State(state): State<AppState>,
     Path(id): Path<String>,
