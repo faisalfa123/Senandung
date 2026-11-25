@@ -1,5 +1,5 @@
 // Service Worker PWA for Senandung v3.0.5 Remake (Network-First with ETag Revalidation)
-const CACHE_NAME = 'senandung-v3.0.5-remake';
+const CACHE_NAME = 'senandung-v3.2.3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
